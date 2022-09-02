@@ -34,11 +34,13 @@ export class RoomClient {
     socket.start();
     return socket;
   }
+
   _messageHandle({ type, data }: { type: string; data: any }) {}
 
   // host
   createRoom(roomId: string) {
     this._socket.sendData({ data: { room_id: roomId }, type: 'createRoom' });
+    this.joinRoom(roomId);
   }
   closeRoom(roomId: string) {
     this._socket.sendData({ data: { room_id: roomId }, type: 'closeRoom' });

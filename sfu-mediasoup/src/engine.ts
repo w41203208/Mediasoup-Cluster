@@ -41,6 +41,7 @@ export class ServerEngine {
 
     // https
     const server = this._runHttpsServer();
+
     //websocket
     this.webSocketConnection = new WSServer();
 
@@ -87,7 +88,7 @@ export class ServerEngine {
       this.mediasoupWorkers.push(worker);
     }
   }
-  private _getMediasoupWorkers() {
+  private _getMediasoupWorkers(): Worker {
     const worker = this.mediasoupWorkers![this._nextMediasoupWorkerIdx];
 
     if (++this._nextMediasoupWorkerIdx === this.mediasoupWorkers!.length) this._nextMediasoupWorkerIdx = 0;
@@ -95,27 +96,26 @@ export class ServerEngine {
     return worker;
   }
 
-  private _websocketHandler({
-    id,
-    type,
-    data,
-    ws,
-  }: {
-    id: string;
-    type: string;
-    data: Record<string, any>;
-    ws: WebSocket;
-  }) {
+  private _websocketHandler({ id, type, data, ws }: { id: string; type: string; data: Record<string, any> | any; ws: WebSocket }) {
     switch (type) {
       case 'createRouter':
-        console.log(data);
-        ws.send(
-          JSON.stringify({
-            id: id,
-            data: 'test',
-          })
-        );
+        this.createRouterHandler({ id, data, ws });
         break;
     }
+  }
+
+  private async createRouterHandler({ id, data, ws }: { id: string; data: Record<string, any> | any; ws: WebSocket }) {
+    const { mediaCodecs } = data;
+    const worker = this._getMediasoupWorkers();
+    const router = await worker.createRouter({ mediaCodecs });
+    this.routersList.set(router.id, router);
+    ws.send(
+      JSON.stringify({
+        id: id,
+        data: {
+          router_id: router.id,
+        },
+      })
+    );
   }
 }

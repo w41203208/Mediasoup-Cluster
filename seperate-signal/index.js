@@ -10,6 +10,8 @@ const cors = require('cors');
 const Peer = require('./src/peer');
 const Room = require('./src/room');
 const ServerSocket = require('./src/serversocket');
+const RecordServer = require('./src/recordServer');
+const RecordRouter = require('./src/recordRouter');
 
 // 要讓 Node 環境允許未授權的憑證，不然就是要使用以下方法，讓 Node 不會拒絕未授權憑證。
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -18,7 +20,7 @@ const sslOption = {
   key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
   cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
 };
-const EVENT = {
+const EVENT_FOR_CLIENT = {
   CREATE_ROOM: 'createRoom',
   JOIN_ROOM: 'joinRoom',
   GET_PRODUCERS: 'getProducers',
@@ -30,6 +32,10 @@ const EVENT = {
   GET_ROOM_INFO: 'getRoomInfo',
   LEAVE_ROOM: 'leaveRoom',
   CLOSE_ROOM: 'closeRoom',
+};
+
+const EVENT_FOR_SFU = {
+  CREATE_ROUTER: 'createRouter',
 };
 
 const roomList = new Map();
@@ -51,10 +57,8 @@ const ServerList = {
 
 const run = async () => {
   const app = runExpress();
-
   // https
   const server = runHttpsServer(app);
-
   //websocket to clinet
   runWebSocketServer(server);
 };
@@ -63,7 +67,6 @@ const runExpress = () => {
   const app = express();
   app.use(express.json());
   app.use(cors);
-
   return app;
 };
 
@@ -87,14 +90,17 @@ const runWebSocketServer = (server) => {
         case 'test':
           console.log(ws.id);
           break;
-        case EVENT.CREATE_ROOM:
+        case EVENT_FOR_CLIENT.CREATE_ROOM:
           handleCreateRoom(data.room_id, ws, wsServer);
           break;
-        case EVENT.CLOSE_ROOM:
+        case EVENT_FOR_CLIENT.JOIN_ROOM:
+          handleJoinRoom(data.room_id, ws);
+          break;
+        case EVENT_FOR_CLIENT.CLOSE_ROOM:
           roomList.delete(data.room_id);
           console.log(roomList);
           break;
-        case EVENT.LEAVE_ROOM:
+        case EVENT_FOR_CLIENT.LEAVE_ROOM:
           break;
       }
     });
@@ -106,31 +112,58 @@ const handleCreateRoom = (room_id, ws, wsServer) => {
   if (roomList.has(room_id)) {
     msg = 'already exists!';
   } else {
+    // 新增新的房間
     roomList.set(room_id, new Room(room_id, wsServer));
-    const ip_port = getMinimumServer();
 
-    let serverSocket;
-    if (serverSocketList.has(ip_port)) {
-      serverSocket = serverSocketList.get(ip_port);
-    }
     msg = 'Successfully create!';
-    serverSocket
-      .sendData({
-        data: { test: 'test' },
-        type: 'createRouter',
+    ws.send(
+      JSON.stringify({
+        type: EVENT_FOR_CLIENT.CREATE_ROOM,
+        data: {
+          msg: msg,
+        },
       })
-      .then((data) => {
-        ws.send(
-          JSON.stringify({
-            type: EVENT.CREATE_ROOM,
-            data: {
-              msg: msg,
-            },
-          })
-        );
-      });
+    );
   }
 };
+
+const handleJoinRoom = (room_id, ws) => {
+  let room;
+  if (roomList.has(room_id)) {
+    room = roomList.get(room_id);
+  }
+
+  // 選擇適合的 ServerSocket
+  let serverSocket;
+  const ip_port = getMinimumServer();
+  if (serverSocketList.has(ip_port)) {
+    serverSocket = serverSocketList.get(ip_port);
+  }
+
+  // new RecordServer 並加入 Room 中
+  const recordServer = new RecordServer(ip_port, serverSocket);
+
+  room.addRecordServer(recordServer);
+
+  serverSocket
+    .sendData({
+      data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs },
+      type: EVENT_FOR_SFU.CREATE_ROUTER,
+    })
+    .then((data) => {
+      const { router_id } = data;
+      recordServer.addReocrdRouter(new RecordRouter(router_id));
+      ws.send(
+        JSON.stringify({
+          type: EVENT_FOR_CLIENT.JOIN_ROOM,
+          data: {
+            room_id: room.id,
+          },
+        })
+      );
+    });
+};
+
 const getMinimumServer = () => {
   let s;
   let min = 99;

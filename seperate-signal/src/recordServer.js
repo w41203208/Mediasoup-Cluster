@@ -1,9 +1,11 @@
 module.exports = class RecordServer {
-  constructor(server_id, server_ip, server_port, socket) {
+  constructor(server_id, socket) {
     this.id = server_id;
-    this.ip = server_ip;
-    this.port = server_port;
     this.serverSocket = socket;
-    this.recordRouter = new Map();
+    this.recordRouters = new Map();
+  }
+
+  addReocrdRouter(recordRouter) {
+    this.recordRouters.set(recordRouter.id, recordRouter);
   }
 };
