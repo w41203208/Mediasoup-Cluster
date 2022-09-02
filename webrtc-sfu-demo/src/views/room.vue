@@ -1,11 +1,25 @@
 <template>
-  <h1>Room page</h1>
+  <div class="my-2 mx-3 py-1 px-2">
+    <button class="m-btn">Exit</button>
+    <button class="m-btn">OpenVideo</button>
+    <button class="m-btn">OpenAudio</button>
+    <button class="m-btn">CloseAudio</button>
+    <button class="m-btn">CloseAudio</button>
+  </div>
+  <div class="mx-3 p-5">
+    <h1 class="text-lg font-semibold">Local Media</h1>
+    <div id="localMeida"></div>
+  </div>
+  <div class="mx-3 p-5">
+    <h1 class="text-lg font-semibold">Remote Media</h1>
+    <div id="remoteMeida"></div>
+  </div>
 </template>
 
 <script lang="ts">
 import { RoomClient } from '@/services/roomClient';
 import { defineComponent, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 export default defineComponent({
   name: 'room',
@@ -46,3 +60,9 @@ export default defineComponent({
   },
 });
 </script>
+
+<style lang="scss" scoped>
+.m-btn {
+  @apply rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white;
+}
+</style>

@@ -1,11 +1,26 @@
 import {} from 'mediasoup-client';
 import { Socket } from '@/services/websocket';
+import { logger } from '@/util/logger';
 
 interface RoomClientOpeions {
   clientUID: string;
   roomId: string;
   clientRole: string;
 }
+
+const EVENT_FOR_CLIENT = {
+  CREATE_ROOM: 'createRoom',
+  JOIN_ROOM: 'joinRoom',
+  GET_PRODUCERS: 'getProducers',
+  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
+  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
+  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
+  PRODUCE: 'produce',
+  CONSUME: 'consume',
+  GET_ROOM_INFO: 'getRoomInfo',
+  LEAVE_ROOM: 'leaveRoom',
+  CLOSE_ROOM: 'closeRoom',
+};
 
 export class RoomClient {
   private _clientUID: string;
@@ -29,13 +44,21 @@ export class RoomClient {
     const socket = new Socket({ url });
     socket.on('Message', (msg: any) => {
       const { type, data } = msg;
+      logger({ text: 'Websocket message type: ', data: type });
+      logger({ text: 'Websocket message data: ', data: data });
       this._messageHandle({ type, data });
     });
     socket.start();
     return socket;
   }
 
-  _messageHandle({ type, data }: { type: string; data: any }) {}
+  private _messageHandle({ type, data }: { type: string; data: any }) {
+    switch (type) {
+      case EVENT_FOR_CLIENT.JOIN_ROOM:
+        console.log(`Join to room ${data.room_id}`);
+        break;
+    }
+  }
 
   // host
   createRoom(roomId: string) {

@@ -40,7 +40,7 @@ const EVENT_FOR_SFU = {
 
 const roomList = new Map();
 const serverSocketList = new Map();
-const ServerList = {
+const SFUServerList = {
   '192.168.1.98:8581': {
     current_people: 89,
   },
@@ -94,7 +94,7 @@ const runWebSocketServer = (server) => {
           handleCreateRoom(data.room_id, ws, wsServer);
           break;
         case EVENT_FOR_CLIENT.JOIN_ROOM:
-          handleJoinRoom(data.room_id, ws);
+          handleJoinRoom(data.room_id, ws, peer);
           break;
         case EVENT_FOR_CLIENT.CLOSE_ROOM:
           roomList.delete(data.room_id);
@@ -127,7 +127,7 @@ const handleCreateRoom = (room_id, ws, wsServer) => {
   }
 };
 
-const handleJoinRoom = (room_id, ws) => {
+const handleJoinRoom = (room_id, ws, peer) => {
   let room;
   if (roomList.has(room_id)) {
     room = roomList.get(room_id);
@@ -140,10 +140,14 @@ const handleJoinRoom = (room_id, ws) => {
     serverSocket = serverSocketList.get(ip_port);
   }
 
-  // new RecordServer 並加入 Room 中
+  // new RecordServer
   const recordServer = new RecordServer(ip_port, serverSocket);
 
+  // RecordServer 添加到 room
   room.addRecordServer(recordServer);
+
+  // Peer 添加到 room
+  room.addPeer(peer);
 
   serverSocket
     .sendData({
@@ -167,7 +171,7 @@ const handleJoinRoom = (room_id, ws) => {
 const getMinimumServer = () => {
   let s;
   let min = 99;
-  Object.entries(ServerList).forEach(([key, value]) => {
+  Object.entries(SFUServerList).forEach(([key, value]) => {
     if (value.current_people < 99 && min > value.current_people) {
       min = value.current_people;
       s = key;

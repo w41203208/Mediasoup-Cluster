@@ -36,9 +36,7 @@ export class Socket extends EventEmitter {
       let data;
       try {
         data = JSON.parse(event.data);
-        console.log('Server message received:', data);
       } catch (e) {
-        console.log('Invalid server message', event.data);
         return;
       }
       this.emit('Message', data);
