@@ -36,6 +36,8 @@ export default defineComponent({
         clientUID: roomInfoReactive.uid,
         roomId: roomInfoReactive.room,
         clientRole: roomInfoReactive.role,
+        isConsume: true,
+        isProduce: true,
       })
     );
 

@@ -16,6 +16,8 @@ const engineOptions = {
   },
   mediasoupOption: {
     numWorkers: config.MediasoupSetting.numWorkers,
+    workerSettings: config.MediasoupSetting.worker,
+    webRtcTransportSettings: config.MediasoupSetting.webRtcTransport,
   },
 };
 

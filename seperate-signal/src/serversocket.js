@@ -37,6 +37,7 @@ module.exports = class ServerSocket extends EventEmitter {
     const { id, data } = JSON.parse(event.data);
     const { resolve, reject } = this.in_flight_send.get(id);
     resolve(data);
+    this.in_flight_send.delete(id);
   }
 
   sendData({ data, type }) {

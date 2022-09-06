@@ -1,4 +1,4 @@
-import { RtpCodecCapability } from 'mediasoup/node/lib/types';
+import { RtpCodecCapability, WebRtcTransportConstructorOptions, Worker } from 'mediasoup/node/lib/types';
 
 interface sslOption {
   key: string;
@@ -15,6 +15,8 @@ interface ServerOptions {
 }
 interface MediasoupOptions {
   numWorkers: number;
+  workerSettings: Record<string, any>;
+  webRtcTransportSettings: Record<string, any>;
 }
 
 interface EngineOptions {
@@ -22,10 +24,4 @@ interface EngineOptions {
   mediasoupOption: MediasoupOptions;
 }
 
-export {
-  sslOption,
-  ServerOptions,
-  MediasoupOptions,
-  EngineOptions,
-  RouterOptions,
-};
+export { sslOption, ServerOptions, MediasoupOptions, EngineOptions, RouterOptions };

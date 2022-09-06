@@ -36,6 +36,9 @@ const EVENT_FOR_CLIENT = {
 
 const EVENT_FOR_SFU = {
   CREATE_ROUTER: 'createRouter',
+  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
+  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
+  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
 };
 
 const roomList = new Map();
@@ -85,16 +88,16 @@ const runWebSocketServer = (server) => {
     ws.id = (0, v4)();
     const peer = new Peer(ws.id, '', ws);
     peer.on('handle', (message) => {
-      const { type, data } = message;
+      const { id, type, data } = message;
       switch (type) {
         case 'test':
           console.log(ws.id);
           break;
         case EVENT_FOR_CLIENT.CREATE_ROOM:
-          handleCreateRoom(data.room_id, ws, wsServer);
+          handleCreateRoom(id, data, ws, wsServer);
           break;
         case EVENT_FOR_CLIENT.JOIN_ROOM:
-          handleJoinRoom(data.room_id, ws, peer);
+          handleJoinRoom(id, data, ws, peer);
           break;
         case EVENT_FOR_CLIENT.CLOSE_ROOM:
           roomList.delete(data.room_id);
@@ -102,32 +105,46 @@ const runWebSocketServer = (server) => {
           break;
         case EVENT_FOR_CLIENT.LEAVE_ROOM:
           break;
+        case EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES:
+          handleGetRouterRtpCapabilities(id, data, ws);
+          break;
+        case EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT:
+          handleCreateWebRTCTransport(id, data, ws);
+          break;
+        case EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT:
+          handleConnectWebRTCTranport(id, data, ws);
+          break;
       }
     });
   });
 };
 
-const handleCreateRoom = (room_id, ws, wsServer) => {
+const handleCreateRoom = (id, data, ws, wsServer) => {
+  const { room_id } = data;
+
   let msg;
   if (roomList.has(room_id)) {
     msg = 'already exists!';
   } else {
     // 新增新的房間
-    roomList.set(room_id, new Room(room_id, wsServer));
+    roomList.set(room_id, new Room(room_id, wsServer, config.MediasoupSetting.router.mediaCodecs));
+
+    /* update redis */
 
     msg = 'Successfully create!';
-    ws.send(
-      JSON.stringify({
-        type: EVENT_FOR_CLIENT.CREATE_ROOM,
-        data: {
-          msg: msg,
-        },
-      })
-    );
+    ws.sendData({
+      id,
+      type: EVENT_FOR_CLIENT.CREATE_ROOM,
+      data: {
+        msg: msg,
+      },
+    });
   }
 };
 
-const handleJoinRoom = (room_id, ws, peer) => {
+const handleJoinRoom = (id, data, ws, peer) => {
+  const { room_id } = data;
+
   let room;
   if (roomList.has(room_id)) {
     room = roomList.get(room_id);
@@ -140,14 +157,15 @@ const handleJoinRoom = (room_id, ws, peer) => {
     serverSocket = serverSocketList.get(ip_port);
   }
 
+  /* 不一定會用到 */
   // new RecordServer
-  const recordServer = new RecordServer(ip_port, serverSocket);
-
+  // const recordServer = new RecordServer(ip_port, serverSocket);
   // RecordServer 添加到 room
-  room.addRecordServer(recordServer);
+  // room.addRecordServer(recordServer);
 
   // Peer 添加到 room
   room.addPeer(peer);
+  peer.serverId = ip_port;
 
   serverSocket
     .sendData({
@@ -156,15 +174,89 @@ const handleJoinRoom = (room_id, ws, peer) => {
     })
     .then((data) => {
       const { router_id } = data;
-      recordServer.addReocrdRouter(new RecordRouter(router_id));
-      ws.send(
-        JSON.stringify({
-          type: EVENT_FOR_CLIENT.JOIN_ROOM,
-          data: {
-            room_id: room.id,
-          },
-        })
-      );
+      // recordServer.addReocrdRouter(new RecordRouter(router_id));
+      peer.routerId = router_id;
+
+      ws.sendData({
+        id,
+        type: EVENT_FOR_CLIENT.JOIN_ROOM,
+        data: {
+          room_id: room.id,
+        },
+      });
+    });
+};
+
+const handleGetRouterRtpCapabilities = (id, data, ws) => {
+  const { room_id } = data;
+
+  const peer = roomList.get(room_id).getPeer(ws.id);
+
+  let serverSocket;
+  if (!serverSocketList.has(peer.serverId)) {
+    return;
+  }
+  serverSocket = serverSocketList.get(peer.serverId);
+
+  serverSocket
+    .sendData({
+      data: {
+        router_id: peer.routerId,
+      },
+      type: EVENT_FOR_SFU.GET_ROUTER_RTPCAPABILITIES,
+    })
+    .then((data) => {
+      const { mediaCodecs } = data;
+      ws.sendData({ id, type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES, data: { codecs: mediaCodecs } });
+    });
+};
+
+const handleCreateWebRTCTransport = (id, data, ws) => {
+  const { room_id } = data;
+
+  const peer = roomList.get(room_id).getPeer(ws.id);
+
+  let serverSocket;
+  if (!serverSocketList.has(peer.serverId)) {
+    return;
+  }
+  serverSocket = serverSocketList.get(peer.serverId);
+
+  serverSocket
+    .sendData({
+      data: {
+        router_id: peer.routerId,
+      },
+      type: EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT,
+    })
+    .then((data) => {
+      peer.addTransport(data.transport_id);
+      ws.sendData({ id, type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT, data: data });
+    });
+};
+
+const handleConnectWebRTCTranport = (id, data, ws) => {
+  const { room_id, transport_id, dtlsParameters } = data;
+
+  const peer = roomList.get(room_id).getPeer(ws.id);
+
+  let serverSocket;
+  if (!serverSocketList.has(peer.serverId)) {
+    return;
+  }
+  serverSocket = serverSocketList.get(peer.serverId);
+
+  serverSocket
+    .sendData({
+      type: EVENT_FOR_SFU.CONNECT_WEBRTCTRANPORT,
+      data: {
+        router_id: peer.routerId,
+        transport_id: transport_id,
+        dtlsParameters: dtlsParameters,
+      },
+    })
+    .then((data) => {
+      ws.sendData({ id, type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT, data: data });
     });
 };
 
