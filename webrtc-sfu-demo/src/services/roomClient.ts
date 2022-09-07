@@ -52,6 +52,8 @@ export class RoomClient {
 
     this._sendTransport = null;
     this._recvTransport = null;
+
+    this._initSocketNotification();
   }
 
   get socket() {
@@ -61,33 +63,25 @@ export class RoomClient {
   private _createSocketConnection(): Socket {
     const url = 'wss://localhost:9999';
     const socket = new Socket({ url });
-    // socket.on('Message', (msg: any) => {
-    //   const { type, data } = msg;
-    //   logger({ text: 'Websocket message type: ', data: type });
-    //   logger({ text: 'Websocket message data: ', data: data });
-    //   this._messageHandle({ type, data });
-    // });
     socket.start();
     return socket;
   }
 
-  // private _messageHandle({ type, data }: { type: string; data: any }) {
-  //   switch (type) {
-  //     case EVENT_FOR_CLIENT.JOIN_ROOM:
-  //       console.log(`Join to room ${data.room_id}`);
-  //       break;
-  //   }
-  // }
+  private _initSocketNotification() {
+    this._socket.on('notification', (message: any) => {
+      console.log(message);
+    });
+  }
 
   // host
   createRoom(roomId: string) {
-    this._socket.sendData({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CREATE_ROOM }).then(({ data }) => {
+    this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CREATE_ROOM }).then(({ data }) => {
       logger({ text: 'Create Room', data: data.msg });
       this.joinRoom(roomId);
     });
   }
   closeRoom(roomId: string) {
-    this._socket.sendData({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CLOSE_ROOM });
+    this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CLOSE_ROOM });
     this._socket.close();
   }
 
@@ -95,7 +89,7 @@ export class RoomClient {
   async joinRoom(roomId: string) {
     const {
       data: { room_id },
-    } = await this._socket.sendData({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.JOIN_ROOM });
+    } = await this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.JOIN_ROOM });
 
     logger({ text: `User ${this._clientUID} join room ${room_id}`, data: room_id });
     // get router RtpCapabilities
@@ -106,17 +100,14 @@ export class RoomClient {
     // init transport ( consumer and produce )
     await this.initTransports(this._device);
 
-    const {
-      data: { remoteProducersList },
-    } = await this._socket.sendData({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
-    console.log(remoteProducersList);
+    this._socket.notify({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
   }
 
   leaveRoom() {}
 
   getRouterRtpCapabilities(roomId: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      this._socket.sendData({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES }).then(({ data }) => {
+      this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES }).then(({ data }) => {
         resolve(data.codecs);
       });
     });
@@ -125,7 +116,7 @@ export class RoomClient {
   async initTransports(device: Device) {
     // init sendTransport
     if (this._isProduce) {
-      const { data: transportInfo } = await this._socket.sendData({
+      const { data: transportInfo } = await this._socket.request({
         data: {
           room_id: this._roomId,
         },
@@ -141,7 +132,7 @@ export class RoomClient {
       /* Register sendTransport listen event */
       this._sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
-          const { data } = await this._socket.sendData({
+          const { data } = await this._socket.request({
             data: { room_id: this._roomId, transport_id: this._sendTransport?.id, dtlsParameters },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
           });
@@ -153,7 +144,7 @@ export class RoomClient {
       });
       this._sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
         try {
-          const { data } = await this._socket.sendData({
+          const { data } = await this._socket.request({
             data: { room_id: this._roomId, transport_id: this._sendTransport?.id, kind, rtpParameters, appData },
             type: EVENT_FOR_CLIENT.PRODUCE,
           });
@@ -166,7 +157,7 @@ export class RoomClient {
 
     // init recvTransport
     if (this._isConsume) {
-      const { data: transportInfo } = await this._socket.sendData({
+      const { data: transportInfo } = await this._socket.request({
         data: {
           room_id: this._roomId,
         },
@@ -182,7 +173,7 @@ export class RoomClient {
       /* Register sendTransport listen event */
       this._recvTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
-          const { data } = await this._socket.sendData({
+          const { data } = await this._socket.request({
             data: { room_id: this._roomId, transport_id: this._recvTransport?.id, dtlsParameters },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
           });

@@ -36,11 +36,32 @@ module.exports = class Peer extends EventEmitter {
   peerHandleWSMessage() {
     this.ws.on('message', (message) => {
       const jsonMessage = JSON.parse(message);
-      this.emit('handle', jsonMessage);
+      const { messageType, ...rest } = jsonMessage;
+      switch (messageType) {
+        case 'request':
+          this._handlerRequest(rest);
+          break;
+        case 'response':
+          this._handlerResponse(rest);
+          break;
+        case 'notification':
+          this._handlerNotification(rest);
+          break;
+      }
     });
     this.ws.sendData = (data) => {
       this.ws.send(JSON.stringify({ ...data }));
     };
+  }
+  _handlerRequest(request) {
+    this.emit('request', request, (sendData) => {
+      sendData.messageType = 'response';
+      this.ws.sendData(sendData);
+    });
+  }
+  _handlerResponse() {}
+  _handlerNotification(notification) {
+    this.emit('notification', notification);
   }
 
   addTransport(id) {

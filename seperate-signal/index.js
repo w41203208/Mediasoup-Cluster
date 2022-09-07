@@ -87,17 +87,18 @@ const runWebSocketServer = (server) => {
   wsServer.on('connection', (ws) => {
     ws.id = (0, v4)();
     const peer = new Peer(ws.id, '', ws);
-    peer.on('handle', (message) => {
+
+    peer.on('request', (message, response) => {
       const { id, type, data } = message;
       switch (type) {
         case 'test':
           console.log(ws.id);
           break;
         case EVENT_FOR_CLIENT.CREATE_ROOM:
-          handleCreateRoom(id, data, ws, wsServer);
+          handleCreateRoom(id, data, ws, wsServer, response);
           break;
         case EVENT_FOR_CLIENT.JOIN_ROOM:
-          handleJoinRoom(id, data, ws, peer);
+          handleJoinRoom(id, data, ws, peer, response);
           break;
         case EVENT_FOR_CLIENT.CLOSE_ROOM:
           roomList.delete(data.room_id);
@@ -106,20 +107,29 @@ const runWebSocketServer = (server) => {
         case EVENT_FOR_CLIENT.LEAVE_ROOM:
           break;
         case EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES:
-          handleGetRouterRtpCapabilities(id, data, ws);
+          handleGetRouterRtpCapabilities(id, data, ws, response);
           break;
         case EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT:
-          handleCreateWebRTCTransport(id, data, ws);
+          handleCreateWebRTCTransport(id, data, ws, response);
           break;
         case EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT:
-          handleConnectWebRTCTranport(id, data, ws);
+          handleConnectWebRTCTranport(id, data, ws, response);
           break;
       }
+    });
+
+    peer.on('notification', (message) => {
+      const { id, type, data } = message;
+      console.log(message);
+      // switch (type) {
+      //   case EVENT_FOR_CLIENT.GET_PRODUCERS:
+      //     handleGetProducers()
+      // }
     });
   });
 };
 
-const handleCreateRoom = (id, data, ws, wsServer) => {
+const handleCreateRoom = (id, data, ws, wsServer, response) => {
   const { room_id } = data;
 
   let msg;
@@ -132,7 +142,7 @@ const handleCreateRoom = (id, data, ws, wsServer) => {
     /* update redis */
 
     msg = 'Successfully create!';
-    ws.sendData({
+    response({
       id,
       type: EVENT_FOR_CLIENT.CREATE_ROOM,
       data: {
@@ -142,7 +152,7 @@ const handleCreateRoom = (id, data, ws, wsServer) => {
   }
 };
 
-const handleJoinRoom = (id, data, ws, peer) => {
+const handleJoinRoom = (id, data, ws, peer, response) => {
   const { room_id } = data;
 
   let room;
@@ -177,7 +187,7 @@ const handleJoinRoom = (id, data, ws, peer) => {
       // recordServer.addReocrdRouter(new RecordRouter(router_id));
       peer.routerId = router_id;
 
-      ws.sendData({
+      response({
         id,
         type: EVENT_FOR_CLIENT.JOIN_ROOM,
         data: {
@@ -187,7 +197,7 @@ const handleJoinRoom = (id, data, ws, peer) => {
     });
 };
 
-const handleGetRouterRtpCapabilities = (id, data, ws) => {
+const handleGetRouterRtpCapabilities = (id, data, ws, response) => {
   const { room_id } = data;
 
   const peer = roomList.get(room_id).getPeer(ws.id);
@@ -207,11 +217,11 @@ const handleGetRouterRtpCapabilities = (id, data, ws) => {
     })
     .then((data) => {
       const { mediaCodecs } = data;
-      ws.sendData({ id, type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES, data: { codecs: mediaCodecs } });
+      response({ id, type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES, data: { codecs: mediaCodecs } });
     });
 };
 
-const handleCreateWebRTCTransport = (id, data, ws) => {
+const handleCreateWebRTCTransport = (id, data, ws, response) => {
   const { room_id } = data;
 
   const peer = roomList.get(room_id).getPeer(ws.id);
@@ -231,11 +241,11 @@ const handleCreateWebRTCTransport = (id, data, ws) => {
     })
     .then((data) => {
       peer.addTransport(data.transport_id);
-      ws.sendData({ id, type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT, data: data });
+      response({ id, type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT, data: data });
     });
 };
 
-const handleConnectWebRTCTranport = (id, data, ws) => {
+const handleConnectWebRTCTranport = (id, data, ws, response) => {
   const { room_id, transport_id, dtlsParameters } = data;
 
   const peer = roomList.get(room_id).getPeer(ws.id);
@@ -256,7 +266,7 @@ const handleConnectWebRTCTranport = (id, data, ws) => {
       },
     })
     .then((data) => {
-      ws.sendData({ id, type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT, data: data });
+      response({ id, type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT, data: data });
     });
 };
 

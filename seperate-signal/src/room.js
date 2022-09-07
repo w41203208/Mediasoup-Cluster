@@ -13,6 +13,7 @@ module.exports = class Room {
   addPeer(peer) {
     this.peers.set(peer.id, peer);
   }
+
   // addRecordServer(recordServer) {
   //   this.recordServers.set(recordServer.id, recordServer);
   // }

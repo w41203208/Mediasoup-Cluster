@@ -36,37 +36,55 @@ export class Socket extends EventEmitter {
       console.log('ws is connecting!');
       this.emit('connecting');
     };
-    this._socket.onmessage = this._handleOnMessage.bind(this);
-    // this._socket.onmessage = (event: any) => {
-    //   let data;
-    //   try {
-    //     data = JSON.parse(event.data);
-    //   } catch (e) {
-    //     return;
-    //   }
-    //   this.emit('Message', data);
-    // };
+    // this._socket.onmessage = this._handleOnMessage.bind(this);
+    this._socket.onmessage = (event: any) => {
+      const data = JSON.parse(event.data);
+      const { messageType, ...rest } = data;
+      switch (messageType) {
+        case 'request':
+          this._handlerRequest(rest);
+          break;
+        case 'response':
+          this._handlerResponse(rest);
+          break;
+        case 'notification':
+          this._handlerNotification(rest);
+          break;
+      }
+    };
   }
-
-  _handleOnMessage(e: any) {
-    let _data;
-    try {
-      _data = JSON.parse(e.data);
-    } catch (e) {
-      return;
-    }
+  close() {
+    this._socket?.close();
+  }
+  _handlerRequest(_data: any) {}
+  _handlerResponse(_data: any) {
     const { id, type, data } = _data;
     const { resolve, reject } = this._in_flight_send?.get(id)!;
     resolve({ type, data });
     this._in_flight_send?.delete(id);
   }
-
-  close() {
-    this._socket?.close();
+  _handlerNotification(_data: any) {
+    this.emit('notification', _data);
   }
 
-  sendData(sendData: SendData): Promise<any> {
+  // sendData(sendData: SendData): Promise<any> {
+  //   const id = ((sendData as any).id = v4());
+  //   let resolve, reject;
+  //   const promise = new Promise((res, rej) => {
+  //     resolve = res;
+  //     reject = rej;
+  //   });
+  //   this._in_flight_send?.set(id, { resolve, reject });
+  //   this._socket?.send(JSON.stringify(sendData));
+  //   return promise;
+  // }
+  notify(sendData: SendData): void {
+    (sendData as any).messageType = 'notification';
+    this._socket?.send(JSON.stringify(sendData));
+  }
+  request(sendData: SendData): Promise<any> {
     const id = ((sendData as any).id = v4());
+    (sendData as any).messageType = 'request';
     let resolve, reject;
     const promise = new Promise((res, rej) => {
       resolve = res;
