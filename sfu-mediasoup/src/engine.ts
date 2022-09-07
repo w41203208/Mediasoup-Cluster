@@ -2,7 +2,7 @@ import { Server, createServer } from 'https';
 import { WebSocket } from 'ws';
 import { WSServer } from './websocket/index';
 import { Application, Request, Response } from 'express';
-import { Worker, Router, Transport } from 'mediasoup/node/lib/types';
+import { Worker, Router, Transport, Consumer, Producer } from 'mediasoup/node/lib/types';
 import { Logger } from './util/logger';
 import { sslOption, EngineOptions, RouterOptions } from './type.engine';
 import { v4 } from 'uuid';
@@ -16,6 +16,7 @@ const EVENT_FOR_SFU = {
   GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
   CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
   CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
+  CREATE_CONSUME: 'createConsume',
 };
 
 interface WebSocketHandler {
@@ -46,6 +47,8 @@ export class ServerEngine {
   private logger: Logger = new Logger();
   private _routersList: Map<string, Router>;
   private _transportList: Map<string, Transport>;
+  private _consumerList: Map<string, Consumer>;
+  private _producerList: Map<string, Producer>;
 
   constructor({ serverOption, mediasoupOption }: EngineOptions) {
     // server setting
@@ -60,6 +63,8 @@ export class ServerEngine {
     this._workerSettings = workerSettings;
     this._routersList = new Map();
     this._transportList = new Map();
+    this._consumerList = new Map();
+    this._producerList = new Map();
   }
   public async run() {
     await this._runMediasoupWorkers();
@@ -138,6 +143,9 @@ export class ServerEngine {
       case EVENT_FOR_SFU.CONNECT_WEBRTCTRANPORT:
         this.connectWebRTCTranport({ id, data, ws });
         break;
+      case EVENT_FOR_SFU.CREATE_CONSUME:
+        this.createConsume({ id, data, ws });
+        break;
     }
   }
 
@@ -172,7 +180,7 @@ export class ServerEngine {
   }
 
   private async createWebRTCTransport({ id, data, ws }: Handler) {
-    const { router_id } = data;
+    const { router_id, producing, consuming } = data;
 
     if (!this._routersList.has(router_id)) {
       return;
@@ -180,32 +188,40 @@ export class ServerEngine {
     const router = this._routersList.get(router_id);
 
     const { maxIncomingBitrate, initialAvailableOutgoingBitrate, listenIps } = this._webRTCTransportSettings;
-    const transport = await router?.createWebRtcTransport({
+    const transport = await router!.createWebRtcTransport({
       listenIps: listenIps,
       enableUdp: true,
       enableTcp: true,
       preferUdp: true,
       initialAvailableOutgoingBitrate,
+      appData: {
+        producing: producing,
+        consuming: consuming,
+      },
     });
+
     if (maxIncomingBitrate) {
       try {
-        await transport!.setMaxIncomingBitrate(maxIncomingBitrate);
+        await transport.setMaxIncomingBitrate(maxIncomingBitrate);
       } catch (error) {
         console.log(error);
       }
     }
     /* Register transport listen event */
-    transport!.on('@close', () => {});
-    transport!.on('dtlsstatechange', () => {});
+    transport.on('@close', () => {});
+    transport.on('dtlsstatechange', () => {});
+
+    this._transportList.set(transport.id, transport);
 
     ws.send(
       JSON.stringify({
         id: id,
         data: {
-          transport_id: transport!.id,
-          iceParameters: transport!.iceParameters,
-          iceCandidates: transport!.iceCandidates,
-          dtlsParameters: transport!.dtlsParameters,
+          transport_id: transport.id,
+          iceParameters: transport.iceParameters,
+          iceCandidates: transport.iceCandidates,
+          dtlsParameters: transport.dtlsParameters,
+          transportType: transport.appData.consuming === true ? 'consuming' : 'producing',
         },
       })
     );
@@ -222,6 +238,52 @@ export class ServerEngine {
       JSON.stringify({
         id: id,
         data: 'Successfully',
+      })
+    );
+  }
+
+  private async createConsume({ id, data, ws }: Handler) {
+    const { router_id, tranport_id, rtpCapabilities, producers } = data;
+    const router = this._routersList.get(router_id);
+    const transport = this._transportList.get(tranport_id);
+
+    if (router === undefined || transport === undefined) {
+      return;
+    }
+
+    let new_consumerList = {};
+    for (let { producer } of producers) {
+      if (!router.canConsume({ producerId: producer.id, rtpCapabilities })) {
+        console.error('can not consume');
+        return;
+      }
+      const consumer = await transport.consume({
+        producerId: producer.id,
+        rtpCapabilities: rtpCapabilities,
+      });
+
+      /* Register Consumer listen event */
+      consumer.on('transportclose', () => {
+        console.log('Consumer transport close', { consumer_id: `${consumer.id}` });
+        this._consumerList.delete(consumer.id);
+      });
+
+      this._consumerList.set(consumer.id, consumer);
+
+      (new_consumerList as any)[consumer.id] = {
+        id: consumer.id,
+        producer_id: producer.id,
+        kind: consumer.kind,
+        rtpParameters: consumer.rtpParameters,
+      };
+    }
+
+    ws.send(
+      JSON.stringify({
+        id: id,
+        data: {
+          new_consumerList: new_consumerList,
+        },
       })
     );
   }

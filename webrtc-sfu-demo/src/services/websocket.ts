@@ -57,31 +57,23 @@ export class Socket extends EventEmitter {
     this._socket?.close();
   }
   _handlerRequest(_data: any) {}
+
   _handlerResponse(_data: any) {
     const { id, type, data } = _data;
     const { resolve, reject } = this._in_flight_send?.get(id)!;
     resolve({ type, data });
     this._in_flight_send?.delete(id);
   }
+
   _handlerNotification(_data: any) {
     this.emit('notification', _data);
   }
 
-  // sendData(sendData: SendData): Promise<any> {
-  //   const id = ((sendData as any).id = v4());
-  //   let resolve, reject;
-  //   const promise = new Promise((res, rej) => {
-  //     resolve = res;
-  //     reject = rej;
-  //   });
-  //   this._in_flight_send?.set(id, { resolve, reject });
-  //   this._socket?.send(JSON.stringify(sendData));
-  //   return promise;
-  // }
   notify(sendData: SendData): void {
     (sendData as any).messageType = 'notification';
     this._socket?.send(JSON.stringify(sendData));
   }
+
   request(sendData: SendData): Promise<any> {
     const id = ((sendData as any).id = v4());
     (sendData as any).messageType = 'request';

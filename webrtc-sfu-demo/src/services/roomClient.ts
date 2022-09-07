@@ -25,6 +25,10 @@ const EVENT_FOR_CLIENT = {
   CLOSE_ROOM: 'closeRoom',
 };
 
+const EVENT_SERVER_TO_CLIENT = {
+  NEW_CONSUMER: 'newConsumer',
+};
+
 export class RoomClient {
   private _clientUID: string;
   private _clientRole: string;
@@ -69,7 +73,15 @@ export class RoomClient {
 
   private _initSocketNotification() {
     this._socket.on('notification', (message: any) => {
-      console.log(message);
+      const { type, data } = message;
+      console.log(data);
+      switch (type) {
+        case EVENT_SERVER_TO_CLIENT.NEW_CONSUMER:
+          for (let { producer_id } of data.producers) {
+            this.consume(producer_id);
+          }
+          break;
+      }
     });
   }
 
@@ -100,7 +112,7 @@ export class RoomClient {
     // init transport ( consumer and produce )
     await this.initTransports(this._device);
 
-    this._socket.notify({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
+    this._socket.notify({ data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
   }
 
   leaveRoom() {}
@@ -119,6 +131,8 @@ export class RoomClient {
       const { data: transportInfo } = await this._socket.request({
         data: {
           room_id: this._roomId,
+          producing: true,
+          consuming: false,
         },
         type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
       });
@@ -160,6 +174,8 @@ export class RoomClient {
       const { data: transportInfo } = await this._socket.request({
         data: {
           room_id: this._roomId,
+          producing: false,
+          consuming: true,
         },
         type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
       });
@@ -191,4 +207,6 @@ export class RoomClient {
       // this.enableWebcam();
     }
   }
+
+  consume(id: string) {}
 }

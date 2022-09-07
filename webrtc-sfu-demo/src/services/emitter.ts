@@ -20,12 +20,12 @@ export class EventEmitter {
       listeners[event] = handler;
     }
   }
-  emit(event: string, data: any = null) {
+  emit(event: string, ...args: any) {
     if (this._listeners === undefined) return;
     const handlers = this._listeners[event];
     if (handlers && handlers.length !== 0) {
       for (var i = 0; i < handlers.length; i++) {
-        handlers[i].call(this, data);
+        handlers[i].call(this, ...args);
       }
     }
   }

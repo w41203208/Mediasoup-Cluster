@@ -3,7 +3,7 @@ module.exports = class Room {
     this._mediaCodecs = mediaCodecs;
     this.id = room_id;
     this.wsServer = ws;
-    // this.recordServers = new Map();
+    this.recordServers = new Map();
     this.peers = new Map();
   }
   getPeer(id) {
@@ -14,7 +14,28 @@ module.exports = class Room {
     this.peers.set(peer.id, peer);
   }
 
-  // addRecordServer(recordServer) {
-  //   this.recordServers.set(recordServer.id, recordServer);
+  getOtherPeerProducers(id) {
+    let producerList = [];
+    this.peers.forEach((peer) => {
+      if (peer.id !== id) {
+        peer.producers.forEach((producer) => {
+          producerList.push({
+            id: producer.id,
+          });
+        });
+      }
+    });
+    return producerList;
+  }
+
+  getRecordServer(id) {
+    return this.recordServers.get(id);
+  }
+  addRecordServer(recordServer) {
+    this.recordServers.set(recordServer.id, recordServer);
+  }
+
+  // consume({ consumerPeer, producer }) {
+  //   consumerPeer.createConsumer(producer);
   // }
 };
