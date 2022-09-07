@@ -11,10 +11,7 @@ const Peer = require('./src/peer');
 const Room = require('./src/room');
 const ServerSocket = require('./src/serversocket');
 const RecordServer = require('./src/recordServer');
-const RecordRouter = require('./src/recordRouter');
 
-// 要讓 Node 環境允許未授權的憑證，不然就是要使用以下方法，讓 Node 不會拒絕未授權憑證。
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // ssl option
 const sslOption = {
   key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
@@ -66,6 +63,7 @@ const run = async () => {
   const app = runExpress();
   // https
   const server = runHttpsServer(app);
+
   //websocket to clinet
   runWebSocketServer(server);
 };
@@ -73,7 +71,11 @@ const run = async () => {
 const runExpress = () => {
   const app = express();
   app.use(express.json());
-  app.use(cors);
+  app.use(cors());
+
+  app.get('/index', (req, res) => {
+    res.send('testtest');
+  });
   return app;
 };
 

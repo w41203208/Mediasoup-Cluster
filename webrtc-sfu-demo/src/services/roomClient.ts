@@ -1,5 +1,5 @@
 import * as mc from 'mediasoup-client';
-import { Device, Transport } from 'mediasoup-client/lib/types';
+import { Device, Producer, Transport } from 'mediasoup-client/lib/types';
 import { Socket } from '@/services/websocket';
 import { logger } from '@/util/logger';
 
@@ -10,6 +10,12 @@ interface RoomClientOpeions {
   isProduce: boolean;
   isConsume: boolean;
 }
+
+const mediaType = {
+  audio: 'audio',
+  video: 'video',
+  screen: 'screen',
+};
 
 const EVENT_FOR_CLIENT = {
   CREATE_ROOM: 'createRoom',
@@ -43,6 +49,8 @@ export class RoomClient {
 
   private _sendTransport: null | Transport;
   private _recvTransport: null | Transport;
+  private _producers: Map<string, Producer>;
+  private _consumers: Map<string, Producer>;
 
   constructor({ clientUID, roomId, clientRole, isProduce = true, isConsume = true }: RoomClientOpeions) {
     this._clientUID = clientUID;
@@ -56,6 +64,8 @@ export class RoomClient {
 
     this._sendTransport = null;
     this._recvTransport = null;
+    this._producers = new Map();
+    this._consumers = new Map();
 
     this._initSocketNotification();
   }
@@ -205,6 +215,32 @@ export class RoomClient {
     if (this._isProduce) {
       // this.enableMic();
       // this.enableWebcam();
+    }
+  }
+  produce({ type, deviceId = null }: { type: string; deviceId: string | null }) {
+    switch (type) {
+      case mediaType.video:
+        this.enableWebCam({ deviceId, constraints: null });
+        break;
+    }
+  }
+
+  async enableWebCam({ deviceId = null, constraints = null }: { deviceId: string | null; constraints: MediaTrackConstraints | null }) {
+    let stream;
+    let track;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true });
+      track = stream.getTracks()[0];
+      if (constraints) {
+        await track.applyConstraints(constraints);
+      }
+
+      /* 可以添將一些屬性 codecOptions、encodings */
+      const producer = await this._sendTransport!.produce({ track });
+
+      this._producers.set(producer!.id, producer);
+    } catch (error: any) {
+      console.log(error);
     }
   }
 

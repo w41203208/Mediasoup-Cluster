@@ -1,9 +1,9 @@
 <template>
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn">Exit</button>
-    <button class="m-btn">OpenVideo</button>
+    <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
     <button class="m-btn">OpenAudio</button>
-    <button class="m-btn">CloseAudio</button>
+    <button class="m-btn">CloseVideo</button>
     <button class="m-btn">CloseAudio</button>
   </div>
   <div class="mx-3 p-5">
@@ -41,6 +41,10 @@ export default defineComponent({
       })
     );
 
+    const handleClickEvtShare = (type: string) => {
+      rcRef.value.produce({ type: type, deviceId: null });
+    };
+
     onMounted(() => {
       const rc = rcRef.value;
       rc.socket.on('connecting', () => {
@@ -58,6 +62,7 @@ export default defineComponent({
 
     return {
       roomInfoReactive,
+      handleClickEvtShare,
     };
   },
 });

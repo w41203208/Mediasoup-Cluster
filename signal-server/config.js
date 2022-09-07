@@ -1,3 +1,5 @@
+// // 要讓 Node 環境允許未授權的憑證，不然就是要使用以下方法，讓 Node 不會拒絕未授權憑證。
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 module.exports = {
   ServerSetting: {
     listenIp: '127.0.0.1',
@@ -26,3 +28,5 @@ module.exports = {
     },
   },
 };
+
+const keygenerateurl = 'http://n.sfs.tw/content/index/11830';
