@@ -121,6 +121,9 @@ const runWebSocketServer = (server) => {
         case EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT:
           handleConnectWebRTCTranport(id, data, peer, response);
           break;
+        case EVENT_FOR_CLIENT.PRODUCE:
+          handleProduce(id, data, peer, response);
+          break;
       }
     });
 
@@ -269,6 +272,16 @@ const handleConnectWebRTCTranport = (id, data, peer, response) => {
     .then((data) => {
       response({ id, type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT, data: data });
     });
+};
+
+const handleProduce = (id, data, peer, response) => {
+  const { room_id, transport_id, kind, rtpParameters } = data;
+
+  const room = roomList.get(room_id);
+
+  const recordServer = room.getRecordServer(peer.serverId);
+
+  recordServer.severSocket.sendData({});
 };
 
 /********************/

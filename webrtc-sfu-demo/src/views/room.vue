@@ -8,11 +8,11 @@
   </div>
   <div class="mx-3 p-5">
     <h1 class="text-lg font-semibold">Local Media</h1>
-    <div id="localMeida"></div>
+    <div id="localMeida" ref="localMediaRef"></div>
   </div>
   <div class="mx-3 p-5">
     <h1 class="text-lg font-semibold">Remote Media</h1>
-    <div id="remoteMeida"></div>
+    <div id="remoteMeida" ref="remoteMediaRef"></div>
   </div>
 </template>
 
@@ -40,6 +40,8 @@ export default defineComponent({
         isProduce: true,
       })
     );
+    const localMediaRef = ref<any>(null);
+    const remoteMediaRef = ref<any>(null);
 
     const handleClickEvtShare = (type: string) => {
       rcRef.value.produce({ type: type, deviceId: null });
@@ -47,6 +49,8 @@ export default defineComponent({
 
     onMounted(() => {
       const rc = rcRef.value;
+      rc.localMediaContainer = localMediaRef.value;
+      rc.remoteMediaContainer = remoteMediaRef.value;
       rc.socket.on('connecting', () => {
         if (roomInfoReactive.role === 'host') {
           rc.createRoom(roomInfoReactive.room);
@@ -61,6 +65,7 @@ export default defineComponent({
     });
 
     return {
+      localMediaRef,
       roomInfoReactive,
       handleClickEvtShare,
     };

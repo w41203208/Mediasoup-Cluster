@@ -207,9 +207,12 @@ export class ServerEngine {
         console.log(error);
       }
     }
+
     /* Register transport listen event */
     transport.on('@close', () => {});
     transport.on('dtlsstatechange', () => {});
+
+    /* Register transport listen event */
 
     this._transportList.set(transport.id, transport);
 
@@ -267,6 +270,8 @@ export class ServerEngine {
         console.log('Consumer transport close', { consumer_id: `${consumer.id}` });
         this._consumerList.delete(consumer.id);
       });
+
+      /* Register Consumer listen event */
 
       this._consumerList.set(consumer.id, consumer);
 

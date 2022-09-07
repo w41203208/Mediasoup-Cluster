@@ -39,6 +39,8 @@ export class RoomClient {
   private _clientUID: string;
   private _clientRole: string;
   private _roomId: string;
+  private _localMediaContainer: HTMLElement | null;
+  private _remoteMediaContainer: HTMLElement | null;
   private _socket: Socket;
 
   private _isConsume: boolean;
@@ -56,6 +58,8 @@ export class RoomClient {
     this._clientUID = clientUID;
     this._clientRole = clientRole;
     this._roomId = roomId;
+    this._localMediaContainer = null;
+    this._remoteMediaContainer = null;
     this._socket = this._createSocketConnection();
 
     this._isConsume = isConsume;
@@ -70,12 +74,20 @@ export class RoomClient {
     this._initSocketNotification();
   }
 
+  set localMediaContainer(el: HTMLElement) {
+    this._localMediaContainer = el;
+  }
+
+  set remoteMediaContainer(el: HTMLElement) {
+    this._remoteMediaContainer = el;
+  }
+
   get socket() {
     return this._socket;
   }
 
   private _createSocketConnection(): Socket {
-    const url = 'wss://localhost:9999';
+    const url = 'wss://192.168.1.98:9999';
     const socket = new Socket({ url });
     socket.start();
     return socket;
@@ -153,6 +165,7 @@ export class RoomClient {
         iceCandidates,
         dtlsParameters,
       });
+      console.log(this._sendTransport);
       /* Register sendTransport listen event */
       this._sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
@@ -160,7 +173,6 @@ export class RoomClient {
             data: { room_id: this._roomId, transport_id: this._sendTransport?.id, dtlsParameters },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
           });
-
           callback();
         } catch (error) {
           errback(error as Error);
@@ -234,11 +246,38 @@ export class RoomClient {
       if (constraints) {
         await track.applyConstraints(constraints);
       }
-
-      /* 可以添將一些屬性 codecOptions、encodings */
-      const producer = await this._sendTransport!.produce({ track });
-
+      const params = {
+        track,
+        // encodings: [
+        //   {
+        //     rid: 'r0',
+        //     maxBitrate: 100000,
+        //     //scaleResolutionDownBy: 10.0,
+        //     scalabilityMode: 'S1T3',
+        //   },
+        //   {
+        //     rid: 'r1',
+        //     maxBitrate: 300000,
+        //     scalabilityMode: 'S1T3',
+        //   },
+        //   {
+        //     rid: 'r2',
+        //     maxBitrate: 900000,
+        //     scalabilityMode: 'S1T3',
+        //   },
+        // ],
+        // codecOptions: {
+        //   videoGoogleStartBitrate: 1000,
+        // },
+      };
+      //可以添將一些屬性 codecOptions、encodings
+      const producer = await this._sendTransport!.produce(params);
       this._producers.set(producer!.id, producer);
+      /* 之後會區分開開啟與添加畫面的方法 */
+      const elem = document.createElement('video');
+      elem.srcObject = stream;
+      elem.autoplay = true;
+      this._localMediaContainer?.appendChild(elem);
     } catch (error: any) {
       console.log(error);
     }
