@@ -215,6 +215,7 @@ export class RoomClient {
             data: { room_id: this._roomId, transport_id: this._recvTransport?.id, dtlsParameters },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
           });
+          console.log(data);
 
           callback();
         } catch (error) {
@@ -301,5 +302,21 @@ export class RoomClient {
       rtpParameters,
     });
     this._consumers.set(consumer.id, consumer);
+
+    const stream = new MediaStream();
+    stream.addTrack(consumer.track);
+    console.log(kind);
+    let elem;
+    if (kind === 'video') {
+      elem = document.createElement('video');
+      elem.srcObject = stream;
+      elem.id = consumer.id;
+      elem.autoplay = true;
+      this._remoteMediaContainer?.appendChild(elem);
+    } else {
+      elem = document.createElement('audio');
+      elem.srcObject = stream;
+      elem.autoplay = true;
+    }
   }
 }

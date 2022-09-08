@@ -308,12 +308,12 @@ const handleProduce = (id, data, peer, response) => {
 
       const peers = room.getJoinedPeers({ excludePeer: peer });
 
-      room.broadcast(peers, {
-        type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
-        data: {
-          producers: producerList,
-        },
-      });
+      // room.broadcast(peers, {
+      //   type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
+      //   data: {
+      //     producers: producerList,
+      //   },
+      // });
 
       response({
         id,

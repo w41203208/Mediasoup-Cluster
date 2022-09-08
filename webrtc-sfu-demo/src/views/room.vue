@@ -67,6 +67,7 @@ export default defineComponent({
     return {
       localMediaRef,
       roomInfoReactive,
+      remoteMediaRef,
       handleClickEvtShare,
     };
   },
