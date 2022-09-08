@@ -10,6 +10,7 @@
     "@types/express": "^4.17.13",
     "@types/uuid": "^8.3.4",
     "@types/ws": "^8.5.3",
+    "debug": "^4.3.4",
     "https": "^1.0.0",
     "mediasoup": "v3",
     "uuid": "^8.3.2",

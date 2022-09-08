@@ -20,15 +20,15 @@
         @input="(e) => handleChangeUID(e)"
       />
     </div>
-    <button
-      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28"
-      @click="handleClickCreateRoom"
-    >
+    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28" @click="handleClickCreateRoom">
       CreateRoom
+    </button>
+    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28" @click="handleClickJoinRoom">
+      JoinRoom
     </button>
   </div>
   <div>
-    <ul class="flex flex-wrap">
+    <!-- <ul class="flex flex-wrap">
       <li
         v-for="room in roomList"
         :key="room.id"
@@ -37,7 +37,7 @@
       >
         {{ room.name }}
       </li>
-    </ul>
+    </ul> -->
   </div>
 </template>
 
@@ -86,13 +86,7 @@ export default defineComponent({
     const handleChangeUID = (e: any) => {
       inputReactive.uid = e.target.value;
     };
-    const handleClickJoinRoom = (id: string) => {
-      roomList.value.forEach((r) => {
-        if (r.id === id) {
-          inputReactive.room = r.id;
-          inputReactive.uid = '';
-        }
-      });
+    const handleClickJoinRoom = () => {
       router.push({
         path: '/room',
         query: {
@@ -102,6 +96,22 @@ export default defineComponent({
         },
       });
     };
+    // const handleClickJoinRoom = (id: string) => {
+    //   roomList.value.forEach((r) => {
+    //     if (r.id === id) {
+    //       inputReactive.room = r.id;
+    //       inputReactive.uid = '';
+    //     }
+    //   });
+    //   router.push({
+    //     path: '/room',
+    //     query: {
+    //       uid: inputReactive.uid,
+    //       room: inputReactive.room,
+    //       role: 'audience',
+    //     },
+    //   });
+    // };
     const handleClickCreateRoom = () => {
       router.push({
         path: '/room',

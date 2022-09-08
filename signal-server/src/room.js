@@ -1,17 +1,10 @@
 module.exports = class Room {
-  constructor(room_id, ws, mediaCodecs) {
+  constructor(room_id, mediaCodecs) {
     this._mediaCodecs = mediaCodecs;
     this.id = room_id;
-    this.wsServer = ws;
     this.recordServers = new Map();
+    this.routers = new Map();
     this.peers = new Map();
-  }
-  getPeer(id) {
-    return this.peers.get(id);
-  }
-
-  addPeer(peer) {
-    this.peers.set(peer.id, peer);
   }
 
   getOtherPeerProducers(id) {
@@ -20,7 +13,7 @@ module.exports = class Room {
       if (peer.id !== id) {
         peer.producers.forEach((producer) => {
           producerList.push({
-            id: producer.id,
+            producer_id: producer.id,
           });
         });
       }
@@ -28,11 +21,50 @@ module.exports = class Room {
     return producerList;
   }
 
+  addPeer(peer) {
+    this.peers.set(peer.id, peer);
+  }
+
+  addRouter(id) {
+    this.routers.set(id, {
+      id: id,
+    });
+  }
+
+  addRecordServer(recordServer) {
+    this.recordServers.set(recordServer.id, recordServer);
+  }
+
+  getPeer(id) {
+    return this.peers.get(id);
+  }
+
+  getRouters() {
+    let routerList = [];
+    this.routers.forEach((router) => {
+      routerList.push(router.id);
+    });
+    return routerList;
+  }
+
   getRecordServer(id) {
     return this.recordServers.get(id);
   }
-  addRecordServer(recordServer) {
-    this.recordServers.set(recordServer.id, recordServer);
+
+  getJoinedPeers({ excludePeer = null }) {
+    let producerList = [];
+    this.peers.forEach((peer) => {
+      if (peer.id !== excludePeer.id) {
+        producerList.push(peer);
+      }
+    });
+    return producerList;
+  }
+
+  broadcast(peers, data) {
+    peers.forEach((peer) => {
+      peer.notify(data);
+    });
   }
 
   // consume({ consumerPeer, producer }) {

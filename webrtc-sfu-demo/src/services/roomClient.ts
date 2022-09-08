@@ -1,5 +1,5 @@
 import * as mc from 'mediasoup-client';
-import { Device, Producer, Transport } from 'mediasoup-client/lib/types';
+import { Consumer, Device, Producer, Transport } from 'mediasoup-client/lib/types';
 import { Socket } from '@/services/websocket';
 import { logger } from '@/util/logger';
 
@@ -52,7 +52,7 @@ export class RoomClient {
   private _sendTransport: null | Transport;
   private _recvTransport: null | Transport;
   private _producers: Map<string, Producer>;
-  private _consumers: Map<string, Producer>;
+  private _consumers: Map<string, Consumer>;
 
   constructor({ clientUID, roomId, clientRole, isProduce = true, isConsume = true }: RoomClientOpeions) {
     this._clientUID = clientUID;
@@ -99,8 +99,8 @@ export class RoomClient {
       console.log(data);
       switch (type) {
         case EVENT_SERVER_TO_CLIENT.NEW_CONSUMER:
-          for (let { producer_id } of data.producers) {
-            this.consume(producer_id);
+          for (let consumer of data.consumerList) {
+            this.consume(consumer);
           }
           break;
       }
@@ -165,7 +165,6 @@ export class RoomClient {
         iceCandidates,
         dtlsParameters,
       });
-      console.log(this._sendTransport);
       /* Register sendTransport listen event */
       this._sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
@@ -184,6 +183,7 @@ export class RoomClient {
             data: { room_id: this._roomId, transport_id: this._sendTransport?.id, kind, rtpParameters, appData },
             type: EVENT_FOR_CLIENT.PRODUCE,
           });
+
           callback(data.id);
         } catch (error) {
           errback(error as Error);
@@ -240,6 +240,9 @@ export class RoomClient {
   async enableWebCam({ deviceId = null, constraints = null }: { deviceId: string | null; constraints: MediaTrackConstraints | null }) {
     let stream;
     let track;
+    if (!this._sendTransport) {
+      return;
+    }
     try {
       stream = await navigator.mediaDevices.getUserMedia(deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true });
       track = stream.getTracks()[0];
@@ -271,8 +274,9 @@ export class RoomClient {
         // },
       };
       //可以添將一些屬性 codecOptions、encodings
-      const producer = await this._sendTransport!.produce(params);
-      this._producers.set(producer!.id, producer);
+      const producer = await this._sendTransport.produce(params);
+      console.log(producer);
+      this._producers.set(producer.id, producer);
       /* 之後會區分開開啟與添加畫面的方法 */
       const elem = document.createElement('video');
       elem.srcObject = stream;
@@ -283,5 +287,19 @@ export class RoomClient {
     }
   }
 
-  consume(id: string) {}
+  async consume(consumerParams: any) {
+    const { id, producer_id, kind, rtpParameters } = consumerParams;
+
+    if (!this._recvTransport) {
+      return;
+    }
+
+    const consumer = await this._recvTransport.consume({
+      id,
+      producerId: producer_id,
+      kind,
+      rtpParameters,
+    });
+    this._consumers.set(consumer.id, consumer);
+  }
 }

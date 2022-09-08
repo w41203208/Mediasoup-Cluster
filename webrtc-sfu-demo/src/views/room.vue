@@ -55,7 +55,7 @@ export default defineComponent({
         if (roomInfoReactive.role === 'host') {
           rc.createRoom(roomInfoReactive.room);
         } else {
-          console.log('audience');
+          rc.joinRoom(roomInfoReactive.room);
         }
       });
     });

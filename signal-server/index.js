@@ -101,14 +101,14 @@ const runWebSocketServer = (server) => {
           console.log(ws.id);
           break;
         case EVENT_FOR_CLIENT.CREATE_ROOM:
-          handleCreateRoom(id, data, wsServer, response);
+          handleCreateRoom(id, data, peer, response);
           break;
         case EVENT_FOR_CLIENT.JOIN_ROOM:
           handleJoinRoom(id, data, peer, response);
           break;
         case EVENT_FOR_CLIENT.CLOSE_ROOM:
-          roomList.delete(data.room_id);
-          console.log(roomList);
+          // roomList.delete(data.room_id);
+          // console.log(roomList);
           break;
         case EVENT_FOR_CLIENT.LEAVE_ROOM:
           break;
@@ -144,15 +144,15 @@ const runWebSocketServer = (server) => {
 /*                  */
 /*                  */
 /********************/
-const handleCreateRoom = (id, data, wsServer, response) => {
+const handleCreateRoom = (id, data, peer, response) => {
   const { room_id } = data;
-
+  console.log('User [%s] create room [%s].', peer.id, room_id);
   let msg;
   if (roomList.has(room_id)) {
     msg = 'already exists!';
   } else {
     // 新增新的房間
-    roomList.set(room_id, new Room(room_id, wsServer, config.MediasoupSetting.router.mediaCodecs));
+    roomList.set(room_id, new Room(room_id, config.MediasoupSetting.router.mediaCodecs));
 
     /* update redis */
 
@@ -169,7 +169,7 @@ const handleCreateRoom = (id, data, wsServer, response) => {
 
 const handleJoinRoom = (id, data, peer, response) => {
   const { room_id } = data;
-
+  console.log('User [%s] join room [%s].', peer.id, room_id);
   let room;
   if (roomList.has(room_id)) {
     room = roomList.get(room_id);
@@ -192,14 +192,18 @@ const handleJoinRoom = (id, data, peer, response) => {
   room.addPeer(peer);
   peer.serverId = ip_port;
 
+  const routerList = room.getRouters();
+
   serverSocket
     .sendData({
-      data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs },
+      data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs, routers: routerList },
       type: EVENT_FOR_SFU.CREATE_ROUTER,
     })
     .then((data) => {
       const { router_id } = data;
-      // recordServer.addReocrdRouter(new RecordRouter(router_id));
+      console.log('User [%s] get router [%s]', peer.id, router_id);
+
+      room.addRouter(router_id);
       peer.routerId = router_id;
 
       response({
@@ -234,7 +238,6 @@ const handleGetRouterRtpCapabilities = (id, data, peer, response) => {
 
 const handleCreateWebRTCTransport = (id, data, peer, response) => {
   const { room_id, consuming, producing } = data;
-
   const room = roomList.get(room_id);
 
   const recordServer = room.getRecordServer(peer.serverId);
@@ -249,6 +252,7 @@ const handleCreateWebRTCTransport = (id, data, peer, response) => {
       type: EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT,
     })
     .then((data) => {
+      console.log('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
       peer.addTransport(data.transport_id, data.transportType);
       response({ id, type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT, data: data });
     });
@@ -281,7 +285,44 @@ const handleProduce = (id, data, peer, response) => {
 
   const recordServer = room.getRecordServer(peer.serverId);
 
-  recordServer.severSocket.sendData({});
+  recordServer.serverSocket
+    .sendData({
+      type: EVENT_FOR_SFU.CREATE_PRODUCE,
+      data: {
+        router_id: peer.routerId,
+        transport_id: peer.sendTransport.id,
+        rtpParameters,
+        kind,
+      },
+    })
+    .then((data) => {
+      const { producer_id } = data;
+      console.log('User [%s] produce [%s].', peer.id, producer_id);
+      peer.addProducer(producer_id);
+
+      let producerList = [
+        {
+          producer_id: producer_id,
+        },
+      ];
+
+      const peers = room.getJoinedPeers({ excludePeer: peer });
+
+      room.broadcast(peers, {
+        type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
+        data: {
+          producers: producerList,
+        },
+      });
+
+      response({
+        id,
+        type: EVENT_FOR_CLIENT.PRODUCE,
+        data: {
+          id: producer_id,
+        },
+      });
+    });
 };
 
 /********************/
@@ -293,7 +334,6 @@ const handleProduce = (id, data, peer, response) => {
 /********************/
 const handleGetProducers = (data, peer, notify) => {
   const { room_id, rtpCapabilities } = data;
-
   const room = roomList.get(room_id);
 
   const producerList = room.getOtherPeerProducers(peer.id);
@@ -310,14 +350,14 @@ const handleGetProducers = (data, peer, notify) => {
         producers: producerList,
       },
     })
-    .then(({ data }) => {
-      console.log(data);
-      // notify({
-      //   type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
-      //   data: {
-      //     producers: producerList,
-      //   },
-      // });
+    .then((data) => {
+      const { new_consumerList } = data;
+      notify({
+        type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
+        data: {
+          consumerList: new_consumerList,
+        },
+      });
     });
 };
 

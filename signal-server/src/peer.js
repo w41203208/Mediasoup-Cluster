@@ -9,14 +9,14 @@ module.exports = class Peer extends EventEmitter {
     this._serverId;
     this._routerId;
 
-    /* signal server info */
-    this.ws = websocket;
-
     /* mediasoup info */
     this._sendTransport = null;
     this._recvTransport = null;
     this._producers = new Map();
     this._consumers = new Map();
+
+    /* websocket */
+    this.ws = websocket;
     this.peerHandleWSMessage();
   }
 
@@ -40,6 +40,14 @@ module.exports = class Peer extends EventEmitter {
 
   get recvTransport() {
     return this._recvTransport;
+  }
+
+  get producers() {
+    return this._producers;
+  }
+
+  get consumers() {
+    return this._consumers;
   }
 
   peerHandleWSMessage() {
@@ -76,6 +84,11 @@ module.exports = class Peer extends EventEmitter {
     });
   }
 
+  notify(sendData) {
+    sendData.messageType = 'notification';
+    this.ws.sendData(sendData);
+  }
+
   addTransport(id, transportType) {
     if (transportType === 'consuming') {
       this._recvTransport = {
@@ -89,6 +102,13 @@ module.exports = class Peer extends EventEmitter {
   }
 
   addProducer(id) {
-    this._producers.set(id, id);
+    this._producers.set(id, {
+      id: id,
+    });
+  }
+  addConsumer(id) {
+    this._consumers.set(id, {
+      id: id,
+    });
   }
 };
