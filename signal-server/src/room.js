@@ -51,7 +51,7 @@ module.exports = class Room {
     return this.recordServers.get(id);
   }
 
-  getJoinedPeers({ excludePeer = null }) {
+  getJoinedPeers({ excludePeer = {} }) {
     let producerList = [];
     this.peers.forEach((peer) => {
       if (peer.id !== excludePeer.id) {

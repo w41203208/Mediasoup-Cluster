@@ -1,4 +1,4 @@
-module.exports = class RecordServer {
+module.exports = class SFUServer {
   constructor(server_id, socket) {
     this.id = server_id;
     this.serverSocket = socket;

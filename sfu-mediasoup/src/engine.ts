@@ -156,23 +156,15 @@ export class ServerEngine {
   private async createRouter({ id, data, ws }: Handler) {
     const { mediaCodecs, routers } = data;
 
-    let all_routerList = [];
-    for (let key of this._routersList.keys()) {
-      all_routerList.push(key);
+    const room_routerList = [];
+    const routers_map = {} as any;
+    for (let router of routers) {
+      routers_map[router] = 1;
     }
 
-    let room_routerList = [];
-    let i = 0;
-    let j = 0;
-    while (j < routers.length) {
-      if (all_routerList[i] === routers[j]) {
-        room_routerList.push(this._routersList.get(routers[j]));
-        j++;
-      }
-      i++;
-      if (all_routerList.length === i) {
-        i = 0;
-        j++;
+    for (let [key, value] of this._routersList.entries()) {
+      if (routers_map[key]) {
+        room_routerList.push(value);
       }
     }
 

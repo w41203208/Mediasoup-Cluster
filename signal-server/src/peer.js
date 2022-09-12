@@ -14,6 +14,7 @@ module.exports = class Peer extends EventEmitter {
     this._recvTransport = null;
     this._producers = new Map();
     this._consumers = new Map();
+    this._rtpCapabilities = null;
 
     /* websocket */
     this.ws = websocket;
@@ -25,6 +26,10 @@ module.exports = class Peer extends EventEmitter {
   }
   set routerId(id) {
     this._routerId = id;
+  }
+
+  set rtpCapabilities(cp) {
+    this._rtpCapabilities = cp;
   }
 
   get serverId() {
@@ -48,6 +53,10 @@ module.exports = class Peer extends EventEmitter {
 
   get consumers() {
     return this._consumers;
+  }
+
+  get rtpCapabilities() {
+    return this._rtpCapabilities;
   }
 
   peerHandleWSMessage() {
