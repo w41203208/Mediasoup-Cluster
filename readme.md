@@ -2,6 +2,8 @@
 
 ## Deploy
 
+每個都是分開 RUN 的，明天會整合跟把 Signal Server and Frontend 用好。
+
 > ### Redis ( 不需要就不用執行 )
 >
 > - docker-compose up -d
