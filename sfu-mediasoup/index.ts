@@ -20,6 +20,5 @@ const engineOptions = {
     webRtcTransportSettings: config.MediasoupSetting.webRtcTransport,
   },
 };
-
 const engine = new ServerEngine(engineOptions);
 engine.run();

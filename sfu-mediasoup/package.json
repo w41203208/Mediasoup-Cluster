@@ -1,7 +1,7 @@
 {
   "name": "sfu-mediasoup",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "index.ts",
   "license": "MIT",
   "scripts": {
     "dev": "nodemon index.ts"
@@ -9,6 +9,7 @@
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/uuid": "^8.3.4",
+    "@types/node": "^17.0.23",
     "@types/ws": "^8.5.3",
     "debug": "^4.3.4",
     "https": "^1.0.0",

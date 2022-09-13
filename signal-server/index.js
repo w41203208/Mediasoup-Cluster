@@ -18,7 +18,8 @@ const sslOption = {
   key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
   cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
 };
-const EVENT_FOR_CLIENT = {
+
+const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
   JOIN_ROOM: 'joinRoom',
   GET_PRODUCERS: 'getProducers',
@@ -32,6 +33,10 @@ const EVENT_FOR_CLIENT = {
   CLOSE_ROOM: 'closeRoom',
 };
 
+const EVENT_FOR_CLIENT_NOTIFICATION = {
+  NEW_CONSUMER: 'newConsumer',
+};
+
 const EVENT_FOR_SFU = {
   CREATE_ROUTER: 'createRouter',
   GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
@@ -40,9 +45,7 @@ const EVENT_FOR_SFU = {
   CREATE_PRODUCE: 'createProduce',
   CREATE_CONSUME: 'createConsume',
 };
-const EVENT_SERVER_TO_CLIENT = {
-  NEW_CONSUMER: 'newConsumer',
-};
+
 const roomList = new Map();
 const serverSocketList = new Map();
 
@@ -95,28 +98,28 @@ const serverSocketList = new Map();
           case 'test':
             console.log(ws.id);
             break;
-          case EVENT_FOR_CLIENT.CREATE_ROOM:
+          case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
             handleCreateRoom(id, data, peer, response);
             break;
-          case EVENT_FOR_CLIENT.JOIN_ROOM:
+          case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
             handleJoinRoom(id, data, peer, response);
             break;
-          case EVENT_FOR_CLIENT.CLOSE_ROOM:
+          case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
             // roomList.delete(data.room_id);
             // console.log(roomList);
             break;
-          case EVENT_FOR_CLIENT.LEAVE_ROOM:
+          case EVENT_FROM_CLIENT_REQUEST.LEAVE_ROOM:
             break;
-          case EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES:
+          case EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES:
             handleGetRouterRtpCapabilities(id, data, peer, response);
             break;
-          case EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT:
+          case EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT:
             handleCreateWebRTCTransport(id, data, peer, response);
             break;
-          case EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT:
+          case EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT:
             handleConnectWebRTCTranport(id, data, peer, response);
             break;
-          case EVENT_FOR_CLIENT.PRODUCE:
+          case EVENT_FROM_CLIENT_REQUEST.PRODUCE:
             handleProduce(id, data, peer, response);
             break;
         }
@@ -125,7 +128,7 @@ const serverSocketList = new Map();
       peer.on('notification', (message, notify) => {
         const { type, data } = message;
         switch (type) {
-          case EVENT_FOR_CLIENT.GET_PRODUCERS:
+          case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
             handleGetProducers(data, peer, notify);
             break;
         }
@@ -164,7 +167,7 @@ const serverSocketList = new Map();
 
     response({
       id,
-      type: EVENT_FOR_CLIENT.CREATE_ROOM,
+      type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
       data: responseData,
     });
   };
@@ -244,7 +247,7 @@ const serverSocketList = new Map();
           };
           response({
             id,
-            type: EVENT_FOR_CLIENT.JOIN_ROOM,
+            type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
             data: responseData,
           });
         });
@@ -254,7 +257,7 @@ const serverSocketList = new Map();
       };
       response({
         id,
-        type: EVENT_FOR_CLIENT.JOIN_ROOM,
+        type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
         data: responseData,
       });
     }
@@ -276,7 +279,7 @@ const serverSocketList = new Map();
       })
       .then((data) => {
         const { mediaCodecs } = data;
-        response({ id, type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES, data: { codecs: mediaCodecs } });
+        response({ id, type: EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES, data: { codecs: mediaCodecs } });
       });
   };
 
@@ -298,7 +301,7 @@ const serverSocketList = new Map();
       .then((data) => {
         console.log('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
         peer.addTransport(data.transport_id, data.transportType);
-        response({ id, type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT, data: data });
+        response({ id, type: EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT, data: data });
       });
   };
 
@@ -318,7 +321,7 @@ const serverSocketList = new Map();
         },
       })
       .then((data) => {
-        response({ id, type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT, data: data });
+        response({ id, type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT, data: data });
       });
   };
 
@@ -405,7 +408,7 @@ const serverSocketList = new Map();
 
         response({
           id,
-          type: EVENT_FOR_CLIENT.PRODUCE,
+          type: EVENT_FROM_CLIENT_REQUEST.PRODUCE,
           data: {
             id: producer_id,
           },
@@ -442,7 +445,7 @@ const serverSocketList = new Map();
       .then((data) => {
         const { new_consumerList } = data;
         notify({
-          type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
+          type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,
           data: {
             consumerList: new_consumerList,
           },

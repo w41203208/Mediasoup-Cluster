@@ -18,16 +18,16 @@ const getLocalIp = () => {
 
 module.exports = {
   ServerSetting: {
-    listenIp: '127.0.0.1',
-    listenPort: 8585,
+    listenIp: '0.0.0.0',
+    listenPort: process.env.PROTOO_LISTEN_PORT || 8585,
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
   },
   MediasoupSetting: {
     numWorkers: 2,
     worker: {
-      rtcMinPort: 30000, // 跟著跑的沒錯
-      rtcMaxPort: 31000, //
+      rtcMinPort: process.env.MEDIASOUP_MIN_PORT || 2000,
+      rtcMaxPort: process.env.MEDIASOUP_MAX_PORT || 2100,
       logLevel: 'debug',
       logTags: [
         'info',
@@ -48,8 +48,8 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
         {
-          ip: '127.0.0.1',
-          // announcedIp: getLocalIp(), // replace by public IP address
+          ip: '0.0.0.0',
+          announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, // replace by public IP address
         },
       ],
       maxIncomingBitrate: 1500000,

@@ -27,4 +27,4 @@ RUN npm --version
 RUN apt update && apt install yarn -y
 RUN npm install -g ts-node
 RUN npm install -g nodemon
-RUN npm install
+
