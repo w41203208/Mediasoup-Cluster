@@ -26,8 +26,8 @@ module.exports = {
   MediasoupSetting: {
     numWorkers: 2,
     worker: {
-      rtcMinPort: 10000, // 跟著跑的沒錯
-      rtcMaxPort: 11000, //
+      rtcMinPort: 30000, // 跟著跑的沒錯
+      rtcMaxPort: 31000, //
       logLevel: 'debug',
       logTags: [
         'info',

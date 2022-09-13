@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  webrtcapp:
+    image: sfuserver
+    container_name: sfu1
+    working_dir: /home/mediasoup
+    ports:
+      - '8585:8585/tcp'
+      - '8585:8585/udp'
+      - '30000-31000:30000-31000/udp'
+      - '30000-31000:30000-31000/tcp'
+    volumes:
+      - .:/home/mediasoup
+    stdin_open: true
+    tty: true
+    command: bash -c "npm run dev"

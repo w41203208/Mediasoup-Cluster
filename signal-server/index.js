@@ -9,7 +9,7 @@ const express = require('express');
 const cors = require('cors');
 const Peer = require('./src/peer');
 const Room = require('./src/room');
-const ServerSocket = require('./src/serversocket');
+const ServerSocket = require('./src/SFUServerSocket');
 const SFUServer = require('./src/SFUServer');
 const { createRedisController, Controllers } = require('./src/redis/index');
 
@@ -47,7 +47,7 @@ const roomList = new Map();
 const serverSocketList = new Map();
 
 (async function () {
-  const { RoomController, SFUServerController } = await createRedisController(Controllers);
+  const { RoomController, SFUServerController, PlayerController } = await createRedisController(Controllers);
 
   const run = async () => {
     const app = runExpress();
@@ -139,75 +139,125 @@ const serverSocketList = new Map();
   /*                  */
   /*                  */
   /********************/
-  const handleCreateRoom = (id, data, peer, response) => {
+  const handleCreateRoom = async (id, data, peer, response) => {
     const { room_id } = data;
     console.log('User [%s] create room [%s].', peer.id, room_id);
-    let msg;
-    if (roomList.has(room_id)) {
-      msg = 'already exists!';
+    const rRoom = await RoomController.setRoom(room_id);
+
+    let responseData;
+    if (rRoom) {
+      rRoom.host = {
+        id: peer.id,
+        producerIdList: [],
+      };
+      await RoomController.updateRoom(rRoom);
+      responseData = {
+        msg: 'Successfully create!',
+        state: true,
+      };
     } else {
-      // 新增新的房間
-      roomList.set(room_id, new Room(room_id, config.MediasoupSetting.router.mediaCodecs));
-
-      /* update redis */
-
-      msg = 'Successfully create!';
-      response({
-        id,
-        type: EVENT_FOR_CLIENT.CREATE_ROOM,
-        data: {
-          msg: msg,
-        },
-      });
+      responseData = {
+        msg: 'already exists!',
+        state: false,
+      };
     }
+
+    response({
+      id,
+      type: EVENT_FOR_CLIENT.CREATE_ROOM,
+      data: responseData,
+    });
   };
 
   const handleJoinRoom = async (id, data, peer, response) => {
     const { room_id } = data;
     console.log('User [%s] join room [%s].', peer.id, room_id);
-    let room;
-    if (roomList.has(room_id)) {
-      room = roomList.get(room_id);
-    }
 
-    // 選擇適合的 ServerSocket
-    let serverSocket;
-    const ip_port = await getMinimumServer();
-    if (serverSocketList.has(ip_port)) {
-      serverSocket = serverSocketList.get(ip_port);
-    }
+    const rRoom = await RoomController.getRoom(room_id);
 
-    // new SFUServer
-    const recordServer = new SFUServer(ip_port, serverSocket);
-    // SFUServer 添加到 room
-    room.addRecordServer(recordServer);
+    let responseData;
+    if (rRoom) {
+      // 建立或取得 localRoom
+      let room;
+      if (roomList.has(room_id)) {
+        room = roomList.get(room_id);
+      } else {
+        room = new Room(rRoom.id, config.MediasoupSetting.router.mediaCodecs);
+        roomList.set(room.id, room);
+      }
 
-    // Peer 添加到 room
-    room.addPeer(peer);
-    peer.serverId = ip_port;
-
-    const routerList = room.getRouters();
-
-    serverSocket
-      .sendData({
-        data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs, routers: routerList },
-        type: EVENT_FOR_SFU.CREATE_ROUTER,
-      })
-      .then((data) => {
-        const { router_id } = data;
-        console.log('User [%s] get router [%s]', peer.id, router_id);
-
-        room.addRouter(router_id);
-        peer.routerId = router_id;
-
-        response({
-          id,
-          type: EVENT_FOR_CLIENT.JOIN_ROOM,
-          data: {
-            room_id: room.id,
-          },
-        });
+      // 選擇適合的SFUServer建立Websocket連線，從local取得 或是 創建新的連線
+      let serverSocket;
+      const ip_port = await getMinimumServer();
+      if (serverSocketList.has(ip_port)) {
+        serverSocket = serverSocketList.get(ip_port);
+      } else {
+        serverSocket = await connectToSFUServer(ip_port);
+      }
+      // new SFUServer，SFUServer 添加到 room
+      const recordServer = new SFUServer(ip_port, serverSocket);
+      room.addRecordServer(recordServer);
+      // 添加 SFUServer port 給 peer
+      peer.serverId = ip_port;
+      // rRoom update data
+      let c = false;
+      rRoom.serverList.forEach((server) => {
+        if (ip_port === server) {
+          c = true;
+        }
       });
+      if (!c) {
+        rRoom.serverList.push(ip_port);
+      }
+
+      // Peer 添加到 room
+      room.addPeer(peer);
+      rRoom.playerList.push(peer.id);
+
+      // 改變 room 狀態 init -> public
+      if (rRoom.host.id === peer.id) {
+        rRoom.state = 'public';
+      } else {
+        // 判斷與 LiveHoster 的關係
+        // if()
+      }
+
+      // update room data in redis
+      await RoomController.updateRoom(rRoom);
+
+      const routerList = room.getRouters();
+
+      serverSocket
+        .sendData({
+          data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs, routers: routerList },
+          type: EVENT_FOR_SFU.CREATE_ROUTER,
+        })
+        .then((data) => {
+          const { router_id } = data;
+          console.log('User [%s] get router [%s]', peer.id, router_id);
+
+          room.addRouter(router_id);
+          peer.routerId = router_id;
+
+          responseData = {
+            room_id: room.id,
+          };
+          response({
+            id,
+            type: EVENT_FOR_CLIENT.JOIN_ROOM,
+            data: responseData,
+          });
+        });
+    } else {
+      responseData = {
+        msg: 'This room is not exist!',
+      };
+      response({
+        id,
+        type: EVENT_FOR_CLIENT.JOIN_ROOM,
+        data: responseData,
+      });
+    }
   };
 
   const handleGetRouterRtpCapabilities = (id, data, peer, response) => {
@@ -404,24 +454,36 @@ const serverSocketList = new Map();
     return new Promise((resolve, reject) => {
       let s;
       SFUServerController.getAllSFUServer().then((data) => {
-        Object.entries(data).forEach(([key, value]) => {
-          if (value.count < 1 && s === undefined) {
-            s = key;
-          }
-        });
-        resolve(s);
+        try {
+          Object.entries(data).forEach(([key, value]) => {
+            if (value.count < 1 && s === undefined) {
+              s = key;
+            }
+          });
+          resolve(s);
+        } catch (error) {
+          console.log(error);
+          reject(error);
+        }
       });
     });
   };
 
   // 模擬監聽 redis 更新 sfu server status 要隨時變動 socketServer 數量
-  (function () {
-    const ip = '192.168.1.98';
-    const port = 8585;
+  // (function () {
+  //   const ip = '192.168.1.98';
+  //   const port = 8585;
+  //   const serverSocket = new ServerSocket(ip, port);
+  //   serverSocket.start();
+  //   serverSocketList.set(serverSocket.id, serverSocket);
+  // })();
+  const connectToSFUServer = async (ip_port) => {
+    const [ip, port] = ip_port.split(':');
     const serverSocket = new ServerSocket(ip, port);
-    serverSocket.start();
+    await serverSocket.start();
     serverSocketList.set(serverSocket.id, serverSocket);
-  })();
+    return serverSocket;
+  };
 
   run();
 })();

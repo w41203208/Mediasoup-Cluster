@@ -111,7 +111,9 @@ export class RoomClient {
   createRoom(roomId: string) {
     this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CREATE_ROOM }).then(({ data }) => {
       logger({ text: 'Create Room', data: data.msg });
-      this.joinRoom(roomId);
+      if (data.state) {
+        this.joinRoom(roomId);
+      }
     });
   }
   closeRoom(roomId: string) {

@@ -3,7 +3,7 @@ class SFUServerController extends ControllerImp {
   constructor(redisClient) {
     super();
     this._rc = redisClient;
-    this.testInit();
+    // this.testInit();
   }
 
   testInit() {

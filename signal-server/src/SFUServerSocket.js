@@ -17,15 +17,21 @@ module.exports = class ServerSocket extends EventEmitter {
     if (!!this.socket || !this._disconnected) {
       return;
     }
-    this.socket = new WebSocket(`wss://${this.ip}:${this.port}`);
-    this._disconnected = false;
+    return new Promise((resolve, reject) => {
+      this.socket = new WebSocket(`wss://${this.ip}:${this.port}`);
+      this._disconnected = false;
 
-    this._socketHandler();
+      this._socketHandler();
+      this.on('open', () => {
+        resolve();
+      });
+    });
   }
 
   _socketHandler() {
     this.socket.on('open', () => {
       console.log('ServerSocket %s is connecting!', this.id);
+      this.emit('open');
     });
     this.socket.on('close', () => {
       console.log('ServerSocket %s is closed!', this.id);
