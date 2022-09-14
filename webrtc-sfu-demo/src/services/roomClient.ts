@@ -136,10 +136,13 @@ export class RoomClient {
     // init transport ( consumer and produce )
     await this.initTransports(this._device);
 
-    this._socket.notify({ data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
+    await this._socket.request({ data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
   }
 
-  leaveRoom() {}
+  leaveRoom(roomId: string) {
+    this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.LEAVE_ROOM });
+    this._socket.close();
+  }
 
   getRouterRtpCapabilities(roomId: string): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -306,6 +309,7 @@ export class RoomClient {
     this._consumers.set(consumer.id, consumer);
 
     const stream = new MediaStream();
+    console.log(consumer.track);
     stream.addTrack(consumer.track);
     console.log(kind);
     let elem;

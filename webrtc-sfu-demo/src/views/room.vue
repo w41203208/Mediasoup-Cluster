@@ -61,7 +61,11 @@ export default defineComponent({
     });
     onUnmounted(() => {
       const rc = rcRef.value;
-      rc.closeRoom(roomInfoReactive.room);
+      if (roomInfoReactive.role === 'host') {
+        rc.closeRoom(roomInfoReactive.room);
+      } else {
+        rc.leaveRoom(roomInfoReactive.room);
+      }
     });
 
     return {

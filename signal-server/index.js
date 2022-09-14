@@ -105,10 +105,10 @@ const serverSocketList = new Map();
             handleJoinRoom(id, data, peer, response);
             break;
           case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
-            // roomList.delete(data.room_id);
-            // console.log(roomList);
+            handleCloseRoom(id, data, peer, response);
             break;
           case EVENT_FROM_CLIENT_REQUEST.LEAVE_ROOM:
+            handleLeaveRoom(id, data, peer, response);
             break;
           case EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES:
             handleGetRouterRtpCapabilities(id, data, peer, response);
@@ -122,16 +122,15 @@ const serverSocketList = new Map();
           case EVENT_FROM_CLIENT_REQUEST.PRODUCE:
             handleProduce(id, data, peer, response);
             break;
+          case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
+            handleGetProducers(id, data, peer, response);
+            break;
         }
       });
 
       peer.on('notification', (message, notify) => {
         const { type, data } = message;
-        switch (type) {
-          case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
-            handleGetProducers(data, peer, notify);
-            break;
-        }
+        console.log(type, data);
       });
     });
   };
@@ -216,6 +215,7 @@ const serverSocketList = new Map();
       // Peer 添加到 room
       room.addPeer(peer);
       rRoom.playerList.push(peer.id);
+      const _ = await PlayerController.setPlayer(peer.id);
 
       // 改變 room 狀態 init -> public
       if (rRoom.host.id === peer.id) {
@@ -261,6 +261,25 @@ const serverSocketList = new Map();
         data: responseData,
       });
     }
+  };
+
+  const handleCloseRoom = async (id, data, peer, response) => {
+    const { room_id } = data;
+    roomList.delete(data.room_id);
+
+    await PlayerController.delPlayer(peer.id);
+    await RoomController.delRoom(data.room_id);
+    console.log(roomList);
+
+    response({ id });
+  };
+
+  const handleLeaveRoom = async (id, data, peer, response) => {
+    const { room_id } = data;
+    const rRoom = await RoomController();
+
+    await PlayerController.delPlayer(peer.id);
+    response({ id });
   };
 
   const handleGetRouterRtpCapabilities = (id, data, peer, response) => {
@@ -415,15 +434,7 @@ const serverSocketList = new Map();
         });
       });
   };
-
-  /********************/
-  /*                  */
-  /*                  */
-  /*   Notification   */
-  /*                  */
-  /*                  */
-  /********************/
-  const handleGetProducers = (data, peer, notify) => {
+  const handleGetProducers = (id, data, peer, response) => {
     const { room_id, rtpCapabilities } = data;
     const room = roomList.get(room_id);
     peer.rtpCapabilities = rtpCapabilities;
@@ -431,6 +442,8 @@ const serverSocketList = new Map();
     const producerList = room.getOtherPeerProducers(peer.id);
 
     const recordServer = room.getRecordServer(peer.serverId);
+
+    response({ id });
 
     recordServer.serverSocket
       .sendData({
@@ -444,7 +457,7 @@ const serverSocketList = new Map();
       })
       .then((data) => {
         const { new_consumerList } = data;
-        notify({
+        peer.notify({
           type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,
           data: {
             consumerList: new_consumerList,
@@ -452,6 +465,14 @@ const serverSocketList = new Map();
         });
       });
   };
+
+  /********************/
+  /*                  */
+  /*                  */
+  /*   Notification   */
+  /*                  */
+  /*                  */
+  /********************/
 
   const getMinimumServer = async () => {
     return new Promise((resolve, reject) => {

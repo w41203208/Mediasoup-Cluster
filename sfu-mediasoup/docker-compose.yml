@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  webrtcapp:
+  webrtcsfu1:
     image: sfuserver
     container_name: sfu1
     working_dir: /home/mediasoup
@@ -17,6 +17,27 @@ services:
       - MEDIASOUP_ANNOUNCED_IP=${IP}
       - MEDIASOUP_MIN_PORT=${MIN_PORT}
       - MEDIASOUP_MAX_PORT=${MAX_PORT}
+    volumes:
+      - .:/home/mediasoup
+    stdin_open: true
+    tty: true
+    command: bash -c "npm install && npm run dev"
+  webrtcsfu2:
+    image: sfuserver
+    container_name: sfu2
+    working_dir: /home/mediasoup
+    ports:
+      - '${PORT_2}:${PORT_2}/tcp'
+      - '${PORT_2}:${PORT_2}/udp'
+      - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/udp'
+      - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/tcp'
+    environment:
+      - DOMAIN=${IP_2}
+      - PORT=${PORT_2}
+      - MEDIASOUP_LISTEN_IP=${IP_2}
+      - MEDIASOUP_ANNOUNCED_IP=${IP_2}
+      - MEDIASOUP_MIN_PORT=${MIN_PORT_2}
+      - MEDIASOUP_MAX_PORT=${MAX_PORT_2}
     volumes:
       - .:/home/mediasoup
     stdin_open: true

@@ -33,6 +33,7 @@ export class WSServer extends EventEmitter {
       this.logger.info('Websocket is connected!');
     });
     socket.on('connection', (ws: WebSocket) => {
+      console.log('connecting is ok.');
       this.emit('connection', ws);
     });
   }

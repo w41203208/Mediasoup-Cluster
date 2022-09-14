@@ -7,7 +7,6 @@ async function createRedisController(controllers) {
         url: 'redis://:test@127.0.0.1:6379',
       });
       await client.connect();
-
       c = {};
       controllers.forEach((controller) => {
         c[controller.name] = new controller(client);

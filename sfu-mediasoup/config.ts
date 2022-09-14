@@ -19,15 +19,15 @@ const getLocalIp = () => {
 module.exports = {
   ServerSetting: {
     listenIp: '0.0.0.0',
-    listenPort: process.env.PROTOO_LISTEN_PORT || 8585,
+    listenPort: process.env.PORT || 8585,
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
   },
   MediasoupSetting: {
     numWorkers: 2,
     worker: {
-      rtcMinPort: process.env.MEDIASOUP_MIN_PORT || 2000,
-      rtcMaxPort: process.env.MEDIASOUP_MAX_PORT || 2100,
+      rtcMinPort: process.env.MEDIASOUP_MIN_PORT || 30001,
+      rtcMaxPort: process.env.MEDIASOUP_MAX_PORT || 30100,
       logLevel: 'debug',
       logTags: [
         'info',
