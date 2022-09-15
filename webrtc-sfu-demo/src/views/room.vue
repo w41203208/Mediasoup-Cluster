@@ -12,7 +12,7 @@
   </div>
   <div class="mx-3 p-5">
     <h1 class="text-lg font-semibold">Remote Media</h1>
-    <div id="remoteMeida" ref="remoteMediaRef" autoplay></div>
+    <div id="remoteMeida" ref="remoteMediaRef"></div>
   </div>
 </template>
 
