@@ -5,7 +5,8 @@ import { Application, Request, Response } from 'express';
 import { Worker, Router, Transport, Consumer, Producer } from 'mediasoup/node/lib/types';
 import { Logger } from './util/logger';
 import { sslOption, EngineOptions, RouterOptions } from './type.engine';
-import { v4 } from 'uuid';
+
+import { Controllers, createRedisController } from './redis/index';
 
 const express = require('express');
 const mediasoup = require('mediasoup');
@@ -46,6 +47,7 @@ export class ServerEngine {
   private app?: Application;
   private webSocketConnection?: WSServer;
   private mediasoupWorkers: Array<Worker> = [];
+  private redisControllers?: Record<string, any>;
   private logger: Logger = new Logger();
   private _routersList: Map<string, Router>;
   private _transportList: Map<string, Transport>;
@@ -70,6 +72,8 @@ export class ServerEngine {
     this._producerList = new Map();
   }
   public async run() {
+    this.redisControllers = await createRedisController(Controllers);
+
     await this._runMediasoupWorkers();
 
     // create express app
@@ -81,14 +85,16 @@ export class ServerEngine {
     //websocket
     this.webSocketConnection = new WSServer();
 
-    this.webSocketConnection.start(server);
-
     this.webSocketConnection.on('connection', (ws: WebSocket) => {
       ws.on('message', (message: any) => {
         const { id, data, type } = JSON.parse(message);
         this._websocketHandler({ id, type, data, ws });
       });
     });
+
+    this.webSocketConnection.start(server);
+
+    this.redisControllers?.SFUServerController.setSFUServer(`${process.env.MEDIASOUP_ANNOUNCED_IP}:${this._port}`);
   }
 
   private _runExpressApp() {
