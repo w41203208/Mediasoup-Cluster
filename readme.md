@@ -10,12 +10,12 @@
 
 ### SFU Server
 
-#### Docker
+> #### Docker
 
 - docker build -t sfuserver .
 - docker-compose up -d
 
-#### ENV
+> #### ENV
 
 - 修改 ANNOUNCED_IP 為 Instance Ip 就可以了。
 
@@ -25,4 +25,11 @@
 
 ### Frontend
 
-1. 待處理
+> #### Docker
+
+- docker build -t sfufrontend .
+- docker-compose up -d
+
+> #### ENV
+
+-
