@@ -47,12 +47,12 @@ export default defineComponent({
       rcRef.value.produce({ type: type, deviceId: null });
     };
     const handleClickEvtExit = () => {
-      if (roomInfoReactive.role === 'host') {
+      if (roomInfoReactive.role === "host") {
         rcRef.value.closeRoom(roomInfoReactive.room);
       } else {
         rcRef.value.leaveRoom(roomInfoReactive.room);
       }
-      router.push('/');
+      router.push("/");
     };
 
     onMounted(() => {
@@ -72,6 +72,7 @@ export default defineComponent({
       if (roomInfoReactive.role === "host") {
         rc.closeRoom(roomInfoReactive.room);
       } else {
+        console.log("離開");
         rc.leaveRoom(roomInfoReactive.room);
       }
     });

@@ -285,7 +285,7 @@ const serverSocketList = new Map();
       if (roomList.has(rRoom.id)) {
         room = roomList.get(room_id);
       }
-      const newPlayerList = rRoom.playerList.filter((player) => player.id !== peer.id);
+      const newPlayerList = rRoom.playerList.filter((playerId) => playerId !== peer.id);
       rRoom.playerList = newPlayerList;
       await RoomController.updateRoom(rRoom);
       await PlayerController.delPlayer(peer.id);
