@@ -1,0 +1,6 @@
+FROM node:16.13 AS DEVRUN
+
+WORKDIR /home/frontend
+
+COPY . .
+

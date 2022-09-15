@@ -1,4 +1,5 @@
 import { ServerEngine } from './src/engine';
+
 const config = require('./config');
 const fs = require('fs');
 const path = require('path');
@@ -11,6 +12,7 @@ const sslOption = {
 
 const engineOptions = {
   serverOption: {
+    ip: config.ServerSetting.listenIp,
     port: config.ServerSetting.listenPort,
     ssl: sslOption,
   },

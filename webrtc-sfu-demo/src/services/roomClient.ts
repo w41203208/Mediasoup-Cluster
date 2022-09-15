@@ -177,6 +177,7 @@ export class RoomClient {
             data: { room_id: this._roomId, transport_id: this._sendTransport?.id, dtlsParameters },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
           });
+          console.log(data);
           callback();
         } catch (error) {
           errback(error as Error);

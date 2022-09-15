@@ -34,6 +34,7 @@ interface Handler {
 }
 
 export class ServerEngine {
+  private _ip: string;
   private _port: number;
   private _ssl: sslOption;
   private _numworker: number;
@@ -53,7 +54,8 @@ export class ServerEngine {
 
   constructor({ serverOption, mediasoupOption }: EngineOptions) {
     // server setting
-    const { port, ssl } = serverOption;
+    const { ip, port, ssl } = serverOption;
+    this._ip = ip;
     this._port = port || 3001;
     this._ssl = ssl;
 
@@ -104,8 +106,8 @@ export class ServerEngine {
   private _runHttpsServer() {
     const httpsServer = createServer(this._ssl, this.app);
 
-    const server = httpsServer.listen(this._port, '0.0.0.0', () => {
-      console.log(`Server is listening at ${process.env.HOST}:${this._port}`);
+    const server = httpsServer.listen(this._port, this._ip, () => {
+      console.log(`Server is listening at https://${this._ip}:${this._port}`);
     });
     return server;
   }
@@ -114,7 +116,14 @@ export class ServerEngine {
     this.logger.info(`Running ${this._numworker} mediasoup Workers....`);
 
     for (let i = 0; i < this._numworker; i++) {
-      const worker = await mediasoup.createWorker(this._workerSettings);
+      console.log(this._workerSettings.rtcMinPort);
+      console.log(this._workerSettings.rtcMaxPort);
+      const worker = await mediasoup.createWorker({
+        logLevel: this._workerSettings.logLevel,
+        logTags: this._workerSettings.logTags,
+        rtcMinPort: Number(this._workerSettings.rtcMinPort),
+        rtcMaxPort: Number(this._workerSettings.rtcMaxPort),
+      });
       worker.on('@success', () => {
         this.logger.info(`Number ${i} mediasoup Worker is created`);
       });
@@ -213,12 +222,14 @@ export class ServerEngine {
       return;
     }
     const router = this._routersList.get(router_id);
-    const { maxIncomingBitrate, initialAvailableOutgoingBitrate, listenIps } = this._webRTCTransportSettings;
+    const { maxIncomingBitrate, initialAvailableOutgoingBitrate, minimumAvailableOutgoingBitrate, listenIps } = this._webRTCTransportSettings;
+    console.log(listenIps);
     const transport = await router!.createWebRtcTransport({
       listenIps: listenIps,
       enableUdp: true,
       enableTcp: true,
       preferUdp: true,
+      enableSctp: true,
       initialAvailableOutgoingBitrate,
       appData: {
         producing: producing,
@@ -242,6 +253,8 @@ export class ServerEngine {
 
     this._transportList.set(transport.id, transport);
 
+    console.log(transport.iceCandidates);
+    console.log(transport.iceParameters);
     ws.send(
       JSON.stringify({
         id: id,
@@ -288,7 +301,7 @@ export class ServerEngine {
         producerId: producer_id,
         rtpCapabilities: rtpCapabilities,
       });
-
+      console.log('Create Consumer: [%s]', consumer.id);
       /* Register Consumer listen event */
       consumer.on('transportclose', () => {
         console.log('Consumer transport close', { consumer_id: `${consumer.id}` });
@@ -330,7 +343,7 @@ export class ServerEngine {
       rtpParameters: rtpParameters,
     });
     this._producerList.set(producer.id, producer);
-
+    console.log('Create Producer: [%s]', producer.id);
     /*  Register producer listen event */
     ws.send(
       JSON.stringify({
