@@ -3,17 +3,17 @@ class SFUServerController extends ControllerImp {
   constructor(redisClient) {
     super();
     this._rc = redisClient;
-    // this.testInit();
+    this.testInit();
   }
 
   testInit() {
     return new Promise(async (resovle, reject) => {
       try {
         await this._rc.hSet('SFUServer', {
-          '192.168.1.98:8585': this.transformToJSON({
+          '192.168.1.95:8585': this.transformToJSON({
             count: 0,
           }),
-          '192.168.1.98:7878': this.transformToJSON({
+          '192.168.1.95:7878': this.transformToJSON({
             count: 0,
           }),
         });
@@ -40,7 +40,7 @@ class SFUServerController extends ControllerImp {
     });
   }
 
-  set() {}
+  set() { }
 }
 
 module.exports = {
