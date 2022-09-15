@@ -87,7 +87,7 @@ export class RoomClient {
   }
 
   private _createSocketConnection(): Socket {
-    const url = import.meta.env.VITE_WSSURL;
+    const url = 'wss://192.168.1.98:9999';
     const socket = new Socket({ url });
     socket.start();
     return socket;

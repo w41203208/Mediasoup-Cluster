@@ -4,7 +4,7 @@ async function createRedisController(controllers) {
   return new Promise(async (resolve, reject) => {
     try {
       const client = redis.createClient({
-        url: process.env.REDIS_HOST,
+        url: 'redis://:test@127.0.0.1:6379',
       });
       await client.connect();
       c = {};
