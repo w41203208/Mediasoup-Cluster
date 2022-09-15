@@ -105,7 +105,7 @@ export class ServerEngine {
     const httpsServer = createServer(this._ssl, this.app);
 
     const server = httpsServer.listen(this._port, '0.0.0.0', () => {
-      console.log(`Server is listening at https://192.168.1.98:${this._port}`);
+      console.log(`Server is listening at ${process.env.HOST}:${this._port}`);
     });
     return server;
   }
@@ -235,8 +235,8 @@ export class ServerEngine {
     }
 
     /* Register transport listen event */
-    transport.on('@close', () => {});
-    transport.on('dtlsstatechange', () => {});
+    transport.on('@close', () => { });
+    transport.on('dtlsstatechange', () => { });
 
     /* Register transport listen event */
 

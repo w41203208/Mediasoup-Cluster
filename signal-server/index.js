@@ -12,7 +12,7 @@ const Room = require('./src/room');
 const ServerSocket = require('./src/SFUServerSocket');
 const SFUServer = require('./src/SFUServer');
 const { createRedisController, Controllers } = require('./src/redis/index');
-
+require('dotenv').config();
 // ssl option
 const sslOption = {
   key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
@@ -63,8 +63,8 @@ const serverSocketList = new Map();
 
   const runExpress = () => {
     const app = express();
-    app.use(express.json());
     app.use(cors());
+    app.use(express.json());
 
     app.get('/new_sfu_server', (req, res) => {
       res.send('testtest');
@@ -80,7 +80,7 @@ const serverSocketList = new Map();
   const runHttpsServer = (app) => {
     const httpsServer = createServer(sslOption, app);
     const server = httpsServer.listen(config.ServerSetting.listenPort, '0.0.0.0', () => {
-      console.log(`Server is listening at https://192.168.1.98:${config.ServerSetting.listenPort}`);
+      console.log(`Server is listening at ${process.env.HOST}:${config.ServerSetting.listenPort}`);
     });
     return server;
   };
