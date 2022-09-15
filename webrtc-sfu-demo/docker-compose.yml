@@ -7,5 +7,8 @@ services:
     command: bash -c "yarn && yarn dev"
     stdin_open: true
     tty: true
+    ports:
+      - '${PORT}:${PORT}/tcp'
+      - '${PORT}:${PORT}/udp'
     volumes:
       - .:/home/frontend
