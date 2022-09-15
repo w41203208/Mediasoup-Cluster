@@ -246,8 +246,8 @@ export class ServerEngine {
     }
 
     /* Register transport listen event */
-    transport.on('@close', () => {});
-    transport.on('dtlsstatechange', () => {});
+    transport.on('@close', () => { });
+    transport.on('dtlsstatechange', () => { });
 
     /* Register transport listen event */
 

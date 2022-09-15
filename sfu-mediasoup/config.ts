@@ -30,8 +30,8 @@ module.exports = {
   MediasoupSetting: {
     numWorkers: 2,
     worker: {
-      rtcMinPort: process.env.MEDIASOUP_MIN_PORT || 30001,
-      rtcMaxPort: process.env.MEDIASOUP_MAX_PORT || 30100,
+      rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT) || 30001,
+      rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT) || 30100,
       logLevel: 'debug',
       logTags: [
         'info',
