@@ -253,8 +253,6 @@ export class ServerEngine {
 
     this._transportList.set(transport.id, transport);
 
-    console.log(transport.iceCandidates);
-    console.log(transport.iceParameters);
     ws.send(
       JSON.stringify({
         id: id,
