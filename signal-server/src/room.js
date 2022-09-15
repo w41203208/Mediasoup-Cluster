@@ -39,6 +39,10 @@ module.exports = class Room {
     return this.peers.get(id);
   }
 
+  removePeer(id) {
+    return this.peers.delete(id);
+  }
+
   getRouters() {
     let routerList = [];
     this.routers.forEach((router) => {

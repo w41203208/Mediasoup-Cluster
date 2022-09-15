@@ -10,6 +10,7 @@ interface RouterOptions {
 }
 
 interface ServerOptions {
+  ip: string;
   ssl: sslOption;
   port: number;
 }
