@@ -265,25 +265,48 @@ const serverSocketList = new Map();
 
   const handleCloseRoom = async (id, data, peer, response) => {
     const { room_id } = data;
-    roomList.delete(data.room_id);
+    console.log('User [%s] close room [%s].', peer.id, room_id);
+
+    roomList.delete(room_id);
 
     await PlayerController.delPlayer(peer.id);
-    await RoomController.delRoom(data.room_id);
+    await RoomController.delRoom(room_id);
     console.log(roomList);
-
     response({ id });
   };
 
   const handleLeaveRoom = async (id, data, peer, response) => {
     const { room_id } = data;
-    const rRoom = await RoomController();
+    console.log('User [%s] leave room [%s].', peer.id, room_id);
+    const rRoom = await RoomController.getRoom(room_id);
 
-    await PlayerController.delPlayer(peer.id);
+    if (rRoom) {
+      let room;
+      if (roomList.has(rRoom.id)) {
+        room = roomList.get(room_id);
+      }
+      const newPlayerList = rRoom.playerList.filter((player) => player.id !== peer.id);
+      rRoom.playerList = newPlayerList;
+      await RoomController.updateRoom(rRoom);
+      await PlayerController.delPlayer(peer.id);
+
+      room.removePeer(peer.id);
+
+      if (room.getJoinedPeers({ excludePeer: {} }).length === 0) {
+        roomList.delete(room_id);
+      }
+    }
+
     response({ id });
   };
 
   const handleGetRouterRtpCapabilities = (id, data, peer, response) => {
     const { room_id } = data;
+
+    if (!roomList.has(room_id)) {
+      response({ id });
+      return;
+    }
 
     const room = roomList.get(room_id);
 
@@ -304,6 +327,10 @@ const serverSocketList = new Map();
 
   const handleCreateWebRTCTransport = (id, data, peer, response) => {
     const { room_id, consuming, producing } = data;
+
+    if (!roomList.has(room_id)) {
+      response({ id });
+    }
     const room = roomList.get(room_id);
 
     const recordServer = room.getRecordServer(peer.serverId);
@@ -326,7 +353,9 @@ const serverSocketList = new Map();
 
   const handleConnectWebRTCTranport = (id, data, peer, response) => {
     const { room_id, transport_id, dtlsParameters } = data;
-
+    if (!roomList.has(room_id)) {
+      response({ id });
+    }
     const room = roomList.get(room_id);
     const recordServer = room.getRecordServer(peer.serverId);
 
@@ -347,6 +376,9 @@ const serverSocketList = new Map();
   const handleProduce = (id, data, peer, response) => {
     const { room_id, transport_id, kind, rtpParameters } = data;
 
+    if (!roomList.has(room_id)) {
+      response({ id });
+    }
     const room = roomList.get(room_id);
 
     const recordServer = room.getRecordServer(peer.serverId);
@@ -493,14 +525,6 @@ const serverSocketList = new Map();
     });
   };
 
-  // 模擬監聽 redis 更新 sfu server status 要隨時變動 socketServer 數量
-  // (function () {
-  //   const ip = '192.168.1.98';
-  //   const port = 8585;
-  //   const serverSocket = new ServerSocket(ip, port);
-  //   serverSocket.start();
-  //   serverSocketList.set(serverSocket.id, serverSocket);
-  // })();
   const connectToSFUServer = async (ip_port) => {
     const [ip, port] = ip_port.split(':');
     const serverSocket = new ServerSocket(ip, port);

@@ -1,6 +1,10 @@
 const os = require('os');
 const ifaces = os.networkInterfaces();
 
+console.log('MEDIASOUP_LISTEN_IP: [%s]', process.env.MEDIASOUP_LISTEN_IP);
+console.log('MEDIASOUP_PORT: [%s]', process.env.PORT);
+console.log('MEDIASOUP_ANNOUNCED_IP: [%s]', process.env.MEDIASOUP_ANNOUNCED_IP);
+
 const getLocalIp = () => {
   let localIp = '127.0.0.1';
   Object.keys(ifaces).forEach((ifname) => {
@@ -18,7 +22,7 @@ const getLocalIp = () => {
 
 module.exports = {
   ServerSetting: {
-    listenIp: '0.0.0.0',
+    listenIp: process.env.MEDIASOUP_LISTEN_IP,
     listenPort: process.env.PORT || 8585,
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
@@ -48,7 +52,7 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
         {
-          ip: '0.0.0.0',
+          ip: process.env.MEDIASOUP_LISTEN_IP,
           announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, // replace by public IP address
         },
       ],

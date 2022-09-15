@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  sfu-frontend-demo:
+    container_name: sfu-frontend-demo
+    image: 'sfufrontend'
+    working_dir: /home/frontend
+    command: bash -c "yarn && yarn dev"
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/home/frontend
