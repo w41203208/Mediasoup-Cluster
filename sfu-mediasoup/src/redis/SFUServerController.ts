@@ -30,6 +30,7 @@ export class SFUServerController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         if (!(await this.isSFUServerExist(id))) {
+          await this._rc.SET(id, 0);
           const data = await this._rc
             .multi()
             .hSet(
