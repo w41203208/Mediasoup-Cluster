@@ -13,7 +13,12 @@
 > #### Docker
 
 - docker build -t sfuserver .
-- docker-compose up -d
+- DEV：docker-compose -f docker-compose.dev.yml --env-file ./dev.env up -d
+- PRO：docker-compose -f docker-compose.yml --env-file ./.env up -d
+
+Dev：192.168.1.98:8585、192.168.1.98:7878
+
+Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Server 的 SFU Connection ENV
 
 > #### ENV
 
