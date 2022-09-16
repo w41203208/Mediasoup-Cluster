@@ -19,6 +19,10 @@ const sslOption = {
   cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
 };
 
+const EVENT_FROM_SERVER_REQUEST = {
+  HEART_BEAT_CHECK: 'heartBeatCheck',
+};
+
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
   JOIN_ROOM: 'joinRoom',
@@ -87,30 +91,35 @@ const serverSocketList = new Map();
   const runWebSocketServer = (server) => {
     const wsServer = new WSServer(server);
 
+
     wsServer.on('connection', (ws) => {
       ws.id = (0, v4)();
       const peer = new Peer(ws.id, '', ws);
-      // const hasPing = req.url?.includes('ping=true');
-      // const heartCheck = {
-      //   timeout: 10 * 1000,
-      //   timeoutObj: null,
-      //   serverTimeoutObj: null,
-      //   reset() {
-      //     if (this.timeoutObj) clearTimeout(this.timeoutObj);
-      //     if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
-      //     return this;
-      //   },
-      //   start() {
-      //     const self = this;
-      //     this.timeoutObj = setTimeout(function () {
-      //       ws.send("ping");
-      //       self.serverTimeoutObj = setTimeout(function () {
-      //         ws.close();
-      //       }, self.timeout)
-      //     }, this.timeout)
-      //   }
-      // }
-
+      const heartCheck = {
+        timeout: 10 * 1000,
+        timeoutObj: null,
+        serverTimeoutObj: null,
+        reset() {
+          if (this.timeoutObj) clearTimeout(this.timeoutObj);
+          if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
+          return this;
+        },
+        start() {
+          const self = this;
+          this.timeoutObj = setTimeout(() => {
+            peer.notify({
+              type: EVENT_FROM_SERVER_REQUEST.HEART_BEAT_CHECK,
+              data: "ping",
+            })
+            self.serverTimeoutObj = setTimeout(() => {
+              ws.close();
+              serverHandleLeaveRoom(peer);
+              console.log(`${ws.id} is close`)
+            }, self.timeout)
+          }, this.timeout)
+        }
+      }
+      heartCheck.reset().start()
       peer.on('request', (message, response) => {
         const { id, type, data } = message;
         switch (type) {
@@ -136,7 +145,7 @@ const serverSocketList = new Map();
             handleCreateWebRTCTransport(id, data, peer, response);
             break;
           case EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT:
-            handleConnectWebRTCTranport(id, data, peer, response);
+            handleConnectWebRTCTransport(id, data, peer, response);
             break;
           case EVENT_FROM_CLIENT_REQUEST.PRODUCE:
             handleProduce(id, data, peer, response);
@@ -149,7 +158,11 @@ const serverSocketList = new Map();
 
       peer.on('notification', (message, notify) => {
         const { type, data } = message;
-        console.log(type, data);
+        switch (type) {
+          case EVENT_FROM_SERVER_REQUEST.HEART_BEAT_CHECK:
+            if (data === "pong") heartCheck.reset().start()
+            break;
+        }
       });
 
     });
@@ -266,6 +279,9 @@ const serverSocketList = new Map();
           responseData = {
             room_id: room.id,
           };
+          //暫時存roomid
+          peer.room_id = room.id
+          //
           response({
             id,
             type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
@@ -294,6 +310,29 @@ const serverSocketList = new Map();
     await RoomController.delRoom(room_id);
     console.log(roomList);
     response({ id });
+  };
+
+  //暫時使用
+  const serverHandleLeaveRoom = async (peer) => {
+    console.log('User [%s] leave room [%s].', peer.id, peer.room_id);
+    const rRoom = await RoomController.getRoom(peer.room_id);
+
+    if (rRoom) {
+      let room;
+      if (roomList.has(rRoom.id)) {
+        room = roomList.get(peer.room_id);
+      }
+      const newPlayerList = rRoom.playerList.filter((playerId) => playerId !== peer.id);
+      rRoom.playerList = newPlayerList;
+      await RoomController.updateRoom(rRoom);
+      await PlayerController.delPlayer(peer.id);
+
+      room.removePeer(peer.id);
+
+      if (room.getJoinedPeers({ excludePeer: {} }).length === 0) {
+        roomList.delete(peer.room_id);
+      }
+    }
   };
 
   const handleLeaveRoom = async (id, data, peer, response) => {
@@ -372,7 +411,7 @@ const serverSocketList = new Map();
       });
   };
 
-  const handleConnectWebRTCTranport = (id, data, peer, response) => {
+  const handleConnectWebRTCTransport = (id, data, peer, response) => {
     const { room_id, transport_id, dtlsParameters } = data;
     if (!roomList.has(room_id)) {
       response({ id });
@@ -537,10 +576,10 @@ const serverSocketList = new Map();
             const key = data[i];
             const count = await SFUServerController.getSFUServerCount(key);
             let new_count;
-            if (count < 1 && okServer === undefined) {
+            if (count < 10 && okServer === undefined) {
               okServer = key;
               new_count = await SFUServerController.addSFUServerCount(key);
-              if (new_count >= 2) {
+              if (new_count >= 11) {
                 await SFUServerController.reduceSFUServerCount(key);
                 okServer = undefined;
               }
