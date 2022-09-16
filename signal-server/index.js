@@ -210,7 +210,8 @@ const serverSocketList = new Map();
 
       // 選擇適合的SFUServer建立Websocket連線，從local取得 或是 創建新的連線
       let serverSocket;
-      const ip_port = await getMinimumServer();
+      const ip_port = await getMinimumSFUServer();
+      console.log(ip_port);
       if (serverSocketList.has(ip_port)) {
         serverSocket = serverSocketList.get(ip_port);
       } else {
@@ -526,17 +527,27 @@ const serverSocketList = new Map();
   /*                  */
   /********************/
 
-  const getMinimumServer = async () => {
+  const getMinimumSFUServer = async () => {
     return new Promise((resolve, reject) => {
-      let s;
-      SFUServerController.getAllSFUServer().then((data) => {
+      SFUServerController.getAllSFUServer().then(async (data) => {
         try {
-          Object.entries(data).forEach(([key, value]) => {
-            if (value.count < 1 && s === undefined) {
-              s = key;
+          let okServer = undefined;
+          let i = 0;
+          while (i < data.length || okServer === undefined) {
+            const key = data[i];
+            const count = await SFUServerController.getSFUServerCount(key);
+            let new_count;
+            if (count < 1 && okServer === undefined) {
+              okServer = key;
+              new_count = await SFUServerController.addSFUServerCount(key);
+              if (new_count >= 2) {
+                await SFUServerController.reduceSFUServerCount(key);
+                okServer = undefined;
+              }
             }
-          });
-          resolve(s);
+            i++;
+          }
+          resolve(okServer);
         } catch (error) {
           console.log(error);
           reject(error);

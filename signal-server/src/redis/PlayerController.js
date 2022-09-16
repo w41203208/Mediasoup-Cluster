@@ -36,8 +36,7 @@ class PlayerController extends ControllerImp {
   delPlayer(id) {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!(await this.isPlayerExist(id))) {
-          console.log('test');
+        if (await this.isPlayerExist(id)) {
           await this._rc.hDel('Player', id, function (err) {
             if (err) {
               console.error('Failed to remove presence in redis: ' + err);
