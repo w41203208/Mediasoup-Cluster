@@ -9,4 +9,8 @@ interface HttpsServerOptions {
   port: number;
 }
 
-export { sslOption, HttpsServerOptions };
+interface EngineOptions {
+  httpsServerOption: HttpsServerOptions;
+}
+
+export { sslOption, EngineOptions, HttpsServerOptions };
