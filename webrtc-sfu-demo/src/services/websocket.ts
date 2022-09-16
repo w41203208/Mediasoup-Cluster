@@ -40,6 +40,7 @@ export class Socket extends EventEmitter {
     this._socket.onmessage = (event: any) => {
       const data = JSON.parse(event.data);
       const { messageType, ...rest } = data;
+
       switch (messageType) {
         case 'request':
           this._handlerRequest(rest);
@@ -56,7 +57,7 @@ export class Socket extends EventEmitter {
   close() {
     this._socket?.close();
   }
-  _handlerRequest(_data: any) {}
+  _handlerRequest(_data: any) { }
 
   _handlerResponse(_data: any) {
     const { id, type, data } = _data;
@@ -66,6 +67,14 @@ export class Socket extends EventEmitter {
   }
 
   _handlerNotification(_data: any) {
+    if (_data.data === 'ping') {
+      let sendData: SendData = {
+        data: 'pong',
+        type: 'heartBeatCheck',
+      };
+      this.notify(sendData)
+      return
+    }
     this.emit('notification', _data);
   }
 

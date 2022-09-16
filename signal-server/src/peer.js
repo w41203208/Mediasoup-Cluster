@@ -1,7 +1,7 @@
 const { EventEmitter } = require('./emitter');
 
 module.exports = class Peer extends EventEmitter {
-  constructor(peer_id, peer_name = '', websocket) {
+  constructor(peer_id, peer_name = '', websocket, room_id) {
     super();
     /* base info */
     this.id = peer_id;
@@ -19,6 +19,9 @@ module.exports = class Peer extends EventEmitter {
     /* websocket */
     this.ws = websocket;
     this.peerHandleWSMessage();
+
+    /* room_id 暫時存在peer*/
+    this.room_id = room_id;
   }
 
   set serverId(id) {
@@ -85,7 +88,7 @@ module.exports = class Peer extends EventEmitter {
       this.ws.sendData(sendData);
     });
   }
-  _handlerResponse() {}
+  _handlerResponse() { }
   _handlerNotification(notification) {
     this.emit('notification', notification, (sendData) => {
       sendData.messageType = 'notification';
