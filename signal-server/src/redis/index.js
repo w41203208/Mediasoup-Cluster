@@ -1,7 +1,7 @@
-const { createRedisController } = require('./redis');
-const { RoomController } = require('./RoomController');
-const { SFUServerController } = require('./SFUServerController');
-const { PlayerController } = require('./PlayerController');
+const { createRedisController } = require('./redis.js');
+const { RoomController } = require('./RoomController.js');
+const { SFUServerController } = require('./SFUServerController.js');
+const { PlayerController } = require('./PlayerController.js');
 
 module.exports = {
   createRedisController: createRedisController,
