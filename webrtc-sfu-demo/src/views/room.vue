@@ -72,7 +72,6 @@ export default defineComponent({
       if (roomInfoReactive.role === "host") {
         rc.closeRoom(roomInfoReactive.room);
       } else {
-        console.log("離開");
         rc.leaveRoom(roomInfoReactive.room);
       }
     });

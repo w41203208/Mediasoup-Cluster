@@ -84,13 +84,32 @@ const serverSocketList = new Map();
     });
     return server;
   };
-
   const runWebSocketServer = (server) => {
     const wsServer = new WSServer(server);
 
     wsServer.on('connection', (ws) => {
       ws.id = (0, v4)();
       const peer = new Peer(ws.id, '', ws);
+      // const hasPing = req.url?.includes('ping=true');
+      // const heartCheck = {
+      //   timeout: 10 * 1000,
+      //   timeoutObj: null,
+      //   serverTimeoutObj: null,
+      //   reset() {
+      //     if (this.timeoutObj) clearTimeout(this.timeoutObj);
+      //     if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
+      //     return this;
+      //   },
+      //   start() {
+      //     const self = this;
+      //     this.timeoutObj = setTimeout(function () {
+      //       ws.send("ping");
+      //       self.serverTimeoutObj = setTimeout(function () {
+      //         ws.close();
+      //       }, self.timeout)
+      //     }, this.timeout)
+      //   }
+      // }
 
       peer.on('request', (message, response) => {
         const { id, type, data } = message;
@@ -132,6 +151,7 @@ const serverSocketList = new Map();
         const { type, data } = message;
         console.log(type, data);
       });
+
     });
   };
   /********************/
