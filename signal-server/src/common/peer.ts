@@ -31,6 +31,7 @@ export class Peer extends EventEmitter {
   private _ws: WebSocket;
 
   private _listener: ServerEngine;
+  private _inRoom: boolean;
   constructor(peer_id: string, peer_name: string = '', websocket: WebSocket, listener: ServerEngine) {
     super();
     /* base info */
@@ -51,6 +52,7 @@ export class Peer extends EventEmitter {
 
     /* advanced */
     this._listener = listener;
+    this._inRoom = false;
 
     this._handleTransportMessgae();
   }
@@ -60,9 +62,14 @@ export class Peer extends EventEmitter {
       const { id, type, data } = message;
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-          const { room_id } = data;
-          console.log('User [%s] create room [%s].', this._id, room_id);
+          data.peer_id = this.id;
           this._listener.handleRequest(id, type, data, response);
+          break;
+        case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
+          data.peer = this;
+          this._listener.handleRequest(id, type, data, response);
+          break;
+        default:
           break;
       }
     });
@@ -105,6 +112,10 @@ export class Peer extends EventEmitter {
 
   get rtpCapabilities() {
     return this._rtpCapabilities;
+  }
+
+  set inRoom(stats: boolean) {
+    this._inRoom = stats;
   }
 
   addTransport(id: string, transportType: string) {
