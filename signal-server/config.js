@@ -2,7 +2,7 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 module.exports = {
   ServerSetting: {
-    listenIp: '127.0.0.1',
+    listenIp: '0.0.0.0',
     listenPort: 9999,
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
