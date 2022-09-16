@@ -1,25 +1,27 @@
-import { ServerImp } from './serverImp';
-
 import { Application, Request, Response } from 'express';
 import { createServer } from 'https';
-import { HttpsServerOptions, sslOption } from './type';
+import { ServerEngine } from 'src/engine';
+import { HttpsServerOptions, sslOption } from '../type';
 
 const express = require('express');
 const cors = require('cors');
 
-export class HttpsServer implements ServerImp {
+export class HttpsServer {
   private _ip: string;
   private _port: number;
   private _ssl: sslOption;
 
   private app?: Application;
-  constructor({ ip, port, ssl }: HttpsServerOptions) {
+  private _listener: ServerEngine;
+  constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine) {
     this._ip = ip;
     this._port = port;
     this._ssl = ssl;
+
+    this._listener = listener;
   }
 
-  _run(...args: any) {
+  run(...args: any) {
     const app = express();
     app.use(cors());
 
@@ -30,7 +32,7 @@ export class HttpsServer implements ServerImp {
     return this;
   }
 
-  _runToHttps() {
+  runToHttps() {
     const httpsServer = createServer(this._ssl, this.app);
 
     const server = httpsServer.listen(this._port, this._ip, () => {
