@@ -15,8 +15,14 @@ const { createRedisController, Controllers } = require('./src/redis/index');
 require('dotenv').config();
 // ssl option
 const sslOption = {
-  key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
-  cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
+  key: fs.readFileSync(
+    path.join(__dirname, config.ServerSetting.sslKey),
+    'utf-8'
+  ),
+  cert: fs.readFileSync(
+    path.join(__dirname, config.ServerSetting.sslCert),
+    'utf-8'
+  ),
 };
 
 const EVENT_FROM_SERVER_REQUEST = {
@@ -54,7 +60,8 @@ const roomList = new Map();
 const serverSocketList = new Map();
 
 (async function () {
-  const { RoomController, SFUServerController, PlayerController } = await createRedisController(Controllers);
+  const { RoomController, SFUServerController, PlayerController } =
+    await createRedisController(Controllers);
 
   const run = async () => {
     const app = runExpress();
@@ -83,14 +90,19 @@ const serverSocketList = new Map();
 
   const runHttpsServer = (app) => {
     const httpsServer = createServer(sslOption, app);
-    const server = httpsServer.listen(config.ServerSetting.listenPort, '0.0.0.0', () => {
-      console.log(`Server is listening at ${process.env.HOST}:${config.ServerSetting.listenPort}`);
-    });
+    const server = httpsServer.listen(
+      config.ServerSetting.listenPort,
+      '0.0.0.0',
+      () => {
+        console.log(
+          `Server is listening at ${process.env.HOST}:${config.ServerSetting.listenPort}`
+        );
+      }
+    );
     return server;
   };
   const runWebSocketServer = (server) => {
     const wsServer = new WSServer(server);
-
 
     wsServer.on('connection', (ws) => {
       ws.id = (0, v4)();
@@ -109,17 +121,17 @@ const serverSocketList = new Map();
           this.timeoutObj = setTimeout(() => {
             peer.notify({
               type: EVENT_FROM_SERVER_REQUEST.HEART_BEAT_CHECK,
-              data: "ping",
-            })
+              data: 'ping',
+            });
             self.serverTimeoutObj = setTimeout(() => {
               ws.close();
               serverHandleLeaveRoom(peer);
-              console.log(`${ws.id} is close`)
-            }, self.timeout)
-          }, this.timeout)
-        }
-      }
-      heartCheck.reset().start()
+              console.log(`${ws.id} is close`);
+            }, self.timeout);
+          }, this.timeout);
+        },
+      };
+      heartCheck.reset().start();
       peer.on('request', (message, response) => {
         const { id, type, data } = message;
         switch (type) {
@@ -160,11 +172,10 @@ const serverSocketList = new Map();
         const { type, data } = message;
         switch (type) {
           case EVENT_FROM_SERVER_REQUEST.HEART_BEAT_CHECK:
-            if (data === "pong") heartCheck.reset().start()
+            if (data === 'pong') heartCheck.reset().start();
             break;
         }
       });
-
     });
   };
   /********************/
@@ -266,7 +277,10 @@ const serverSocketList = new Map();
 
       serverSocket
         .sendData({
-          data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs, routers: routerList },
+          data: {
+            mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+            routers: routerList,
+          },
           type: EVENT_FOR_SFU.CREATE_ROUTER,
         })
         .then((data) => {
@@ -280,7 +294,7 @@ const serverSocketList = new Map();
             room_id: room.id,
           };
           //暫時存roomid
-          peer.room_id = room.id
+          peer.room_id = room.id;
           //
           response({
             id,
@@ -322,7 +336,9 @@ const serverSocketList = new Map();
       if (roomList.has(rRoom.id)) {
         room = roomList.get(peer.room_id);
       }
-      const newPlayerList = rRoom.playerList.filter((playerId) => playerId !== peer.id);
+      const newPlayerList = rRoom.playerList.filter(
+        (playerId) => playerId !== peer.id
+      );
       rRoom.playerList = newPlayerList;
       await RoomController.updateRoom(rRoom);
       await PlayerController.delPlayer(peer.id);
@@ -345,7 +361,9 @@ const serverSocketList = new Map();
       if (roomList.has(rRoom.id)) {
         room = roomList.get(room_id);
       }
-      const newPlayerList = rRoom.playerList.filter((playerId) => playerId !== peer.id);
+      const newPlayerList = rRoom.playerList.filter(
+        (playerId) => playerId !== peer.id
+      );
       rRoom.playerList = newPlayerList;
       await RoomController.updateRoom(rRoom);
       await PlayerController.delPlayer(peer.id);
@@ -381,7 +399,11 @@ const serverSocketList = new Map();
       })
       .then((data) => {
         const { mediaCodecs } = data;
-        response({ id, type: EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES, data: { codecs: mediaCodecs } });
+        response({
+          id,
+          type: EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES,
+          data: { codecs: mediaCodecs },
+        });
       });
   };
 
@@ -405,9 +427,18 @@ const serverSocketList = new Map();
         type: EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT,
       })
       .then((data) => {
-        console.log('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
+        console.log(
+          'User [%s] createWebRTCTransport [%s] type is [%s]',
+          peer.id,
+          data.transport_id,
+          data.transportType
+        );
         peer.addTransport(data.transport_id, data.transportType);
-        response({ id, type: EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT, data: data });
+        response({
+          id,
+          type: EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT,
+          data: data,
+        });
       });
   };
 
@@ -429,7 +460,11 @@ const serverSocketList = new Map();
         },
       })
       .then((data) => {
-        response({ id, type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT, data: data });
+        response({
+          id,
+          type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT,
+          data: data,
+        });
       });
   };
 

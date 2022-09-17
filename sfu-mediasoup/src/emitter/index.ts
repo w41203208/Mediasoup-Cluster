@@ -25,7 +25,7 @@ export class EventEmitter {
     const handlers = this._listeners[event];
     if (handlers && handlers.length !== 0) {
       for (var i = 0; i < handlers.length; i++) {
-        handlers[i].call(this, args);
+        handlers[i].call(this, ...args);
       }
     }
   }

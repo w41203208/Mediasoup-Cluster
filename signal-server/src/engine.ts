@@ -7,8 +7,8 @@ import { ControllerLoader } from './redis/ControllerLoader';
 import { EngineOptions, HttpsServerOptions } from './type';
 import { SFUConnectionManager } from './run/SFUConnectionManager';
 import { config } from '../config';
-
 import { v4 } from 'uuid';
+import { SFUServer } from './common/SFUServer';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -22,6 +22,19 @@ const EVENT_FROM_CLIENT_REQUEST = {
   GET_ROOM_INFO: 'getRoomInfo',
   LEAVE_ROOM: 'leaveRoom',
   CLOSE_ROOM: 'closeRoom',
+};
+
+const EVENT_FOR_CLIENT_NOTIFICATION = {
+  NEW_CONSUMER: 'newConsumer',
+};
+
+const EVENT_FOR_SFU = {
+  CREATE_ROUTER: 'createRouter',
+  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
+  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
+  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
+  CREATE_PRODUCE: 'createProduce',
+  CREATE_CONSUME: 'createConsume',
 };
 
 export class ServerEngine {
@@ -43,8 +56,12 @@ export class ServerEngine {
   }
 
   async run() {
-    this.redisControllers = await createRedisController(await ControllerLoader.bootstrap());
-    this.sfuServerConnection = new SFUConnectionManager({ ...this.redisControllers });
+    this.redisControllers = await createRedisController(
+      await ControllerLoader.bootstrap()
+    );
+    this.sfuServerConnection = new SFUConnectionManager({
+      ...this.redisControllers,
+    });
 
     const httpsServer = new HttpsServer(this._httpsServerOption, this);
 
@@ -57,18 +74,18 @@ export class ServerEngine {
     });
   }
 
-  handleRequest(id: string, type: string, data: any, response: Function) {
+  handleRequest(type: string, data: any, response: Function) {
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-        this.handleCreateRoom(id, data, response);
+        this.handleCreateRoom(data, response);
         break;
       case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-        // this.handleJoinRoom(id, data, response);
+        this.handleJoinRoom(data, response);
         break;
     }
   }
 
-  async handleCreateRoom(id: string, data: any, response: Function) {
+  async handleCreateRoom(data: any, response: Function) {
     const { RoomController } = this.redisControllers!;
     const { room_id, peer_id } = data;
     console.log('User [%s] create room [%s].', peer_id, room_id);
@@ -94,14 +111,13 @@ export class ServerEngine {
     }
 
     response({
-      id,
       type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
       data: responseData,
     });
   }
 
-  async handleJoinRoom(id: string, data: any, response: Function) {
-    const { RoomController } = this.redisControllers!;
+  async handleJoinRoom(data: any, response: Function) {
+    const { RoomController, PlayerController } = this.redisControllers!;
     const { room_id, peer } = data;
     console.log('User [%s] join room [%s].', peer.id, room_id);
 
@@ -113,32 +129,31 @@ export class ServerEngine {
       if (this.roomList.has(room_id)) {
         room = this.roomList.get(room_id)!;
       } else {
-        room = new Room(rRoom.id, config.MediasoupSetting.router.mediaCodecs);
+        room = new Room(
+          rRoom.id,
+          config.MediasoupSetting.router.mediaCodecs,
+          this.sfuServerConnection!
+        );
         this.roomList.set(room.id, room);
       }
 
       // 選擇適合的SFUServer建立Websocket連線，從local取得 或是 創建新的連線
-      let serverSocket;
+
       const ip_port = await this.sfuServerConnection!.getMinimumSFUServer();
       console.log(ip_port);
-      if (serverSocketList.has(ip_port)) {
-        serverSocket = serverSocketList.get(ip_port);
-      } else {
-        serverSocket = await connectToSFUServer(ip_port);
-      }
+      console.log('User [%s] choose [%s] sfuserver.', peer.id, ip_port);
+
+      const serverSocket = this.sfuServerConnection!.getServerSocket(ip_port);
+
       // new SFUServer，SFUServer 添加到 room
-      const recordServer = new SFUServer(ip_port, serverSocket);
-      room.addRecordServer(recordServer);
+      const sfuServer = new SFUServer(ip_port);
+      room.addSFUServer(sfuServer);
       // 添加 SFUServer port 給 peer
       peer.serverId = ip_port;
-      // rRoom update data
-      let c = false;
-      rRoom.serverList.forEach((server) => {
-        if (ip_port === server) {
-          c = true;
-        }
-      });
-      if (!c) {
+
+      // Update room data with serverList in redis.
+      const isExist = rRoom.serverList.indexOf(ip_port);
+      if (isExist === -1) {
         rRoom.serverList.push(ip_port);
       }
 
@@ -160,9 +175,12 @@ export class ServerEngine {
 
       const routerList = room.getRouters();
 
-      serverSocket
+      serverSocket!
         .sendData({
-          data: { mediaCodecs: config.MediasoupSetting.router.mediaCodecs, routers: routerList },
+          data: {
+            mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+            routers: routerList,
+          },
           type: EVENT_FOR_SFU.CREATE_ROUTER,
         })
         .then((data) => {
@@ -176,7 +194,6 @@ export class ServerEngine {
             room_id: room.id,
           };
           response({
-            id,
             type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
             data: responseData,
           });
@@ -186,7 +203,6 @@ export class ServerEngine {
         msg: 'This room is not exist!',
       };
       response({
-        id,
         type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
         data: responseData,
       });
