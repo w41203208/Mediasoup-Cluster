@@ -113,13 +113,13 @@ export class Room {
   }
 
   /************* Router *************/
-  getRouters(): Array<string> {
-    let routerList: Array<string> = [];
-    this._routers.forEach((router: any) => {
-      routerList.push(router.id);
-    });
-    return routerList;
-  }
+  // getRouters(): Array<string> {
+  //   let routerList: Array<string> = [];
+  //   this._routers.forEach((router: any) => {
+  //     routerList.push(router.id);
+  //   });
+  //   return routerList;
+  // }
 
   /************* SFUServer *************/
   getSFUServer(id: string) {
@@ -131,7 +131,7 @@ export class Room {
   }
 
   async _handlePeerRequest(peer: Peer, type: string, data: any, response: Function) {
-    let serverSocket = this._sfuConnectionManager.getServerSocket(peer.serverId!);
+    let serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
 
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
@@ -279,7 +279,7 @@ export class Room {
             console.log(partofPeerMap);
 
             Object.entries(partofPeerMap).forEach(([key, value]) => {
-              const serverSocket = this._sfuConnectionManager.getServerSocket(key);
+              const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
               console.log(value);
               // serverSocket.sendData({
               //   type: EVENT_FOR_SFU.CREATE_CONSUME,

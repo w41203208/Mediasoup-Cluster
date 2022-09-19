@@ -21,7 +21,7 @@ export class HttpsServer {
     this._listener = listener;
   }
 
-  run(...args: any) {
+  run() {
     const app = express();
     app.use(cors());
 

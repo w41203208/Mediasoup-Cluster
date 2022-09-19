@@ -3,6 +3,7 @@ const { v4 } = require('uuid');
 const { EventEmitter } = require('../util/emitter');
 
 export class SFUServerSocket extends EventEmitter {
+  private roomId?: string;
   constructor(ip: string, port: string) {
     super();
     this.id = `${ip}:${port}`;
@@ -13,12 +14,13 @@ export class SFUServerSocket extends EventEmitter {
     this.in_flight_send = new Map();
   }
 
-  start() {
+  start(roomId: string) {
     if (!!this.socket || !this._disconnected) {
       return;
     }
     return new Promise((resolve: any, reject: any) => {
-      this.socket = new WebSocket(`wss://${this.ip}:${this.port}`);
+      this.roomId = roomId;
+      this.socket = new WebSocket(`wss://${this.ip}:${this.port}/?room_id=${roomId}`);
       this._disconnected = false;
 
       this._socketHandler();
@@ -30,7 +32,7 @@ export class SFUServerSocket extends EventEmitter {
 
   _socketHandler() {
     this.socket.on('open', () => {
-      console.log('ServerSocket %s is connecting!', this.id);
+      console.log('ServerSocket is connecting with port: [%s], roomId: [%s]!', this.id, this.roomId);
       this.emit('open');
     });
     this.socket.on('close', () => {
