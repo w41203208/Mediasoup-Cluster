@@ -50,6 +50,19 @@ export class PlayerController extends ControllerImp {
     });
   }
 
+  updatePlayer(player: any): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (await this.isPlayerExist(player.id)) {
+          await this._rc.hSet('Player', player.id, this.transformToJSON(player));
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   isPlayerExist(id: string): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
       try {

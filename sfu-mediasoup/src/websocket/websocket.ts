@@ -2,6 +2,8 @@ import { EventEmitter } from '../emitter';
 import { Server } from 'https';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Logger } from '../util/logger';
+import { IncomingMessage } from 'http';
+import { parse } from 'path';
 
 const ws = require('ws');
 
@@ -32,9 +34,20 @@ export class WSServer extends EventEmitter {
     socket.on('open', () => {
       this.logger.info('Websocket is connected!');
     });
-    socket.on('connection', (ws: WebSocket) => {
-      console.log('connecting is ok.');
-      this.emit('connection', ws);
+    socket.on('connection', (ws: WebSocket, incomingMessage: IncomingMessage) => {
+      const url = this.urlParse(incomingMessage.url);
+      this.emit('connection', ws, url);
     });
+  }
+  urlParse(url: string | undefined) {
+    if (url === undefined) {
+      return;
+    }
+    const matchAns = url.match(/\/?room_id=(\w*)/);
+    if (!matchAns) {
+      return;
+    }
+    const newUrl = matchAns[1];
+    return newUrl;
   }
 }

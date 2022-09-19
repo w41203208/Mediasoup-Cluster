@@ -38,10 +38,6 @@ export class SFUConnectionManager {
             }
             i++;
           }
-          // 這裡要防範沒有選到任何伺服器的做法
-          if (!this.SFUServerSockets.has(okServer)) {
-            await this.connectToSFUServer(okServer);
-          }
           resolve(okServer);
         } catch (error) {
           console.log(error);
@@ -51,11 +47,18 @@ export class SFUConnectionManager {
     });
   }
 
-  async connectToSFUServer(ip_port: string) {
+  async connectToSFUServer(ip_port: string, room_id: string) {
     const [ip, port] = ip_port.split(':');
-    const serverSocket = new SFUServerSocket(ip, port);
-    await serverSocket.start();
-    this.SFUServerSockets.set(serverSocket.id, serverSocket);
+    let serverSocket: SFUServerSocket;
+    if (!this.SFUServerSockets.has(ip_port)) {
+      serverSocket = new SFUServerSocket(ip, port);
+      await serverSocket.start(room_id);
+      this.SFUServerSockets.set(`${ip_port}:${room_id}`, serverSocket);
+    } else {
+      serverSocket = this.SFUServerSockets.get(`${ip_port}:${room_id}`)!;
+    }
     return serverSocket;
   }
+
+  // async;
 }
