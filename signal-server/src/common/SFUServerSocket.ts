@@ -46,10 +46,7 @@ export class SFUServerSocket extends EventEmitter {
     this.in_flight_send.delete(id);
   }
 
-  sendData({ data, type }: { data: any; type: string }) {
-    if (this._disconnected) {
-      return;
-    }
+  sendData({ data, type }: { data: any; type: string }): Promise<any> {
     const id = v4();
     let resolve, reject;
     const promise = new Promise((res, rej) => {

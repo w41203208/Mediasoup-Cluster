@@ -37,6 +37,7 @@ export class WSTransport extends EventEmitter {
   _handlerRequest(request: any) {
     this.emit('request', request, (sendData: any) => {
       sendData.messageType = 'response';
+      sendData.id = request.id;
       this.sendData(sendData);
     });
   }

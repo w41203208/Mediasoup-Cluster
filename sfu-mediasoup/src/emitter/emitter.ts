@@ -1,6 +1,8 @@
-class EventEmitter {
-  _listeners = {};
-  on(event, listener) {
+import { Callback } from './type';
+
+export class EventEmitter {
+  _listeners: Record<string, Callback[]> = {};
+  on(event: string, listener: Callback): void {
     if (this._listeners === undefined) this._listeners = {};
     const handler = this._listeners[event] || [];
     if (handler.indexOf(listener) === -1) {
@@ -8,7 +10,7 @@ class EventEmitter {
     }
     this._listeners[event] = handler;
   }
-  remove(event, listener) {
+  remove(event: string, listener: Callback) {
     if (this._listeners === undefined) return;
     const listeners = this._listeners;
     if (listeners[event] !== undefined) {
@@ -18,7 +20,7 @@ class EventEmitter {
       listeners[event] = handler;
     }
   }
-  emit(event, ...args) {
+  emit(event: string, ...args: any) {
     if (this._listeners === undefined) return;
     const handlers = this._listeners[event];
     if (handlers && handlers.length !== 0) {
@@ -28,7 +30,3 @@ class EventEmitter {
     }
   }
 }
-
-module.exports = {
-  EventEmitter: EventEmitter,
-};

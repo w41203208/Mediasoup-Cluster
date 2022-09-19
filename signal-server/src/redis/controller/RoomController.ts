@@ -2,8 +2,10 @@ import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
 
 export class RoomController extends ControllerImp {
+  private _rc: RedisClientType;
   constructor(redisClient: RedisClientType) {
-    super(redisClient);
+    super();
+    this._rc = redisClient;
   }
 
   setRoom(id: string) {
@@ -37,7 +39,7 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  getRoom(id: string) {
+  getRoom(id: string): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
         if (await this.isRoomExist(id)) {

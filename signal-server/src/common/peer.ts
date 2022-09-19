@@ -1,6 +1,6 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
-import { WebSocket } from 'ws';
+import { WSTransport } from 'src/run/WSTransport';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -28,10 +28,11 @@ export class Peer extends EventEmitter {
   private _consumers: Map<string, Record<string, any>>;
   private _rtpCapabilities?: any;
 
-  private _ws: WebSocket;
+  private _ws: WSTransport;
 
   private _listener: ServerEngine;
-  constructor(peer_id: string, peer_name: string = '', websocket: WebSocket, listener: ServerEngine) {
+  private _inRoom: boolean;
+  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine) {
     super();
     /* base info */
     this._id = peer_id;
@@ -51,21 +52,36 @@ export class Peer extends EventEmitter {
 
     /* advanced */
     this._listener = listener;
+    this._inRoom = false;
 
     this._handleTransportMessgae();
   }
 
   _handleTransportMessgae() {
-    this._ws.on('request', (message: { id: string; type: string; data: any }, response: Function) => {
-      const { id, type, data } = message;
+    this._ws.on('request', (message: { type: string; data: any }, response: Function) => {
+      const { type, data } = message;
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-          const { room_id } = data;
-          console.log('User [%s] create room [%s].', this._id, room_id);
-          this._listener.handleRequest(id, type, data, response);
+          data.peer_id = this.id;
+          this._listener.handleRequest(type, data, response);
+          break;
+        case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
+          data.peer = this;
+          this._listener.handleRequest(type, data, response);
+          break;
+        default:
+          this.emit('handleOnRoomRequest', this, type, data, response);
           break;
       }
     });
+  }
+
+  get socket() {
+    return this._ws;
+  }
+
+  get id() {
+    return this._id;
   }
 
   set serverId(id) {
@@ -105,6 +121,10 @@ export class Peer extends EventEmitter {
 
   get rtpCapabilities() {
     return this._rtpCapabilities;
+  }
+
+  set inRoom(stats: boolean) {
+    this._inRoom = stats;
   }
 
   addTransport(id: string, transportType: string) {

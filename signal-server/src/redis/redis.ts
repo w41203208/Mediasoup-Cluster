@@ -1,8 +1,6 @@
-import { ControllerImp } from './ControllerImp';
-
 const redis = require('redis');
 
-export function createRedisController(controllers: Array<any>): Promise<Record<string, ControllerImp>> {
+export function createRedisController(controllers: Array<any>): Promise<Record<string, any>> {
   return new Promise(async (resolve, reject) => {
     try {
       const client = redis.createClient({

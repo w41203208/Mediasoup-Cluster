@@ -2,8 +2,10 @@ import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
 
 export class PlayerController extends ControllerImp {
+  private _rc: RedisClientType;
   constructor(redisClient: RedisClientType) {
-    super(redisClient);
+    super();
+    this._rc = redisClient;
   }
 
   setPlayer(id: string): Promise<boolean | any> {
