@@ -1,6 +1,6 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
-import { WebSocket } from 'ws';
+import { WSTransport } from 'src/run/WSTransport';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -28,16 +28,11 @@ export class Peer extends EventEmitter {
   private _consumers: Map<string, Record<string, any>>;
   private _rtpCapabilities?: any;
 
-  private _ws: WebSocket;
+  private _ws: WSTransport;
 
   private _listener: ServerEngine;
   private _inRoom: boolean;
-  constructor(
-    peer_id: string,
-    peer_name: string = '',
-    websocket: WebSocket,
-    listener: ServerEngine
-  ) {
+  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine) {
     super();
     /* base info */
     this._id = peer_id;
@@ -63,25 +58,26 @@ export class Peer extends EventEmitter {
   }
 
   _handleTransportMessgae() {
-    this._ws.on(
-      'request',
-      (message: { type: string; data: any }, response: Function) => {
-        const { type, data } = message;
-        switch (type) {
-          case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-            data.peer_id = this.id;
-            this._listener.handleRequest(type, data, response);
-            break;
-          case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-            data.peer = this;
-            this._listener.handleRequest(type, data, response);
-            break;
-          default:
-            this.emit('handleOnRoomRequest', this, type, data, response);
-            break;
-        }
+    this._ws.on('request', (message: { type: string; data: any }, response: Function) => {
+      const { type, data } = message;
+      switch (type) {
+        case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
+          data.peer_id = this.id;
+          this._listener.handleRequest(type, data, response);
+          break;
+        case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
+          data.peer = this;
+          this._listener.handleRequest(type, data, response);
+          break;
+        default:
+          this.emit('handleOnRoomRequest', this, type, data, response);
+          break;
       }
-    );
+    });
+  }
+
+  get socket() {
+    return this._ws;
   }
 
   get id() {

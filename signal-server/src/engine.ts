@@ -56,9 +56,7 @@ export class ServerEngine {
   }
 
   async run() {
-    this.redisControllers = await createRedisController(
-      await ControllerLoader.bootstrap()
-    );
+    this.redisControllers = await createRedisController(await ControllerLoader.bootstrap());
     this.sfuServerConnection = new SFUConnectionManager({
       ...this.redisControllers,
     });
@@ -132,7 +130,11 @@ export class ServerEngine {
         room = new Room(
           rRoom.id,
           config.MediasoupSetting.router.mediaCodecs,
-          this.sfuServerConnection!
+          this.sfuServerConnection!,
+          {
+            ...this.redisControllers,
+          },
+          this
         );
         this.roomList.set(room.id, room);
       }
@@ -207,5 +209,9 @@ export class ServerEngine {
         data: responseData,
       });
     }
+  }
+
+  deleteRoom(id: string) {
+    this.roomList.delete(id);
   }
 }
