@@ -2,8 +2,10 @@ import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
 
 export class SFUServerController extends ControllerImp {
+  private _rc: RedisClientType;
   constructor(redisClient: RedisClientType) {
-    super(redisClient);
+    super();
+    this._rc = redisClient;
   }
 
   getAllSFUServer() {
@@ -22,12 +24,15 @@ export class SFUServerController extends ControllerImp {
     });
   }
 
-  getSFUServerCount(id: string) {
+  getSFUServerCount(id: string): Promise<number | void> {
     return new Promise(async (resolve, reject) => {
       try {
         const count = await this._rc.get(id);
-
-        resolve(count);
+        if (count) {
+          resolve(Number(count));
+        } else {
+          resolve();
+        }
       } catch (error) {
         console.log(error);
         reject(error);
@@ -35,11 +40,15 @@ export class SFUServerController extends ControllerImp {
     });
   }
 
-  addSFUServerCount(id: string) {
+  addSFUServerCount(id: string): Promise<number | void> {
     return new Promise(async (resolve, reject) => {
       try {
         const count = await this._rc.INCRBY(id, 1);
-        resolve(count);
+        if (count) {
+          resolve(Number(count));
+        } else {
+          resolve();
+        }
       } catch (error) {
         console.log(error);
         reject(error);
@@ -53,6 +62,17 @@ export class SFUServerController extends ControllerImp {
         resolve();
       } catch (error) {
         console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  isSFUServerIdExist(id: string) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const exist = await this._rc.exists(id);
+        resolve(exist);
+      } catch (error) {
         reject(error);
       }
     });
