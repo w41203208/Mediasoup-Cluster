@@ -1,6 +1,6 @@
 import { Peer } from '../common/peer';
 import { SFUServerSocket } from '../common/SFUServerSocket';
-import { SFUServerController } from '../redis/controller/SFUServerController';
+import { SFUServerController } from '../redis/controller';
 
 export class SFUConnectionManager {
   private peopleLimit: number = 5;

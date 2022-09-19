@@ -39,7 +39,7 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  getRoom(id: string) {
+  getRoom(id: string): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
         if (await this.isRoomExist(id)) {

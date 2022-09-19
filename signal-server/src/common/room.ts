@@ -1,6 +1,8 @@
 import { SFUServer } from './SFUServer';
 import { Peer } from './peer';
 import { SFUConnectionManager } from 'src/run/SFUConnectionManager';
+import { PlayerController, RoomController } from '../redis/controller';
+import { ServerEngine } from 'src/engine';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -37,10 +39,16 @@ export class Room {
   private _peers: Map<string, Peer>;
   private _sfuConnectionManager: SFUConnectionManager;
 
+  private listener: ServerEngine;
+  private PlayerController: PlayerController;
+  private RoomController: RoomController;
+
   constructor(
     room_id: string,
     mediaCodecs: Record<string, any>,
-    sfuConnectionManager: SFUConnectionManager
+    sfuConnectionManager: SFUConnectionManager,
+    { PlayerController, RoomController }: any,
+    listener: ServerEngine
   ) {
     this._mediaCodecs = mediaCodecs;
     this._id = room_id;
@@ -49,6 +57,9 @@ export class Room {
     this._peers = new Map();
 
     this._sfuConnectionManager = sfuConnectionManager;
+    this.PlayerController = PlayerController;
+    this.RoomController = RoomController;
+    this.listener = listener;
   }
 
   getOtherPeerProducers(id: string) {
@@ -74,8 +85,8 @@ export class Room {
     return this._peers.get(id);
   }
 
-  getJoinedPeers({ excludePeer = {} as Peer }): Array<string> {
-    let producerList: Array<string> = [];
+  getJoinedPeers({ excludePeer = {} as Peer }): Array<Peer> {
+    let producerList: Array<Peer> = [];
     this._peers.forEach((peer: any) => {
       if (peer.id !== excludePeer.id) {
         producerList.push(peer);
@@ -86,12 +97,9 @@ export class Room {
 
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
-    peer.on(
-      'handleOnRoomRequest',
-      (peer: Peer, type: string, data: any, response: Function) => {
-        this._handlePeerRequest(peer, type, data, response);
-      }
-    );
+    peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
+      this._handlePeerRequest(peer, type, data, response);
+    });
   }
 
   removePeer(id: string) {
@@ -122,24 +130,43 @@ export class Room {
     this._sfuServers.set(sfuServer.id, sfuServer);
   }
 
-  async _handlePeerRequest(
-    peer: Peer,
-    type: string,
-    data: any,
-    response: Function
-  ) {
+  async _handlePeerRequest(peer: Peer, type: string, data: any, response: Function) {
+    let serverSocket = this._sfuConnectionManager.getServerSocket(peer.serverId!);
+
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
+        console.log('User [%s] close room [%s].', peer.id, this._id);
+
+        // roomList.delete(room_id);
+
+        await this.PlayerController.delPlayer(peer.id);
+        await this.RoomController.delRoom(this._id);
+
+        this.listener.deleteRoom(this._id);
+
+        response({});
         break;
       case EVENT_FROM_CLIENT_REQUEST.LEAVE_ROOM:
+        console.log('User [%s] leave room [%s].', peer.id, this._id);
+        const rRoom = await this.RoomController.getRoom(this._id);
+
+        if (rRoom) {
+          const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
+          rRoom.playerList = newPlayerList;
+          await this.RoomController.updateRoom(rRoom);
+          await this.PlayerController.delPlayer(peer.id);
+
+          this.removePeer(peer.id);
+
+          if (this.getJoinedPeers({ excludePeer: {} as Peer }).length === 0) {
+            this.listener.deleteRoom(this._id);
+          }
+        }
+
+        response({});
         break;
       case EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES:
-        const serverSocket = this._sfuConnectionManager.getServerSocket(
-          peer.serverId!
-        );
-
         if (!serverSocket) return;
-        // const recordServer = room.getRecordServer(peer.serverId);
 
         serverSocket
           .sendData({
@@ -149,20 +176,165 @@ export class Room {
             type: EVENT_FOR_SFU.GET_ROUTER_RTPCAPABILITIES,
           })
           .then((data) => {
-            const { mediaCodecs } = data;
             response({
               type: EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES,
-              data: { codecs: mediaCodecs },
+              data: { codecs: data.mediaCodecs },
             });
           });
         break;
       case EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT:
+        if (!serverSocket) return;
+
+        serverSocket
+          .sendData({
+            data: {
+              router_id: peer.routerId,
+              consuming: data.consuming,
+              producing: data.producing,
+            },
+            type: EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT,
+          })
+          .then((data) => {
+            console.log('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
+            peer.addTransport(data.transport_id, data.transportType);
+            response({
+              type: EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT,
+              data: data,
+            });
+          });
         break;
       case EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT:
+        if (!serverSocket) return;
+
+        serverSocket
+          .sendData({
+            type: EVENT_FOR_SFU.CONNECT_WEBRTCTRANPORT,
+            data: {
+              router_id: peer.routerId,
+              transport_id: data.transport_id,
+              dtlsParameters: data.dtlsParameters,
+            },
+          })
+          .then((data) => {
+            response({
+              type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT,
+              data: data,
+            });
+          });
         break;
       case EVENT_FROM_CLIENT_REQUEST.PRODUCE:
+        if (!serverSocket) return;
+
+        serverSocket
+          .sendData({
+            type: EVENT_FOR_SFU.CREATE_PRODUCE,
+            data: {
+              router_id: peer.routerId,
+              transport_id: peer.sendTransport.id,
+              rtpParameters: data.rtpParameters,
+              kind: data.kind,
+            },
+          })
+          .then((data) => {
+            const { producer_id } = data;
+            console.log('User [%s] produce [%s].', peer.id, producer_id);
+            peer.addProducer(producer_id);
+
+            let producerList = [
+              {
+                producer_id: producer_id,
+              },
+            ];
+
+            // 這裡原則上是要跟 redis 拿在 room 裡面全部的 peer，但除了自己本身
+            const peers = this.getJoinedPeers({ excludePeer: peer });
+
+            // 先從全部的 peer 中整理出 peer map
+            let peerMap = {} as any;
+            peers.forEach((peer) => {
+              peerMap[peer.id] = {
+                router_id: peer.routerId,
+                transport_id: peer.recvTransport.id,
+                rtpCapabilities: peer.rtpCapabilities,
+                producers: producerList,
+              };
+            });
+
+            // use redis channle to another signal server
+
+            // 從全部 peer 中篩選自己的 peer，並整理成 { serverId : [peer, peer, peer]}
+            const localPeerList = this.getJoinedPeers({ excludePeer: {} as Peer });
+            let partofPeerMap = {} as any;
+            localPeerList.forEach((peer) => {
+              // if (peerMap[peer.id]) {
+              //   partofPeerMap[peer.id] = peerMap[peer.id];
+              // }
+              if (peerMap[peer.id]) {
+                if (!partofPeerMap[peer.serverId!]) {
+                  partofPeerMap[peer.serverId!] = [];
+                }
+                partofPeerMap[peer.serverId!].push(peerMap[peer.id]);
+              }
+            });
+            console.log(partofPeerMap);
+
+            Object.entries(partofPeerMap).forEach(([key, value]) => {
+              const serverSocket = this._sfuConnectionManager.getServerSocket(key);
+              console.log(value);
+              // serverSocket.sendData({
+              //   type: EVENT_FOR_SFU.CREATE_CONSUME,
+              //   data: {
+              //     router_id: peer.routerId,
+              //     transport_id: peer.recvTransport.id,
+              //     rtpCapabilities: rtpCapabilities,
+              //     producers: producerList,
+              //   },
+              // });
+            });
+
+            // room.broadcast(peers, {
+            //   type: EVENT_SERVER_TO_CLIENT.NEW_CONSUMER,
+            //   data: {
+            //     producers: producerList,
+            //   },
+            // });
+
+            response({
+              type: EVENT_FROM_CLIENT_REQUEST.PRODUCE,
+              data: {
+                id: producer_id,
+              },
+            });
+          });
         break;
       case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
+        if (!serverSocket) return;
+
+        peer.rtpCapabilities = data.rtpCapabilities;
+
+        const producerList = this.getOtherPeerProducers(peer.id);
+
+        response({});
+
+        serverSocket
+          .sendData({
+            type: EVENT_FOR_SFU.CREATE_CONSUME,
+            data: {
+              router_id: peer.routerId,
+              transport_id: peer.recvTransport.id,
+              rtpCapabilities: data.rtpCapabilities,
+              producers: producerList,
+            },
+          })
+          .then((data) => {
+            const { new_consumerList } = data;
+            peer.socket.notify({
+              type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,
+              data: {
+                consumerList: new_consumerList,
+              },
+            });
+          });
         break;
     }
   }
