@@ -4,15 +4,11 @@ import { Peer } from './common/peer';
 import { Room } from './common/room';
 import { createRedisController } from './redis/redis';
 import { ControllerLoader } from './redis/ControllerLoader';
-import { EngineOptions, HttpsServerOptions, HeartBeat } from './type';
+import { EngineOptions, HttpsServerOptions } from './type';
 import { SFUConnectionManager } from './run/SFUConnectionManager';
 import { config } from '../config';
 import { v4 } from 'uuid';
 import { SFUServer } from './common/SFUServer';
-
-const EVENT_FROM_SERVER_REQUEST = {
-  HEART_BEAT_CHECK: 'heartBeatCheck',
-};
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -74,32 +70,7 @@ export class ServerEngine {
 
       const peer = new Peer(v4(), '', peerTransport, this);
 
-      // const heartCheck: HeartBeat = {
-      //   timeout: 10 * 1000,
-      //   timeoutObj: null,
-      //   serverTimeoutObj: null,
-      //   reset() {
-      //     if (this.timeoutObj) clearTimeout(this.timeoutObj);
-      //     if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
-      //     return this;
-      //   },
-      //   start() {
-      //     const self = this;
-      //     this.timeoutObj = setTimeout(() => {
-      //       peer.notify({
-      //         type: EVENT_FROM_SERVER_REQUEST.HEART_BEAT_CHECK,
-      //         data: 'ping',
-      //       });
-      //       self.serverTimeoutObj = setTimeout(() => {
-      //         peer.close();
-      //         // serverHandleLeaveRoom(peer);
-      //         console.log(`${peer.id} is close`);
-      //       }, self.timeout);
-      //     }, this.timeout);
-      //   },
-      // };
 
-      // heartCheck.reset().start();
     });
   }
   // async serverHandleLeaveRoom(data: any) {
