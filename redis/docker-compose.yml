@@ -1,13 +1,23 @@
 version: '3.8'
 services:
-  redis:
+  redis.dev:
     restart: always
-    container_name: redis
+    container_name: redis.dev
     image: redis:alpine
     ports:
       - 6379:6379
     command: redis-server --requirepass test
     volumes:
       - redis-data:/data
+  redis.pro:
+    restart: always
+    container_name: redis.pro
+    image: redis:alpine
+    ports:
+      - 6378:6379
+    command: redis-server --requirepass test
+    volumes:
+      - redis-data1:/data
 volumes:
   redis-data:
+  redis-data1:

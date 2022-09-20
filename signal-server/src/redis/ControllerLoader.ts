@@ -5,7 +5,7 @@ export class ControllerLoader {
   static bootstrap(): Promise<Array<any>> {
     return new Promise((resolve, reject) => {
       let controller_list: Array<any> = [];
-      fs.readdir(`${__dirname}\\controller\\`, (err: Error, files: any) => {
+      fs.readdir(`${__dirname}/controller`, (err: Error, files: any) => {
         files.forEach((file: any) => {
           const controller = require(`./controller/${file}`);
           Object.entries(controller).forEach(([key, controller]) => {

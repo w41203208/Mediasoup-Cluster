@@ -187,8 +187,8 @@ export class ServerEngine {
           this.sfuServerConnection!,
           {
             ...this.redisControllers,
-          },
-          this
+          }, // 兩個留一個
+          this // 兩個留一個
         );
         this.roomList.set(room.id, room);
       }
@@ -196,10 +196,10 @@ export class ServerEngine {
       // 選擇適合的SFUServer建立Websocket連線，從local取得 或是 創建新的連線
 
       const ip_port = await this.sfuServerConnection!.getMinimumSFUServer();
-      console.log(ip_port);
+
       console.log('User [%s] choose [%s] sfuserver.', peer.id, ip_port);
 
-      const serverSocket = this.sfuServerConnection!.getServerSocket(ip_port);
+      const serverSocket = await this.sfuServerConnection!.connectToSFUServer(ip_port, room_id);
 
       // new SFUServer，SFUServer 添加到 room
       const sfuServer = new SFUServer(ip_port);
@@ -216,35 +216,41 @@ export class ServerEngine {
       // Peer 添加到 room
       room.addPeer(peer);
       rRoom.playerList.push(peer.id);
-      const _ = await PlayerController.setPlayer(peer.id);
+      const rPeer = await PlayerController.setPlayer(peer.id);
+
+      rPeer.serverId = ip_port;
 
       // 改變 room 狀態 init -> public
       if (rRoom.host.id === peer.id) {
         rRoom.state = 'public';
-      } else {
-        // 判斷與 LiveHoster 的關係
-        // if()
+      }
+      // 判斷與 LiveHoster 的關係
+      let remoteServerSocket = null;
+      const host = await PlayerController.getPlayer(rRoom.host.id);
+      if (ip_port !== host.serverId) {
+        remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(ip_port, room_id);
       }
 
       // update room data in redis
       await RoomController.updateRoom(rRoom);
 
-      const routerList = room.getRouters();
-
       serverSocket!
         .sendData({
           data: {
+            room_id: room_id,
             mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
-            routers: routerList,
           },
           type: EVENT_FOR_SFU.CREATE_ROUTER,
         })
-        .then((data) => {
+        .then(async (data) => {
           const { router_id } = data;
           console.log('User [%s] get router [%s]', peer.id, router_id);
 
           room.addRouter(router_id);
           peer.routerId = router_id;
+          rPeer.routerId = router_id;
+
+          await PlayerController.updatePlayer(rPeer);
 
           responseData = {
             room_id: room.id,

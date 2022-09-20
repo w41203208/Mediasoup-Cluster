@@ -8,14 +8,8 @@ require('dotenv').config();
 
 // ssl option
 const sslOption = {
-  key: fs.readFileSync(
-    path.join(__dirname, config.ServerSetting.sslKey),
-    'utf-8'
-  ),
-  cert: fs.readFileSync(
-    path.join(__dirname, config.ServerSetting.sslCert),
-    'utf-8'
-  ),
+  key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
+  cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
 };
 
 const engineOptions = {
