@@ -2,8 +2,10 @@ import { Peer } from '../common/peer';
 import { SFUServerSocket } from '../common/SFUServerSocket';
 import { SFUServerController } from '../redis/controller';
 
+require('dotenv').config();
+
 export class SFUConnectionManager {
-  private peopleLimit: number = 10000;
+  private peopleLimit: number = 3; // dev 3
   private SFUServerSockets: Map<string, SFUServerSocket>;
   private SFUServerController: SFUServerController;
   constructor({ SFUServerController }: any) {
@@ -26,7 +28,7 @@ export class SFUConnectionManager {
             if (Number(process.env.PORT) === 9998) {
               const key = data[i];
               const [ip, port] = key.split(':');
-              if (port > Number(process.env.PORT)) {
+              if (port > Number(process.env.LIMIT)) {
                 const count = await this.SFUServerController.getSFUServerCount(key);
                 let new_count: number | void;
                 if (count < this.peopleLimit && okServer === undefined) {
@@ -39,24 +41,26 @@ export class SFUConnectionManager {
                     }
                   }
                 }
-                i++;
               }
             } else {
               const key = data[i];
-              const count = await this.SFUServerController.getSFUServerCount(key);
-              let new_count: number | void;
-              if (count < this.peopleLimit && okServer === undefined) {
-                okServer = key;
-                new_count = await this.SFUServerController.addSFUServerCount(key);
-                if (new_count) {
-                  if (new_count >= this.peopleLimit + 1) {
-                    await this.SFUServerController.reduceSFUServerCount(key);
-                    okServer = undefined;
+              const [ip, port] = key.split(':');
+              if (port < Number(process.env.LIMIT)) {
+                const count = await this.SFUServerController.getSFUServerCount(key);
+                let new_count: number | void;
+                if (count < this.peopleLimit && okServer === undefined) {
+                  okServer = key;
+                  new_count = await this.SFUServerController.addSFUServerCount(key);
+                  if (new_count) {
+                    if (new_count >= this.peopleLimit + 1) {
+                      await this.SFUServerController.reduceSFUServerCount(key);
+                      okServer = undefined;
+                    }
                   }
                 }
               }
-              i++;
             }
+            i++;
           }
           resolve(okServer);
         } catch (error) {
