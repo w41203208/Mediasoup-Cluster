@@ -8,6 +8,21 @@ export class PlayerController extends ControllerImp {
     this._rc = redisClient;
   }
 
+  getPlayer(id: string): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (await this.isPlayerExist(id)) {
+          const data = await this._rc.hGet('Player', id);
+          resolve(this.transformToJS(data));
+        } else {
+          resolve(false);
+        }
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   setPlayer(id: string): Promise<boolean | any> {
     return new Promise(async (resolve, reject) => {
       try {

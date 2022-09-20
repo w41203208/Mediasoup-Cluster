@@ -1,9 +1,10 @@
+require('dotenv').config();
 // // 要讓 Node 環境允許未授權的憑證，不然就是要使用以下方法，讓 Node 不會拒絕未授權憑證。
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 export const config = {
   ServerSetting: {
     listenIp: '0.0.0.0',
-    listenPort: 9999,
+    listenPort: Number(process.env.PORT),
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
   },
