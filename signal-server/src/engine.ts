@@ -169,9 +169,12 @@ export class ServerEngine {
       // 改變 room 狀態 init -> public
       if (rRoom.host.id === peer.id) {
         rRoom.state = 'public';
-      } else {
-        // 判斷與 LiveHoster 的關係
-        // if()
+      }
+      // 判斷與 LiveHoster 的關係
+      let remoteServerSocket = null;
+      const host = await PlayerController.getPlayer(rRoom.host.id);
+      if (ip_port !== host.serverId) {
+        remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(ip_port, room_id);
       }
 
       // update room data in redis
