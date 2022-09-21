@@ -9,6 +9,7 @@ import { SFUConnectionManager } from './run/SFUConnectionManager';
 import { config } from '../config';
 import { v4 } from 'uuid';
 import { SFUServer } from './common/SFUServer';
+import { SFUServerSocket } from './common/SFUServerSocket';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -35,6 +36,8 @@ const EVENT_FOR_SFU = {
   CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
   CREATE_PRODUCE: 'createProduce',
   CREATE_CONSUME: 'createConsume',
+  CREATE_PIPETRANSPORT: 'createPipeTransport',
+  CONNECT_PIPETRANSPORT: 'connectPipeTransport',
 };
 
 export class ServerEngine {
@@ -165,30 +168,28 @@ export class ServerEngine {
       const rPeer = await PlayerController.setPlayer(peer.id);
 
       rPeer.serverId = ip_port;
-
       // 改變 room 狀態 init -> public
       if (rRoom.host.id === peer.id) {
         rRoom.state = 'public';
       }
       // 判斷與 LiveHoster 的關係
-      let remoteServerSocket = null;
-      const host = await PlayerController.getPlayer(rRoom.host.id);
-      if (ip_port !== host.serverId) {
-        remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(ip_port, room_id);
-      }
+      // let remoteServerSocket: SFUServerSocket | null = null;
+      // const hoster = await PlayerController.getPlayer(rRoom.host.id);
+      // if (ip_port !== hoster.serverId && hoster.serverId !== '') {
+      //   remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(hoster.serverId, room_id);
+      // }
 
       // update room data in redis
       await RoomController.updateRoom(rRoom);
-
-      serverSocket!
-        .sendData({
+      serverSocket
+        .request({
           data: {
             room_id: room_id,
             mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
           },
           type: EVENT_FOR_SFU.CREATE_ROUTER,
         })
-        .then(async (data) => {
+        .then(async ({ data }) => {
           const { router_id } = data;
           console.log('User [%s] get router [%s]', peer.id, router_id);
 
@@ -198,6 +199,70 @@ export class ServerEngine {
 
           await PlayerController.updatePlayer(rPeer);
 
+          // remoteServerSocket 存在，代表在不同的 sfu host
+          // if (remoteServerSocket) {
+          //   const [remoteConnectionData, localConnectionData] = await Promise.all([
+          //     remoteServerSocket.sendData({
+          //       data: {
+          //         router_id: hoster.routerId,
+          //         server_id: hoster.serverId,
+          //       },
+          //       type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
+          //     }),
+          //     serverSocket.sendData({
+          //       data: {
+          //         router_id: router_id,
+          //         server_id: ip_port,
+          //       },
+          //       type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
+          //     }),
+          //   ]);
+          //   const { transport_id: remoteTransportId, remoteState, ...remoteRest } = remoteConnectionData;
+          //   const { transport_id: localTransportId, localState, ...localRest } = localConnectionData;
+          //   let promiseList = [];
+          //   if (!remoteState) {
+          //     promiseList.push(
+          //       remoteServerSocket.sendData({
+          //         data: {
+          //           transport_id: remoteTransportId,
+          //           ...localRest,
+          //         },
+          //         type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
+          //       })
+          //     );
+          //   }
+          //   if (!localState) {
+          //     promiseList.push(
+          //       serverSocket.sendData({
+          //         data: {
+          //           transport_id: localTransportId,
+          //           ...remoteRest,
+          //         },
+          //         type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
+          //       })
+          //     );
+          //   }
+          //   const promiseData = await Promise.all(promiseList);
+          //   for (let _ of promiseData) {
+          //     console.log(_);
+          //   }
+
+          //   responseData = {
+          //     room_id: room.id,
+          //   };
+          //   response({
+          //     type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
+          //     data: responseData,
+          //   });
+          // } else {
+          //   responseData = {
+          //     room_id: room.id,
+          //   };
+          //   response({
+          //     type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
+          //     data: responseData,
+          //   });
+          // }
           responseData = {
             room_id: room.id,
           };

@@ -4,6 +4,9 @@ const path = require('path');
 
 import { ServerEngine } from './src/engine';
 
+// // 要讓 Node 環境允許未授權的憑證，不然就是要使用以下方法，讓 Node 不會拒絕未授權憑證。
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 require('dotenv').config();
 
 // ssl option

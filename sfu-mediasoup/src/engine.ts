@@ -42,6 +42,7 @@ export class ServerEngine {
   private _numworker: number;
   private _webRTCTransportSettings: Record<string, any>;
   private _workerSettings: Record<string, any>;
+  private _pipeTransportSettings: Record<string, any>;
 
   private _nextMediasoupWorkerIdx: number = 0;
 
@@ -61,9 +62,10 @@ export class ServerEngine {
     this._ssl = ssl;
 
     // mediasoup setting
-    const { numWorkers, webRtcTransportSettings, workerSettings } = mediasoupOption;
+    const { numWorkers, webRtcTransportSettings, workerSettings, pipeTransportSettings } = mediasoupOption;
     this._numworker = numWorkers;
     this._webRTCTransportSettings = webRtcTransportSettings;
+    this._pipeTransportSettings = pipeTransportSettings;
     this._workerSettings = workerSettings;
 
     this._rooms = new Map();
@@ -82,10 +84,12 @@ export class ServerEngine {
     //websocket
     this.webSocketConnection = new WSServer();
 
-    this.webSocketConnection.on('connection', (ws: WebSocket, url: string) => {
+    this.webSocketConnection.on('connection', (getWsTransport: Function, url: string) => {
       const room = this.getRoomOrCreateRoom(url);
 
-      room.handleConnection(ws);
+      const transport = getWsTransport();
+
+      room.handleConnection(transport);
     });
 
     this.webSocketConnection.start(server);
@@ -118,8 +122,6 @@ export class ServerEngine {
     this.logger.info(`Running ${this._numworker} mediasoup Workers....`);
 
     for (let i = 0; i < this._numworker; i++) {
-      console.log(this._workerSettings.rtcMinPort);
-      console.log(this._workerSettings.rtcMaxPort);
       const worker = await mediasoup.createWorker({
         logLevel: this._workerSettings.logLevel,
         logTags: this._workerSettings.logTags,
@@ -146,7 +148,12 @@ export class ServerEngine {
     if (this._rooms.has(id)) {
       room = this._rooms.get(id)!;
     } else {
-      room = new Room(id, this, this._webRTCTransportSettings);
+      room = new Room({
+        id: id,
+        listener: this,
+        webRTCTransportSettings: this._webRTCTransportSettings,
+        pipeTransportSettings: this._pipeTransportSettings,
+      });
     }
     this._rooms.set(room.id, room);
     return room;
