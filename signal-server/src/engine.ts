@@ -69,33 +69,8 @@ export class ServerEngine {
       const peerTransport = getTransport();
 
       const peer = new Peer(v4(), '', peerTransport, this);
-
-
     });
   }
-  // async serverHandleLeaveRoom(data: any) {
-  //   console.log('User [%s] leave room [%s].', peer.id, peer.room_id);
-  //   const rRoom = await RoomController.getRoom(peer.room_id);
-
-  //   if (rRoom) {
-  //     let room;
-  //     if (roomList.has(rRoom.id)) {
-  //       room = roomList.get(peer.room_id);
-  //     }
-  //     const newPlayerList = rRoom.playerList.filter(
-  //       (playerId) => playerId !== peer.id
-  //     );
-  //     rRoom.playerList = newPlayerList;
-  //     await RoomController.updateRoom(rRoom);
-  //     await PlayerController.delPlayer(peer.id);
-
-  //     room.removePeer(peer.id);
-
-  //     if (room.getJoinedPeers({ excludePeer: {} }).length === 0) {
-  //       roomList.delete(peer.room_id);
-  //     }
-  //   }
-  // };
 
   handleRequest(type: string, data: any, response: Function) {
     switch (type) {

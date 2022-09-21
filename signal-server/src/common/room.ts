@@ -97,6 +97,7 @@ export class Room {
 
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
+    peer._heartCheck.reset().start(() => this.serverHandleLeaveRoom(peer));
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });
@@ -339,6 +340,23 @@ export class Room {
     }
   }
 
+  async serverHandleLeaveRoom(peer: Peer) {
+    console.log('User [%s] leave room [%s].', peer.id, this._id);
+    const rRoom = await this.RoomController.getRoom(this._id);
+
+    if (rRoom) {
+      const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
+      rRoom.playerList = newPlayerList;
+      await this.RoomController.updateRoom(rRoom);
+      await this.PlayerController.delPlayer(peer.id);
+
+      this.removePeer(peer.id);
+
+      if (this.getJoinedPeers({ excludePeer: {} as Peer }).length === 0) {
+        this.listener.deleteRoom(this._id);
+      }
+    }
+  };
   // broadcast(peers, data) {
   //   peers.forEach((peer) => {
   //     peer.notify(data);

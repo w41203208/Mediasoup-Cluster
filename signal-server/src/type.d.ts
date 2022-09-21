@@ -13,12 +13,4 @@ interface EngineOptions {
   httpsServerOption: HttpsServerOptions;
 }
 
-interface HeartBeat {
-  timeout: number;
-  timeoutObj: any;
-  serverTimeoutObj: any;
-  reset: Function;
-  start: Function;
-}
-
-export { sslOption, EngineOptions, HttpsServerOptions, HeartBeat };
+export { sslOption, EngineOptions, HttpsServerOptions };

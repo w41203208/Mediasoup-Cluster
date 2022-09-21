@@ -1,6 +1,8 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
 import { WSTransport } from 'src/run/WSTransport';
+import { Room } from './room';
+import { callbackify } from 'util';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -29,9 +31,11 @@ export class Peer extends EventEmitter {
   private _rtpCapabilities?: any;
 
   private _ws: WSTransport;
+  public _heartCheck: HeartCheck;
 
   private _listener: ServerEngine;
   private _inRoom: boolean;
+
   constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine) {
     super();
     /* base info */
@@ -49,6 +53,8 @@ export class Peer extends EventEmitter {
 
     /* websocket */
     this._ws = websocket;
+    this._heartCheck = new HeartCheck(this._ws)
+
 
     /* advanced */
     this._listener = listener;
@@ -74,6 +80,15 @@ export class Peer extends EventEmitter {
           break;
       }
     });
+
+    this._ws.on('notification', ((message: { type: string; data: any }) => {
+      const { type, data } = message;
+      switch (type) {
+        case 'heartBeatCheck':
+          if (data === 'pong') this._heartCheck.reset().start();
+          break;
+      }
+    }));
   }
 
   get socket() {
@@ -148,5 +163,36 @@ export class Peer extends EventEmitter {
     this._consumers.set(id, {
       id: id,
     });
+  }
+}
+
+class HeartCheck {
+  private timeout: number;
+  private timeoutObj: any;
+  private serverTimeoutObj: any;
+  public reset: Function;
+  public start: Function;
+
+  constructor(wsTransport: WSTransport) {
+    this.timeout = 10 * 1000;
+    this.timeoutObj = 123;
+    this.reset = () => {
+      if (this.timeoutObj) clearTimeout(this.timeoutObj);
+      if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
+      return this;
+    }
+    this.start = (callback: Function) => {
+      this.timeoutObj = setTimeout(() => {
+        wsTransport.notify({
+          type: 'heartBeatCheck',
+          data: 'ping',
+        });
+        this.serverTimeoutObj = setTimeout(() => {
+          wsTransport.close();
+          console.log("close");
+          callback();
+        }, this.timeout);
+      }, this.timeout);
+    }
   }
 }
