@@ -1,8 +1,6 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
 import { WSTransport } from 'src/run/WSTransport';
-import { Room } from './room';
-import { callbackify } from 'util';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
