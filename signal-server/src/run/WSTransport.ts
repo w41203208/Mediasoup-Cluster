@@ -9,14 +9,14 @@ export class WSTransport extends EventEmitter {
 
     this._socket = socket;
 
-    this._handleScoketConnection();
+    this._handleSocketConnection();
   }
   sendData(data: any) {
     this._socket.send(JSON.stringify({ ...data }));
   }
 
-  _handleScoketConnection() {
-    this._socket.on('close', (code: number, reason: Buffer) => {});
+  _handleSocketConnection() {
+    this._socket.on('close', (code: number, reason: Buffer) => { });
     this._socket.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
       const { messageType, ...rest } = jsonMessage;
@@ -41,7 +41,7 @@ export class WSTransport extends EventEmitter {
       this.sendData(sendData);
     });
   }
-  _handlerResponse() {}
+  _handlerResponse() { }
   _handlerNotification(notification: any) {
     this.emit('notification', notification, (sendData: any) => {
       sendData.messageType = 'notification';
@@ -52,5 +52,9 @@ export class WSTransport extends EventEmitter {
   notify(sendData: any) {
     sendData.messageType = 'notification';
     this.sendData(sendData);
+  }
+
+  close() {
+    this._socket.close();
   }
 }
