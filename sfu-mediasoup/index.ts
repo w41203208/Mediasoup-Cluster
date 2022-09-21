@@ -20,6 +20,7 @@ const engineOptions = {
     numWorkers: config.MediasoupSetting.numWorkers,
     workerSettings: config.MediasoupSetting.worker,
     webRtcTransportSettings: config.MediasoupSetting.webRtcTransport,
+    pipeTransportSettings: config.MediasoupSetting.pipeTransport,
   },
 };
 const engine = new ServerEngine(engineOptions);

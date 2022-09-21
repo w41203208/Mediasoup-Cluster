@@ -5,7 +5,7 @@ import { SFUServerController } from '../redis/controller';
 require('dotenv').config();
 
 export class SFUConnectionManager {
-  private peopleLimit: number = 3; // dev 3
+  private peopleLimit: number = 10; // dev 3
   private SFUServerSockets: Map<string, SFUServerSocket>;
   private SFUServerController: SFUServerController;
   constructor({ SFUServerController }: any) {
@@ -25,10 +25,14 @@ export class SFUConnectionManager {
           let okServer = undefined;
           let i = 0;
           while (i < data.length && okServer === undefined) {
+            // temp
             if (Number(process.env.PORT) === 9998) {
+              // temp
               const key = data[i];
+              // temp
               const [ip, port] = key.split(':');
               if (port > Number(process.env.LIMIT)) {
+                // temp
                 const count = await this.SFUServerController.getSFUServerCount(key);
                 let new_count: number | void;
                 if (count < this.peopleLimit && okServer === undefined) {
@@ -41,11 +45,17 @@ export class SFUConnectionManager {
                     }
                   }
                 }
+                // temp
               }
+              // temp
+              // temp
             } else {
+              // temp
               const key = data[i];
+              // temp
               const [ip, port] = key.split(':');
               if (port < Number(process.env.LIMIT)) {
+                // temp
                 const count = await this.SFUServerController.getSFUServerCount(key);
                 let new_count: number | void;
                 if (count < this.peopleLimit && okServer === undefined) {
@@ -58,8 +68,12 @@ export class SFUConnectionManager {
                     }
                   }
                 }
+                // temp
               }
+              // temp
+              // temp
             }
+            // temp
             i++;
           }
           resolve(okServer);
@@ -71,10 +85,10 @@ export class SFUConnectionManager {
     });
   }
 
-  async connectToSFUServer(ip_port: string, room_id: string) {
+  async connectToSFUServer(ip_port: string, room_id: string): Promise<SFUServerSocket> {
     const [ip, port] = ip_port.split(':');
     let serverSocket: SFUServerSocket;
-    if (!this.SFUServerSockets.has(ip_port)) {
+    if (!this.SFUServerSockets.has(`${ip_port}:${room_id}`)) {
       serverSocket = new SFUServerSocket(ip, port);
       await serverSocket.start(room_id);
       this.SFUServerSockets.set(`${ip_port}:${room_id}`, serverSocket);

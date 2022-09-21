@@ -35,6 +35,11 @@ const EVENT_SERVER_TO_CLIENT = {
   NEW_CONSUMER: 'newConsumer',
 };
 
+const EVENT_FOR_TEST = {
+  TEST1: 'test1',
+  TEST2: 'test2',
+};
+
 export class RoomClient {
   private _clientUID: string;
   private _clientRole: string;
@@ -119,6 +124,16 @@ export class RoomClient {
   closeRoom(roomId: string) {
     this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CLOSE_ROOM });
     this._socket.close();
+  }
+  test1() {
+    this._socket.request({ data: {}, type: EVENT_FOR_TEST.TEST1 }).then((data) => {
+      console.log(data);
+    });
+  }
+  test2() {
+    this._socket.request({ data: {}, type: EVENT_FOR_TEST.TEST2 }).then((data) => {
+      console.log(data);
+    });
   }
 
   // audience

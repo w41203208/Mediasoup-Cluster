@@ -59,5 +59,11 @@ module.exports = {
       maxIncomingBitrate: 1500000,
       initialAvailableOutgoingBitrate: 1000000,
     },
+    pipeTransport: {
+      listenIps: {
+        ip: '127.0.0.1',
+        announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, // replace by public IP address
+      },
+    },
   },
 };

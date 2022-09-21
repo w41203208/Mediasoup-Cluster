@@ -1,1 +1,1 @@
-export { WSServer } from './websocket';
+export { WSServer } from './wsserver';

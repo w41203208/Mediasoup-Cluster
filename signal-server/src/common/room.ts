@@ -169,13 +169,13 @@ export class Room {
         if (!serverSocket) return;
 
         serverSocket
-          .sendData({
+          .request({
             data: {
               router_id: peer.routerId,
             },
             type: EVENT_FOR_SFU.GET_ROUTER_RTPCAPABILITIES,
           })
-          .then((data) => {
+          .then(({ data }) => {
             response({
               type: EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES,
               data: { codecs: data.mediaCodecs },
@@ -186,7 +186,7 @@ export class Room {
         if (!serverSocket) return;
 
         serverSocket
-          .sendData({
+          .request({
             data: {
               router_id: peer.routerId,
               consuming: data.consuming,
@@ -194,7 +194,7 @@ export class Room {
             },
             type: EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT,
           })
-          .then((data) => {
+          .then(({ data }) => {
             console.log('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
             peer.addTransport(data.transport_id, data.transportType);
             response({
@@ -207,7 +207,7 @@ export class Room {
         if (!serverSocket) return;
 
         serverSocket
-          .sendData({
+          .request({
             type: EVENT_FOR_SFU.CONNECT_WEBRTCTRANPORT,
             data: {
               router_id: peer.routerId,
@@ -215,7 +215,7 @@ export class Room {
               dtlsParameters: data.dtlsParameters,
             },
           })
-          .then((data) => {
+          .then(({ data }) => {
             response({
               type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT,
               data: data,
@@ -226,7 +226,7 @@ export class Room {
         if (!serverSocket) return;
 
         serverSocket
-          .sendData({
+          .request({
             type: EVENT_FOR_SFU.CREATE_PRODUCE,
             data: {
               router_id: peer.routerId,
@@ -235,7 +235,7 @@ export class Room {
               kind: data.kind,
             },
           })
-          .then((data) => {
+          .then(async ({ data }) => {
             const { producer_id } = data;
             console.log('User [%s] produce [%s].', peer.id, producer_id);
             peer.addProducer(producer_id);
@@ -245,6 +245,15 @@ export class Room {
                 producer_id: producer_id,
               },
             ];
+
+            // const rRoom = await this.RoomController.getRoom(this._id);
+
+            // if (!rRoom) {
+            //   return;
+            // }
+
+            //通知其他signal server在同一個room的peer
+            /* do somethings */
 
             // 這裡原則上是要跟 redis 拿在 room 裡面全部的 peer，但除了自己本身
             const peers = this.getJoinedPeers({ excludePeer: peer });
@@ -317,7 +326,7 @@ export class Room {
         response({});
 
         serverSocket
-          .sendData({
+          .request({
             type: EVENT_FOR_SFU.CREATE_CONSUME,
             data: {
               router_id: peer.routerId,
@@ -326,7 +335,7 @@ export class Room {
               producers: producerList,
             },
           })
-          .then((data) => {
+          .then(({ data }) => {
             const { new_consumerList } = data;
             peer.socket.notify({
               type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,

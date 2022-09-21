@@ -18,6 +18,7 @@ interface MediasoupOptions {
   numWorkers: number;
   workerSettings: Record<string, any>;
   webRtcTransportSettings: Record<string, any>;
+  pipeTransportSettings: Record<string, any>;
 }
 
 interface EngineOptions {

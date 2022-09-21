@@ -3,8 +3,7 @@ import { Server } from 'https';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Logger } from '../util/logger';
 import { IncomingMessage } from 'http';
-import { parse } from 'path';
-
+import { WSTransport } from './wstransport';
 const ws = require('ws');
 
 export class WSServer extends EventEmitter {
@@ -36,7 +35,14 @@ export class WSServer extends EventEmitter {
     });
     socket.on('connection', (ws: WebSocket, incomingMessage: IncomingMessage) => {
       const url = this.urlParse(incomingMessage.url);
-      this.emit('connection', ws, url);
+      this.emit(
+        'connection',
+        () => {
+          const transport = new WSTransport(ws);
+          return transport;
+        },
+        url
+      );
     });
   }
   urlParse(url: string | undefined) {
