@@ -170,16 +170,19 @@ class HeartCheck {
   private serverTimeoutObj: any;
   public reset: Function;
   public start: Function;
+  public callback: Function;
 
   constructor(wsTransport: WSTransport) {
     this.timeout = 10 * 1000;
     this.timeoutObj = 123;
+    this.callback = Function
     this.reset = () => {
       if (this.timeoutObj) clearTimeout(this.timeoutObj);
       if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
       return this;
     }
     this.start = (callback: Function) => {
+      this.callback = callback;
       this.timeoutObj = setTimeout(() => {
         wsTransport.notify({
           type: 'heartBeatCheck',
@@ -187,8 +190,8 @@ class HeartCheck {
         });
         this.serverTimeoutObj = setTimeout(() => {
           wsTransport.close();
-          console.log("close");
-          callback();
+          console.log("websocketClose");
+          this.callback();
         }, this.timeout);
       }, this.timeout);
     }
