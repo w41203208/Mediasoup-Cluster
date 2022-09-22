@@ -137,9 +137,12 @@ export class Room {
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
         console.log('User [%s] close room [%s].', peer.id, this._id);
-
+        const cRoom = await this.RoomController.getRoom(this._id);
         // roomList.delete(room_id);
-
+        if (cRoom) {
+          const PlayerList = cRoom.playerList.filter((playerId: string) => playerId === peer.id);
+          console.log(PlayerList)
+        }
         await this.PlayerController.delPlayer(peer.id);
         await this.RoomController.delRoom(this._id);
 
