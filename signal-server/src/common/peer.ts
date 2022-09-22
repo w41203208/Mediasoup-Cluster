@@ -1,6 +1,7 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
 import { WSTransport } from 'src/run/WSTransport';
+import { Room } from './room';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -82,8 +83,8 @@ export class Peer extends EventEmitter {
     this._ws.on('notification', ((message: { type: string; data: any }) => {
       const { type, data } = message;
       switch (type) {
-        case 'heartBeatCheck':
-          if (data === 'pong') this._heartCheck.reset().start();
+        default:
+          this.emit('handleOnNotification', this, type, data);
           break;
       }
     }));
@@ -170,19 +171,16 @@ class HeartCheck {
   private serverTimeoutObj: any;
   public reset: Function;
   public start: Function;
-  public callback: Function;
 
   constructor(wsTransport: WSTransport) {
     this.timeout = 10 * 1000;
     this.timeoutObj = 123;
-    this.callback = Function
     this.reset = () => {
       if (this.timeoutObj) clearTimeout(this.timeoutObj);
       if (this.serverTimeoutObj) clearTimeout(this.serverTimeoutObj);
       return this;
     }
     this.start = (callback: Function) => {
-      this.callback = callback;
       this.timeoutObj = setTimeout(() => {
         wsTransport.notify({
           type: 'heartBeatCheck',
@@ -190,8 +188,8 @@ class HeartCheck {
         });
         this.serverTimeoutObj = setTimeout(() => {
           wsTransport.close();
-          console.log("websocketClose");
-          this.callback();
+          console.log("close");
+          callback();
         }, this.timeout);
       }, this.timeout);
     }
