@@ -3,7 +3,7 @@ import { ServerEngine } from './engine';
 import { WebSocket } from 'ws';
 import { WSTransport } from './websocket/wstransport';
 
-const EVENT_FOR_SFU = {
+const EVENT_FROM_SFU = {
   CREATE_ROUTER: 'createRouter',
   GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
   CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
@@ -12,15 +12,21 @@ const EVENT_FOR_SFU = {
   CREATE_PRODUCE: 'createProduce',
   CREATE_PIPETRANSPORT: 'createPipeTransport',
   CONNECT_PIPETRANSPORT: 'connectPipeTransport',
+  CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
+};
+const EVENT_FOR_SIGNAL_REQUEST = {
+  CONNECT_PIPETRANSPORT: 'connectPipetransport',
 };
 
 interface WebSocketHandler {
+  ws: WSTransport;
   type: string;
   data: Record<string, any> | any;
   response: Function;
 }
 
 interface Handler {
+  ws: WSTransport;
   data: Record<string, any> | any;
   response: Function;
 }
@@ -36,14 +42,16 @@ export class Room {
   private _id: string;
   private _listener: ServerEngine;
   private _routers: Map<string, Router>;
+  private _pipeTransportsRouter?: Router;
   private _transports: Map<string, Transport>;
   private _pipeTransports: Map<string, PipeTransport>;
-  private _serveerAndPipeTransport: Map<string, string>;
   private _consumers: Map<string, Consumer>;
   private _producers: Map<string, Producer>;
 
   private _webRTCTransportSettings: Record<string, any>;
   private _pipeTransportSettings: Record<string, any>;
+
+  private _serverAndPipeTransport: Map<string, Record<string, any>>;
 
   constructor({ id, listener, webRTCTransportSettings, pipeTransportSettings }: RoomConstructorInterface) {
     this._id = id;
@@ -54,7 +62,8 @@ export class Room {
     this._producers = new Map();
 
     this._pipeTransports = new Map();
-    this._serveerAndPipeTransport = new Map();
+    this._pipeTransportsRouter;
+    this._serverAndPipeTransport = new Map();
 
     this._webRTCTransportSettings = webRTCTransportSettings;
     this._pipeTransportSettings = pipeTransportSettings;
@@ -67,43 +76,46 @@ export class Room {
   handleConnection(ws: WSTransport) {
     ws.on('request', (message: { type: string; data: any }, response: Function) => {
       const { type, data } = message;
-      this._websocketHandler({ type, data, response });
+      this._websocketHandler({ ws, type, data, response });
     });
     // ws.on('message', (message: any) => {
     //   const { id, data, type } = JSON.parse(message);
     //   this._websocketHandler({ id, type, data, ws });
     // });
   }
-  private _websocketHandler({ type, data, response }: WebSocketHandler) {
+  private _websocketHandler({ ws, type, data, response }: WebSocketHandler) {
     switch (type) {
-      case EVENT_FOR_SFU.CREATE_ROUTER:
-        this.createRouter({ data, response });
+      case EVENT_FROM_SFU.CREATE_ROUTER:
+        this.createRouter({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.GET_ROUTER_RTPCAPABILITIES:
-        this.getRouterRtpCapabilities({ data, response });
+      case EVENT_FROM_SFU.GET_ROUTER_RTPCAPABILITIES:
+        this.getRouterRtpCapabilities({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT:
-        this.createWebRTCTransport({ data, response });
+      case EVENT_FROM_SFU.CREATE_WEBRTCTRANSPORT:
+        this.createWebRTCTransport({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.CONNECT_WEBRTCTRANPORT:
-        this.connectWebRTCTranport({ data, response });
+      case EVENT_FROM_SFU.CONNECT_WEBRTCTRANPORT:
+        this.connectWebRTCTranport({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.CREATE_CONSUME:
-        this.createConsume({ data, response });
+      case EVENT_FROM_SFU.CREATE_CONSUME:
+        this.createConsume({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.CREATE_PRODUCE:
-        this.createProduce({ data, response });
+      case EVENT_FROM_SFU.CREATE_PRODUCE:
+        this.createProduce({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.CREATE_PIPETRANSPORT:
-        this.createPipeTransport({ data, response });
+      case EVENT_FROM_SFU.CREATE_PIPETRANSPORT:
+        this.createPipeTransport({ ws, data, response });
         break;
-      case EVENT_FOR_SFU.CONNECT_PIPETRANSPORT:
-        this.connectPipeTransport({ data, response });
+      case EVENT_FROM_SFU.CONNECT_PIPETRANSPORT:
+        this.connectPipeTransport({ ws, data, response });
+        break;
+      case EVENT_FROM_SFU.CREATE_PIPETRANSPORT_PRODUCE:
+        this.createPipeTransportProduce({ ws, data, response });
         break;
     }
   }
 
-  private async createRouter({ data, response }: Handler) {
+  private async createRouter({ ws, data, response }: Handler) {
     const { mediaCodecs } = data;
 
     let ok_router = null;
@@ -125,7 +137,7 @@ export class Room {
     });
   }
 
-  private getRouterRtpCapabilities({ data, response }: Handler) {
+  private getRouterRtpCapabilities({ ws, data, response }: Handler) {
     const { router_id } = data;
     if (!this._routers.has(router_id)) {
       return;
@@ -138,7 +150,7 @@ export class Room {
     });
   }
 
-  private async createWebRTCTransport({ data, response }: Handler) {
+  private async createWebRTCTransport({ ws, data, response }: Handler) {
     const { router_id, producing, consuming } = data;
 
     if (!this._routers.has(router_id)) {
@@ -186,7 +198,7 @@ export class Room {
     });
   }
 
-  private async connectWebRTCTranport({ data, response }: Handler) {
+  private async connectWebRTCTranport({ ws, data, response }: Handler) {
     const { router_id, transport_id, dtlsParameters } = data;
     const transport = this._transports.get(transport_id);
     await transport?.connect({
@@ -198,21 +210,18 @@ export class Room {
     });
   }
 
-  private async createConsume({ data, response }: Handler) {
+  private async createConsume({ ws, data, response }: Handler) {
     const { router_id, transport_id, rtpCapabilities, producers } = data;
     const router = this._routers.get(router_id);
     const transport = this._transports.get(transport_id);
 
-    if (router === undefined || transport === undefined) {
-      return;
-    }
     let new_consumerList = [];
     for (let { producer_id } of producers) {
-      if (!router.canConsume({ producerId: producer_id, rtpCapabilities })) {
+      if (!router!.canConsume({ producerId: producer_id, rtpCapabilities })) {
         console.error('can not consume');
         return;
       }
-      const consumer = await transport.consume({
+      const consumer = await transport!.consume({
         producerId: producer_id,
         rtpCapabilities: rtpCapabilities,
       });
@@ -242,7 +251,7 @@ export class Room {
     });
   }
 
-  private async createProduce({ data, response }: Handler) {
+  private async createProduce({ ws, data, response }: Handler) {
     const { router_id, transport_id, rtpParameters, kind } = data;
     const transport = this._transports.get(transport_id);
 
@@ -255,6 +264,7 @@ export class Room {
       rtpParameters: rtpParameters,
     });
     this._producers.set(producer.id, producer);
+    /* store redis producers */
 
     console.log('Create Producer: [%s]', producer.id);
     /*  Register producer listen event */
@@ -271,17 +281,63 @@ export class Room {
     const routerList = this._getOtherRouters({ excludeRouterId: router_id });
     if (routerList.length !== 0) {
       routerList.forEach((r) => {
-        this.connectToOtherRouter(router!, r, producer.id);
+        this._connectToOtherRouter(router!, r, producer.id);
       });
     }
 
-    /*  連線不同SFU  */
+    let consumerMap = {} as any;
+    /* 連線到PipeTransportRouter */
+    if (this._pipeTransportsRouter !== undefined) {
+      await this._connectToOtherRouter(router!, this._pipeTransportsRouter, producer.id);
+
+      for (let [key, value] of this._serverAndPipeTransport) {
+        if (this._pipeTransports.has(value.localTransport_id)) {
+          const pt = this._pipeTransports.get(value.localTransport_id)!;
+          const consumer = await pt.consume({
+            producerId: producer.id,
+          });
+          consumerMap[key] = {
+            producer_id: producer.id,
+            remotePipeTransport_id: value.remoteTransport_id,
+            kind: consumer.kind,
+            rtpParameters: consumer.rtpParameters,
+          };
+        }
+      }
+
+      // 等功能做好我回來看看用這個方式怎麼解決非同步問題
+      // Object.entries(this._serverAndPipeTransport).forEach(async ([key, value]) => {
+      //   console.log('create producer on [%s] pipetransport [%s]', key, value);
+      //   if (this._pipeTransports.has(value)) {
+      //     console.log('create producer');
+      //     const pt = this._pipeTransports.get(value)!;
+      //     const consumer = await pt.consume({
+      //       producerId: producer.id,
+      //     });
+      //     consumerMap[key] = {
+      //       producer_id: producer.id,
+      //       kind: consumer.kind,
+      //       rtpParameters: consumer.rtpParameters,
+      //     };
+      //   }
+      // });
+    }
 
     response({
       data: {
         producer_id: producer.id,
+        consumerMap: consumerMap,
       },
     });
+
+    /*  連線不同SFU  */
+    // ws.request({
+    //   type: EVENT_FOR_SIGNAL_REQUEST.CONNECT_PIPETRANSPORT,
+    //   data: {
+    //     room_id: this._id,
+    //     producer_id: producer.id,
+    //   },
+    // });
   }
 
   private _getOtherRouters({ excludeRouterId = '' }: { excludeRouterId: string }): Array<Router> {
@@ -295,46 +351,54 @@ export class Room {
     return routerList;
   }
 
-  private async connectToOtherRouter(router: Router, otherRouter: Router, producerId: string) {
+  private async _connectToOtherRouter(router: Router, otherRouter: Router, producerId: string) {
     await router.pipeToRouter({
       producerId: producerId,
       router: otherRouter,
     });
   }
 
-  private async createPipeTransport({ data, response }: Handler) {
-    const { router_id, server_id } = data;
+  private async createPipeTransport({ ws, data, response }: Handler) {
+    const { server_id, mediaCodecs } = data;
 
-    if (!this._routers.has(router_id)) {
-      return;
+    if (this._pipeTransportsRouter === undefined) {
+      const worker = this._listener._getMediasoupWorkers();
+      const router = await worker.createRouter({ mediaCodecs });
+      this._pipeTransportsRouter = router;
+      console.log('Craete new PipeTransportRouter');
+    } else {
+      console.log('PipeTransportRouter is already exist!');
     }
-
-    const router = this._routers.get(router_id)!;
 
     let pipeTransport: PipeTransport | null = null;
     let state: boolean = false; // control if has already pipetransport connect to remote sfu server
-    if (this._serveerAndPipeTransport.has(server_id)) {
-      const id = this._serveerAndPipeTransport.get(server_id)!;
-      pipeTransport = this._pipeTransports.get(id)!;
+    if (this._serverAndPipeTransport.has(server_id)) {
+      const transportInfo = this._serverAndPipeTransport.get(server_id)!;
+      pipeTransport = this._pipeTransports.get(transportInfo.localTransport_id)!;
       state = true;
     } else {
       const { listenIps } = this._pipeTransportSettings;
-      pipeTransport = await router.createPipeTransport({
+      pipeTransport = await this._pipeTransportsRouter.createPipeTransport({
         listenIp: listenIps,
         enableRtx: true,
       });
+      this._serverAndPipeTransport.set(server_id, {
+        localTransport_id: pipeTransport.id,
+        remoteTransport_id: '',
+      });
       state = false;
     }
-    const {
-      id: pipeTransport_id,
-      tuple: { localIp, localPort },
-    } = pipeTransport;
 
     if (state) {
       console.log('IP [%s] already has pipetransport [%s]', server_id, pipeTransport.id);
     } else {
-      console.log('Create Pipetransport [%s] to connect ip [%s]', pipeTransport.id, server_id);
+      console.log('Room [%s] Create Pipetransport [%s] to connect ip [%s]', this._id, pipeTransport.id, server_id);
     }
+
+    const {
+      id: pipeTransport_id,
+      tuple: { localIp, localPort },
+    } = pipeTransport;
 
     this._pipeTransports.set(pipeTransport_id, pipeTransport);
 
@@ -348,29 +412,57 @@ export class Room {
     });
   }
 
-  private async connectPipeTransport({ data, response }: Handler) {
-    if (!this._pipeTransports.has(data.transport_id)) {
-      return;
-    }
-    const pipeTransport = this._pipeTransports.get(data.transport_id)!;
+  private async connectPipeTransport({ ws, data, response }: Handler) {
+    if (this._pipeTransports.has(data.localTransport_id)) {
+      const pipeTransport = this._pipeTransports.get(data.localTransport_id)!;
 
-    let msg: string = '';
-    try {
-      await pipeTransport.connect({
-        ip: data.ip,
-        port: data.port,
+      let msg: string = '';
+      try {
+        await pipeTransport.connect({
+          ip: data.ip,
+          port: data.port,
+        });
+        console.log(pipeTransport.tuple);
+        const serverAndPT = this._serverAndPipeTransport.get(data.server_id)!;
+        serverAndPT.remoteTransport_id = data.remoteTransport_id;
+        this._serverAndPipeTransport.set(data.server_id, serverAndPT);
+        msg = 'Successfully';
+      } catch (error) {
+        msg = 'Failed';
+      }
+
+      response({
+        data: {
+          msg,
+        },
       });
-      this._serveerAndPipeTransport.set(data.ip, pipeTransport.id);
-      msg = 'Successfully';
-    } catch (error) {
-      msg = 'Failed';
+    } else {
+      response({});
     }
-    console.log(this._serveerAndPipeTransport);
+  }
 
+  private async createPipeTransportProduce({ ws, data, response }: Handler) {
+    const { producer_id, remotePipeTransport_id, kind, rtpParameters } = data;
+
+    if (this._pipeTransports.has(remotePipeTransport_id)) {
+      const pt = this._pipeTransports.get(remotePipeTransport_id)!;
+      await pt.produce({
+        id: producer_id,
+        kind: kind,
+        rtpParameters: rtpParameters,
+      });
+    }
+
+    for (let [key, router] of this._routers) {
+      await this._connectToOtherRouter(this._pipeTransportsRouter!, router, producer_id);
+    }
+
+    console.log('Create PipeTransport produce [%s]', producer_id);
     response({
       data: {
-        msg,
+        producer_id,
       },
     });
+    // this.connectToOtherRouter();
   }
 }
