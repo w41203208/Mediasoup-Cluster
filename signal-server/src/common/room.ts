@@ -101,6 +101,9 @@ export class Room {
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });
+    peer.on('handleOnNotification', (peer: Peer, type: string, data: any) => {
+      this._handleOnNotification(peer, type, data);
+    });
   }
 
   removePeer(id: string) {
@@ -138,15 +141,8 @@ export class Room {
       case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
         console.log('User [%s] close room [%s].', peer.id, this._id);
         const cRoom = await this.RoomController.getRoom(this._id);
-        // roomList.delete(room_id);
-        if (cRoom) {
-          const PlayerList = cRoom.playerList.filter((playerId: string) => playerId === peer.id);
-          console.log(PlayerList)
-        }
         await this.PlayerController.delPlayer(peer.id);
-        await this.RoomController.delRoom(this._id);
-
-        this.listener.deleteRoom(this._id);
+        this.serverHandleCloseRoom(cRoom)
 
         response({});
         break;
@@ -352,10 +348,17 @@ export class Room {
     }
   }
 
-  async serverHandleLeaveRoom(peer: Peer) {
-    console.log('User [%s] leave room [%s].', peer.id, this._id);
-    const rRoom = await this.RoomController.getRoom(this._id);
+  async _handleOnNotification(peer: Peer, type: string, data: any) {
+    switch (type) {
+      case 'heartBeatCheck':
+        if (data === 'pong') peer._heartCheck.reset().start(() => this.serverHandleLeaveRoom(peer));
+        break;
+    }
+  }
 
+  async serverHandleLeaveRoom(peer: Peer) {
+    console.log('User [%s] was disconnect room [%s].', peer.id, this._id);
+    const rRoom = await this.RoomController.getRoom(this._id);
     if (rRoom) {
       const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
       rRoom.playerList = newPlayerList;
@@ -363,17 +366,41 @@ export class Room {
       await this.PlayerController.delPlayer(peer.id);
 
       this.removePeer(peer.id);
+      if (rRoom.host.id === peer.id) {
+        console.log("5分鐘後刪除房間")
+        setTimeout(() => {
+          this.serverHandleCloseRoom(rRoom);
+          this.listener.deleteRoom(this._id);
+        }, 1000 * 60 * 5)
 
-      if (this.getJoinedPeers({ excludePeer: {} as Peer }).length === 0) {
-        this.listener.deleteRoom(this._id);
       }
     }
   };
-  // broadcast(peers, data) {
-  //   peers.forEach((peer) => {
-  //     peer.notify(data);
-  //   });
-  // }
+
+  broadcast(peers: Map<string, Peer>, data: any) {
+    peers.forEach((peer) => {
+      peer.socket.notify(data);
+    });
+  }
+
+  async serverHandleCloseRoom(cRoom: any) {
+    await this.RoomController.delRoom(this._id);
+
+    this.listener.deleteRoom(this._id);
+
+    this.broadcast(this._peers, {
+      type: 'heartBeatCheck',
+      data: 'Room was closed by RoomOwner',
+    })
+
+    this._peers.forEach(async (peer) => {
+      if (cRoom) {
+        await this.PlayerController.delPlayer(peer.id);
+        this.removePeer(peer.id);
+        peer.socket.close();
+      }
+    });
+  }
 
   // consume({ consumerPeer, producer }) {
   //   consumerPeer.createConsumer(producer);
