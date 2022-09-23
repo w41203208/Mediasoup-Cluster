@@ -1,13 +1,16 @@
+import { v4 } from 'uuid';
 import WebSocket from 'ws';
 import { EventEmitter } from '../emitter/emitter';
 
 export class WSTransport extends EventEmitter {
   private _socket: WebSocket;
+  private _in_flight_send: Map<string, any>;
 
   constructor(socket: WebSocket) {
     super();
 
     this._socket = socket;
+    this._in_flight_send = new Map();
 
     this._handleScoketConnection();
   }
@@ -25,7 +28,7 @@ export class WSTransport extends EventEmitter {
           this._handlerRequest(rest);
           break;
         case 'response':
-          this._handlerResponse();
+          this._handlerResponse(rest);
           break;
         case 'notification':
           this._handlerNotification(rest);
@@ -41,7 +44,13 @@ export class WSTransport extends EventEmitter {
       this.sendData(sendData);
     });
   }
-  _handlerResponse() {}
+  _handlerResponse(response: any) {
+    const { id, type, data } = response;
+    const { resolve, reject } = this._in_flight_send?.get(id)!;
+    resolve({ type, data });
+    this._in_flight_send?.delete(id);
+  }
+
   _handlerNotification(notification: any) {
     this.emit('notification', notification, (sendData: any) => {
       sendData.messageType = 'notification';
@@ -52,5 +61,18 @@ export class WSTransport extends EventEmitter {
   notify(sendData: any) {
     sendData.messageType = 'notification';
     this.sendData(sendData);
+  }
+
+  request(sendData: any) {
+    const id = ((sendData as any).id = v4());
+    (sendData as any).messageType = 'request';
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    this._in_flight_send?.set(id, { resolve, reject });
+    this._socket?.send(JSON.stringify(sendData));
+    return promise;
   }
 }

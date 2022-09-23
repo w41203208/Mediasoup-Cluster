@@ -8,15 +8,20 @@ interface SendData {
 }
 
 export class SFUServerSocket extends EventEmitter {
+  private _id: string;
   private roomId?: string;
   constructor(ip: string, port: string) {
     super();
-    this.id = `${ip}:${port}`;
+    this._id = `${ip}:${port}`;
     this.ip = ip;
     this.port = port;
     this._disconnected = true;
     this._socket;
     this._in_flight_send = new Map();
+  }
+
+  get id() {
+    return this._id;
   }
 
   start(roomId: string) {
@@ -34,6 +39,9 @@ export class SFUServerSocket extends EventEmitter {
       });
     });
   }
+  sendData(sendData: any) {
+    this._socket?.send(JSON.stringify({ ...sendData }));
+  }
 
   _socketHandler() {
     this._socket.on('open', () => {
@@ -42,8 +50,8 @@ export class SFUServerSocket extends EventEmitter {
     });
     this._socket.on('close', () => {
       console.log('ServerSocket %s is closed!', this.id);
+      this.emit('close', `${this.ip}:${this.port}:${this.roomId}`);
     });
-    // this._socket.onmessage = this._onMessageHandler.bind(this);
     this._socket.onmessage = (event: any) => {
       const data = JSON.parse(event.data);
       const { messageType, ...rest } = data;
@@ -60,41 +68,28 @@ export class SFUServerSocket extends EventEmitter {
       }
     };
   }
+  _handlerRequest(request: any) {
+    this.emit('request', request, (sendData: any) => {
+      sendData.messageType = 'response';
+      sendData.id = request.id;
+      this.sendData(sendData);
+    });
+  }
 
-  // _onMessageHandler(event: any) {
-  //   const { id, data } = JSON.parse(event.data);
-  //   const { resolve, reject } = this.in_flight_send.get(id);
-  //   resolve(data);
-  //   this.in_flight_send.delete(id);
-  // }
-
-  // sendData({ data, type }: { data: any; type: string }): Promise<any> {
-  //   const id = v4();
-  //   let resolve, reject;
-  //   const promise = new Promise((res, rej) => {
-  //     resolve = res;
-  //     reject = rej;
-  //   });
-  //   this.in_flight_send.set(id, { resolve, reject });
-  //   this._socket?.send(JSON.stringify({ id, data, type }));
-  //   return promise;
-  // }
-  _handlerRequest(_data: any) {}
-
-  _handlerResponse(_data: any) {
-    const { id, type, data } = _data;
+  _handlerResponse(response: any) {
+    const { id, data } = response;
     const { resolve, reject } = this._in_flight_send?.get(id)!;
-    resolve({ type, data });
+    resolve({ data });
     this._in_flight_send?.delete(id);
   }
 
-  _handlerNotification(_data: any) {
-    this.emit('notification', _data);
+  _handlerNotification(notification: any) {
+    this.emit('notification', notification);
   }
 
   notify(sendData: SendData): void {
     (sendData as any).messageType = 'notification';
-    this._socket?.send(JSON.stringify(sendData));
+    this.sendData(sendData);
   }
 
   request(sendData: SendData): Promise<any> {
@@ -106,7 +101,7 @@ export class SFUServerSocket extends EventEmitter {
       reject = rej;
     });
     this._in_flight_send?.set(id, { resolve, reject });
-    this._socket?.send(JSON.stringify(sendData));
+    this.sendData(sendData);
     return promise;
   }
 }
