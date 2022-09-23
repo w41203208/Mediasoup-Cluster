@@ -1,6 +1,6 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
-import { WSTransport } from 'src/run/WSTransport';
+import { WSTransport } from 'src/core/WSTransport';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -68,11 +68,11 @@ export class Peer extends EventEmitter {
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
           data.peer_id = this.id;
-          this._listener.handleRequest(type, data, response);
+          this._listener.handlePeerRequest(type, data, response);
           break;
         case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
           data.peer = this;
-          this._listener.handleRequest(type, data, response);
+          this._listener.handlePeerRequest(type, data, response);
           break;
         // test
         case EVENT_FOR_TEST.TEST1:

@@ -145,12 +145,13 @@ export class RoomClient {
     logger({ text: `User ${this._clientUID} join room ${room_id}`, data: room_id });
     // get router RtpCapabilities
     const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
+    console.log(mediaCodecs);
     // load Device
     this._device = new mc.Device();
     await this._device.load({ routerRtpCapabilities: mediaCodecs });
     // init transport ( consumer and produce )
     await this.initTransports(this._device);
-
+    console.log(this._device.rtpCapabilities);
     await this._socket.request({ data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
   }
 
@@ -200,6 +201,7 @@ export class RoomClient {
       });
       this._sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
         try {
+          console.log(rtpParameters);
           const { data } = await this._socket.request({
             data: { room_id: this._roomId, transport_id: this._sendTransport?.id, kind, rtpParameters, appData },
             type: EVENT_FOR_CLIENT.PRODUCE,
