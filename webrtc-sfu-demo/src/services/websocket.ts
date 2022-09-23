@@ -67,14 +67,20 @@ export class Socket extends EventEmitter {
   }
 
   _handlerNotification(_data: any) {
-    if (_data.data === 'ping') {
-      let sendData: SendData = {
-        type: 'heartBeatCheck',
-        data: 'pong',
-      };
-      this.notify(sendData)
-      return
+    const { type, data } = _data;
+    switch (type) {
+      case 'heartBeatCheck':
+        if (data === 'ping') {
+          let sendData: SendData = {
+            type: 'heartBeatCheck',
+            data: 'pong',
+          };
+          this.notify(sendData)
+          return
+        }
+        break;
     }
+
     this.emit('notification', _data);
   }
 
