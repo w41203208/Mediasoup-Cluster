@@ -357,8 +357,13 @@ export class Room {
       await this.PlayerController.delPlayer(peer.id);
 
       this.removePeer(peer.id);
-      if (this.getJoinedPeers({ excludePeer: {} as Peer }).length === 0) {
-        this.listener.deleteRoom(this._id);
+      if (rRoom.host.id === peer.id) {
+        console.log("5分鐘後刪除房間")
+        setTimeout(() => {
+          this.serverHandleCloseRoom(rRoom);
+          this.listener.deleteRoom(this._id);
+        }, 1000 * 60 * 5)
+
       }
     }
   };
