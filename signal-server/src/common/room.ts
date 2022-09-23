@@ -3,6 +3,7 @@ import { Peer } from './peer';
 import { SFUConnectionManager } from 'src/run/SFUConnectionManager';
 import { PlayerController, RoomController } from '../redis/controller';
 import { ServerEngine } from 'src/engine';
+import { Timer } from './Timer';
 
 const EVENT_FROM_CLIENT_REQUEST = {
   CREATE_ROOM: 'createRoom',
@@ -42,6 +43,7 @@ export class Room {
   private listener: ServerEngine;
   private PlayerController: PlayerController;
   private RoomController: RoomController;
+  private RoomHeartCheck: Timer;
 
   constructor(
     room_id: string,
@@ -60,6 +62,7 @@ export class Room {
     this.PlayerController = PlayerController;
     this.RoomController = RoomController;
     this.listener = listener;
+    this.RoomHeartCheck = new Timer(1000 * 60 * 5)
   }
 
   getOtherPeerProducers(id: string) {
@@ -97,7 +100,8 @@ export class Room {
 
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
-    peer._heartCheck.reset().start(() => this.serverHandleLeaveRoom(peer));
+    const that = this;
+    peer._heartCheck.reset().start(() => this.timeStart(peer), () => this.timeout(peer));
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });
@@ -350,14 +354,20 @@ export class Room {
 
   async _handleOnNotification(peer: Peer, type: string, data: any) {
     switch (type) {
-      case 'heartBeatCheck':
-        if (data === 'pong') peer._heartCheck.reset().start(() => this.serverHandleLeaveRoom(peer));
+      case 'heartbeatCheck':
+        if (data === 'pong') {
+          peer._heartCheck.reset().start(() => this.timeStart(peer), () => this.timeout(peer))
+          this.RoomHeartCheck.reset()
+        };
         break;
     }
   }
 
   async serverHandleLeaveRoom(peer: Peer) {
     console.log('User [%s] was disconnect room [%s].', peer.id, this._id);
+    peer.socket.close();
+    console.log("close");
+
     const rRoom = await this.RoomController.getRoom(this._id);
     if (rRoom) {
       const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
@@ -369,23 +379,16 @@ export class Room {
       if (rRoom.host.id === peer.id) {
         console.log("Delete room after 5 minutes")
         this.broadcast(this._peers, {
-          type: 'RoomState',
+          type: 'roomState',
           data: 'The host is disconnected, if the host does not connect back, the room will be deleted after five minutes',
         })
-        setTimeout(() => {
+        this.RoomHeartCheck.reset().start(() => { }, () => {
           this.serverHandleCloseRoom(rRoom);
           this.listener.deleteRoom(this._id);
-        }, 1000 * 60 * 5)
-
+        });
       }
     }
   };
-
-  broadcast(peers: Map<string, Peer>, data: any) {
-    peers.forEach((peer) => {
-      peer.socket.notify(data);
-    });
-  }
 
   async serverHandleCloseRoom(cRoom: any) {
     await this.RoomController.delRoom(this._id);
@@ -393,7 +396,7 @@ export class Room {
     this.listener.deleteRoom(this._id);
 
     this.broadcast(this._peers, {
-      type: 'heartBeatCheck',
+      type: 'roomState',
       data: 'Room was closed by RoomOwner',
     })
 
@@ -403,6 +406,25 @@ export class Room {
         this.removePeer(peer.id);
         peer.socket.close();
       }
+    });
+  }
+
+  timeStart(peer: Peer) {
+    const timeStart = peer.socket.notify({
+      type: 'heartbeatCheck',
+      data: 'ping',
+    });
+    return timeStart;
+  }
+
+  timeout(peer: Peer) {
+    const timeout = this.serverHandleLeaveRoom(peer)
+    return timeout;
+  }
+
+  broadcast(peers: Map<string, Peer>, data: any) {
+    peers.forEach((peer) => {
+      peer.socket.notify(data);
     });
   }
 
