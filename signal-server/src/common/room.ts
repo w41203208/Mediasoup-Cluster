@@ -144,9 +144,8 @@ export class Room {
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
         console.log('User [%s] close room [%s].', peer.id, this._id);
-        const cRoom = await this.RoomController.getRoom(this._id);
         await this.PlayerController.delPlayer(peer.id);
-        this.serverHandleCloseRoom(cRoom)
+        this.serverHandleCloseRoom();
 
         response({});
         break;
@@ -383,14 +382,14 @@ export class Room {
           data: 'The host is disconnected, if the host does not connect back, the room will be deleted after five minutes',
         })
         this.RoomHeartCheck.reset().start(() => { }, () => {
-          this.serverHandleCloseRoom(rRoom);
+          this.serverHandleCloseRoom();
           this.listener.deleteRoom(this._id);
         });
       }
     }
   };
 
-  async serverHandleCloseRoom(cRoom: any) {
+  async serverHandleCloseRoom() {
     await this.RoomController.delRoom(this._id);
 
     this.listener.deleteRoom(this._id);
@@ -401,11 +400,9 @@ export class Room {
     })
 
     this._peers.forEach(async (peer) => {
-      if (cRoom) {
-        await this.PlayerController.delPlayer(peer.id);
-        this.removePeer(peer.id);
-        peer.socket.close();
-      }
+      await this.PlayerController.delPlayer(peer.id);
+      this.removePeer(peer.id);
+      peer.socket.close();
     });
   }
 

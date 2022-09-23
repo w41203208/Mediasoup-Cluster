@@ -64,10 +64,10 @@ export class Peer extends EventEmitter {
     this._listener = listener;
     this._inRoom = false;
 
-    this._handleTransportMessgae();
+    this._handleTransportMessage();
   }
 
-  _handleTransportMessgae() {
+  _handleTransportMessage() {
     this._ws.on('request', (message: { type: string; data: any }, response: Function) => {
       const { type, data } = message;
       switch (type) {
