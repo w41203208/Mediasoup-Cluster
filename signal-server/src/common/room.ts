@@ -367,7 +367,11 @@ export class Room {
 
       this.removePeer(peer.id);
       if (rRoom.host.id === peer.id) {
-        console.log("5分鐘後刪除房間")
+        console.log("Delete room after 5 minutes")
+        this.broadcast(this._peers, {
+          type: 'RoomState',
+          data: 'The host is disconnected, if the host does not connect back, the room will be deleted after five minutes',
+        })
         setTimeout(() => {
           this.serverHandleCloseRoom(rRoom);
           this.listener.deleteRoom(this._id);
