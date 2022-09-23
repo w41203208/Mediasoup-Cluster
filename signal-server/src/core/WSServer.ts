@@ -16,6 +16,7 @@ export class WSServer extends EventEmitter {
       console.log('Websocket is connected');
     });
     socket.on('connection', (ws: WebSocket) => {
+      console.log('Has Someone connected in!');
       this.emit('connection', () => {
         const transport = new WSTransport(ws);
         return transport;

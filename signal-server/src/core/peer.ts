@@ -1,6 +1,7 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
-import { WSTransport } from 'src/run/WSTransport';
+import { WSTransport } from 'src/core/WSTransport';
+
 import { Timer } from './Timer';
 
 const EVENT_FROM_CLIENT_REQUEST = {
@@ -57,8 +58,7 @@ export class Peer extends EventEmitter {
 
     /* websocket */
     this._ws = websocket;
-    this._heartCheck = new Timer(10 * 1000)
-
+    this._heartCheck = new Timer(10 * 1000);
 
     /* advanced */
     this._listener = listener;
@@ -73,11 +73,11 @@ export class Peer extends EventEmitter {
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
           data.peer_id = this.id;
-          this._listener.handleRequest(type, data, response);
+          this._listener.handlePeerRequest(type, data, response);
           break;
         case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
           data.peer = this;
-          this._listener.handleRequest(type, data, response);
+          this._listener.handlePeerRequest(type, data, response);
           break;
         // test
         case EVENT_FOR_TEST.TEST1:
@@ -111,14 +111,14 @@ export class Peer extends EventEmitter {
       }
     });
 
-    this._ws.on('notification', ((message: { type: string; data: any }) => {
+    this._ws.on('notification', (message: { type: string; data: any }) => {
       const { type, data } = message;
       switch (type) {
         default:
           this.emit('handleOnNotification', this, type, data);
           break;
       }
-    }));
+    });
   }
 
   get socket() {

@@ -1,6 +1,8 @@
 import WebSocket from 'ws';
 import { EventEmitter } from '../util/emitter';
 
+require('dotenv').config();
+
 export class WSTransport extends EventEmitter {
   private _socket: WebSocket;
 

@@ -1,44 +1,15 @@
-import { HttpsServer } from './run/HttpsServer';
-import { WSServer } from './run/WSServer';
-import { Peer } from './common/peer';
-import { Room } from './common/room';
-import { createRedisController } from './redis/redis';
+import { HttpsServer } from './core/HttpsServer';
+import { WSServer } from './core/WSServer';
+import { Peer } from './core/peer';
+import { Room } from './core/room';
+import { RedisClient } from './redis/redis';
 import { ControllerLoader } from './redis/ControllerLoader';
 import { EngineOptions, HttpsServerOptions } from './type';
-import { SFUConnectionManager } from './run/SFUConnectionManager';
+import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { config } from '../config';
 import { v4 } from 'uuid';
-import { SFUServer } from './common/SFUServer';
-import { SFUServerSocket } from './common/SFUServerSocket';
-
-const EVENT_FROM_CLIENT_REQUEST = {
-  CREATE_ROOM: 'createRoom',
-  JOIN_ROOM: 'joinRoom',
-  GET_PRODUCERS: 'getProducers',
-  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
-  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
-  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
-  PRODUCE: 'produce',
-  CONSUME: 'consume',
-  GET_ROOM_INFO: 'getRoomInfo',
-  LEAVE_ROOM: 'leaveRoom',
-  CLOSE_ROOM: 'closeRoom',
-};
-
-const EVENT_FOR_CLIENT_NOTIFICATION = {
-  NEW_CONSUMER: 'newConsumer',
-};
-
-const EVENT_FOR_SFU = {
-  CREATE_ROUTER: 'createRouter',
-  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
-  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
-  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
-  CREATE_PRODUCE: 'createProduce',
-  CREATE_CONSUME: 'createConsume',
-  CREATE_PIPETRANSPORT: 'createPipeTransport',
-  CONNECT_PIPETRANSPORT: 'connectPipeTransport',
-};
+import { SFUServer } from './core/SFUServer';
+import { EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST } from './EVENT';
 
 export class ServerEngine {
   /* settings */
@@ -48,20 +19,29 @@ export class ServerEngine {
   private roomList: Map<string, Room>;
 
   /* redis */
-  private redisControllers?: Record<string, any>;
+  private _redisControllers?: Record<string, any>;
 
   /* sfuConnectionManager */
   private sfuServerConnection?: SFUConnectionManager;
+
+  /* redisClient */
+  private redisClient?: RedisClient;
+
   constructor({ httpsServerOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
 
     this.roomList = new Map();
   }
 
+  get redisController() {
+    return this._redisControllers;
+  }
+
   async run() {
-    this.redisControllers = await createRedisController(await ControllerLoader.bootstrap());
+    this.redisClient = RedisClient.createInstance();
+    this._redisControllers = await this.redisClient.createRedisController(await ControllerLoader.bootstrap());
     this.sfuServerConnection = new SFUConnectionManager({
-      ...this.redisControllers,
+      serverEngine: this,
     });
 
     const httpsServer = new HttpsServer(this._httpsServerOption, this);
@@ -75,7 +55,7 @@ export class ServerEngine {
     });
   }
 
-  handleRequest(type: string, data: any, response: Function) {
+  handlePeerRequest(type: string, data: any, response: Function) {
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
         this.handleCreateRoom(data, response);
@@ -86,8 +66,18 @@ export class ServerEngine {
     }
   }
 
+  handleServerSocketRequest(type: string, data: any, response: Function) {
+    const { room_id } = data;
+    if (!this.roomList.has(room_id)) {
+      return;
+    }
+    const room = this.roomList.get(room_id)!;
+
+    room.handleServerSocketRequest(type, data, response);
+  }
+
   async handleCreateRoom(data: any, response: Function) {
-    const { RoomController } = this.redisControllers!;
+    const { RoomController } = this._redisControllers!;
     const { room_id, peer_id } = data;
     console.log('User [%s] create room [%s].', peer_id, room_id);
 
@@ -118,7 +108,7 @@ export class ServerEngine {
   }
 
   async handleJoinRoom(data: any, response: Function) {
-    const { RoomController, PlayerController } = this.redisControllers!;
+    const { RoomController, PlayerController } = this._redisControllers!;
     const { room_id, peer } = data;
     console.log('User [%s] join room [%s].', peer.id, room_id);
 
@@ -134,9 +124,7 @@ export class ServerEngine {
           rRoom.id,
           config.MediasoupSetting.router.mediaCodecs,
           this.sfuServerConnection!,
-          {
-            ...this.redisControllers,
-          }, // 兩個留一個
+          this.redisClient!,
           this // 兩個留一個
         );
         this.roomList.set(room.id, room);
@@ -148,18 +136,19 @@ export class ServerEngine {
 
       console.log('User [%s] choose [%s] sfuserver.', peer.id, ip_port);
 
-      const serverSocket = await this.sfuServerConnection!.connectToSFUServer(ip_port, room_id);
+      const localServerId = ip_port;
+      const localServerSocket = await this.sfuServerConnection!.connectToSFUServer(localServerId, room_id);
 
       // new SFUServer，SFUServer 添加到 room
-      const sfuServer = new SFUServer(ip_port);
+      const sfuServer = new SFUServer(localServerId);
       room.addSFUServer(sfuServer);
       // 添加 SFUServer port 給 peer
-      peer.serverId = ip_port;
+      peer.serverId = localServerId;
 
       // Update room data with serverList in redis.
-      const isExist = rRoom.serverList.indexOf(ip_port);
+      const isExist = rRoom.serverList.indexOf(localServerId);
       if (isExist === -1) {
-        rRoom.serverList.push(ip_port);
+        rRoom.serverList.push(localServerId);
       }
 
       // Peer 添加到 room
@@ -172,16 +161,10 @@ export class ServerEngine {
       if (rRoom.host.id === peer.id) {
         rRoom.state = 'public';
       }
-      // 判斷與 LiveHoster 的關係
-      // let remoteServerSocket: SFUServerSocket | null = null;
-      // const hoster = await PlayerController.getPlayer(rRoom.host.id);
-      // if (ip_port !== hoster.serverId && hoster.serverId !== '') {
-      //   remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(hoster.serverId, room_id);
-      // }
 
       // update room data in redis
       await RoomController.updateRoom(rRoom);
-      serverSocket
+      localServerSocket
         .request({
           data: {
             room_id: room_id,
@@ -199,70 +182,79 @@ export class ServerEngine {
 
           await PlayerController.updatePlayer(rPeer);
 
-          // remoteServerSocket 存在，代表在不同的 sfu host
-          // if (remoteServerSocket) {
-          //   const [remoteConnectionData, localConnectionData] = await Promise.all([
-          //     remoteServerSocket.sendData({
-          //       data: {
-          //         router_id: hoster.routerId,
-          //         server_id: hoster.serverId,
-          //       },
-          //       type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
-          //     }),
-          //     serverSocket.sendData({
-          //       data: {
-          //         router_id: router_id,
-          //         server_id: ip_port,
-          //       },
-          //       type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
-          //     }),
-          //   ]);
-          //   const { transport_id: remoteTransportId, remoteState, ...remoteRest } = remoteConnectionData;
-          //   const { transport_id: localTransportId, localState, ...localRest } = localConnectionData;
-          //   let promiseList = [];
-          //   if (!remoteState) {
-          //     promiseList.push(
-          //       remoteServerSocket.sendData({
-          //         data: {
-          //           transport_id: remoteTransportId,
-          //           ...localRest,
-          //         },
-          //         type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
-          //       })
-          //     );
-          //   }
-          //   if (!localState) {
-          //     promiseList.push(
-          //       serverSocket.sendData({
-          //         data: {
-          //           transport_id: localTransportId,
-          //           ...remoteRest,
-          //         },
-          //         type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
-          //       })
-          //     );
-          //   }
-          //   const promiseData = await Promise.all(promiseList);
-          //   for (let _ of promiseData) {
-          //     console.log(_);
-          //   }
+          /* create and connect pipeTransport */
+          const remoteServerSocketIdList = rRoom.serverList.filter((serverId: string) => {
+            if (serverId !== localServerId) {
+              return serverId;
+            }
+          });
+          console.log(remoteServerSocketIdList);
+          if (remoteServerSocketIdList.length !== 0) {
+            remoteServerSocketIdList.forEach(async (serverId: string) => {
+              const remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(serverId, room_id);
+              const [remoteConnectionData, localConnectionData] = await Promise.all([
+                remoteServerSocket.request({
+                  data: {
+                    server_id: localServerId,
+                    mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+                  },
+                  type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
+                }),
+                localServerSocket.request({
+                  data: {
+                    server_id: serverId,
+                    mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+                  },
+                  type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
+                }),
+              ]);
+              const { transport_id: remoteTransportId, state: remoteState, ...remoteRest } = remoteConnectionData.data;
+              const { transport_id: localTransportId, state: localState, ...localRest } = localConnectionData.data;
+              /* 這裡理論state 回傳只會兩個都是 false or 都是 true */
+              console.log('remoteState', remoteState);
+              console.log('localState', localState);
+              let promiseList = [];
+              if (!remoteState) {
+                promiseList.push(
+                  remoteServerSocket.request({
+                    data: {
+                      localTransport_id: remoteTransportId,
+                      remoteTransport_id: localTransportId,
+                      server_id: localServerId,
+                      ...localRest,
+                    },
+                    type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
+                  })
+                );
+              }
+              if (!localState) {
+                promiseList.push(
+                  localServerSocket.request({
+                    data: {
+                      localTransport_id: localTransportId,
+                      remoteTranstport_id: remoteTransportId,
+                      server_id: serverId,
+                      ...remoteRest,
+                    },
+                    type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
+                  })
+                );
+              }
+              const promiseData = await Promise.all(promiseList);
+              console.log('PipeTransport connect info：', promiseData);
+              /* 坐在 proudce */
+              // await localServerSocket.request({
+              //   data: {
+              //     transport_id: localTransportId,
+              //     producer_id: data.producer_id,
+              //   },
+              //   type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT_CONSUME,
+              // });
+            });
+          }
 
-          //   responseData = {
-          //     room_id: room.id,
-          //   };
-          //   response({
-          //     type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
-          //     data: responseData,
-          //   });
-          // } else {
-          //   responseData = {
-          //     room_id: room.id,
-          //   };
-          //   response({
-          //     type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
-          //     data: responseData,
-          //   });
-          // }
+          /* create and connect pipeTransport */
+
           responseData = {
             room_id: room.id,
           };
