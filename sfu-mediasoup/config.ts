@@ -28,7 +28,7 @@ module.exports = {
     sslKey: './ssl/key.pem',
   },
   MediasoupSetting: {
-    numWorkers: 2,
+    numWorkers: 2, //Object.keys(os.cpus()).length
     worker: {
       rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT) || 30001,
       rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT) || 30100,

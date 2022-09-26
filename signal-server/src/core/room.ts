@@ -71,10 +71,10 @@ export class Room {
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
     const that = this;
-    peer._heartCheck.reset().start(
-      () => this.timeStart(peer),
-      () => this.timeout(peer)
-    );
+    // peer._heartCheck.reset().start(
+    //   () => this.timeStart(peer),
+    //   () => this.timeout(peer)
+    // );
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });
@@ -276,7 +276,7 @@ export class Room {
 
             // 先從全部的 peer 中整理出 peer map
             let peerMap = {} as any;
-            peers.forEach((peer) => {
+            peers.forEach((peer: Peer) => {
               peerMap[peer.id] = {
                 peer_id: peer.id,
                 router_id: peer.routerId,

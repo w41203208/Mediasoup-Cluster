@@ -299,6 +299,7 @@ export class RoomClient {
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
+
       console.log(producer);
       this._producers.set(producer.id, producer);
       /* 之後會區分開開啟與添加畫面的方法 */
