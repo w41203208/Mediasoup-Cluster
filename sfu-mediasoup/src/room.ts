@@ -293,6 +293,7 @@ export class Room {
       for (let [key, value] of this._serverAndPipeTransport) {
         if (this._pipeTransports.has(value.localTransport_id)) {
           const pt = this._pipeTransports.get(value.localTransport_id)!;
+          console.log(await pt.dump());
           const consumer = await pt.consume({
             producerId: producer.id,
           });
@@ -329,15 +330,6 @@ export class Room {
         consumerMap: consumerMap,
       },
     });
-
-    /*  連線不同SFU  */
-    // ws.request({
-    //   type: EVENT_FOR_SIGNAL_REQUEST.CONNECT_PIPETRANSPORT,
-    //   data: {
-    //     room_id: this._id,
-    //     producer_id: producer.id,
-    //   },
-    // });
   }
 
   private _getOtherRouters({ excludeRouterId = '' }: { excludeRouterId: string }): Array<Router> {
@@ -355,6 +347,7 @@ export class Room {
     await router.pipeToRouter({
       producerId: producerId,
       router: otherRouter,
+      enableRtx: true,
     });
   }
 
@@ -446,6 +439,7 @@ export class Room {
 
     if (this._pipeTransports.has(remotePipeTransport_id)) {
       const pt = this._pipeTransports.get(remotePipeTransport_id)!;
+      console.log(await pt.dump());
       await pt.produce({
         id: producer_id,
         kind: kind,
