@@ -211,8 +211,8 @@ export class ServerEngine {
               const { transport_id: remoteTransportId, state: remoteState, ...remoteRest } = remoteConnectionData.data;
               const { transport_id: localTransportId, state: localState, ...localRest } = localConnectionData.data;
               /* 這裡理論state 回傳只會兩個都是 false or 都是 true */
-              console.log('remoteState', remoteState);
-              console.log('localState', localState);
+              // console.log('remoteState', remoteState);
+              // console.log('localState', localState);
               let promiseList = [];
               if (!remoteState) {
                 promiseList.push(
@@ -232,7 +232,7 @@ export class ServerEngine {
                   localServerSocket.request({
                     data: {
                       localTransport_id: localTransportId,
-                      remoteTranstport_id: remoteTransportId,
+                      remoteTransport_id: remoteTransportId,
                       server_id: serverId,
                       ...remoteRest,
                     },
@@ -241,20 +241,8 @@ export class ServerEngine {
                 );
               }
               const promiseData = await Promise.all(promiseList);
-              console.log('PipeTransport connect info：', promiseData);
-              /* 坐在 proudce */
-              // await localServerSocket.request({
-              //   data: {
-              //     transport_id: localTransportId,
-              //     producer_id: data.producer_id,
-              //   },
-              //   type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT_CONSUME,
-              // });
             });
           }
-
-          /* create and connect pipeTransport */
-
           responseData = {
             room_id: room.id,
           };

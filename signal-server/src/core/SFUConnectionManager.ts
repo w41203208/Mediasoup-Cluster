@@ -27,7 +27,6 @@ export class SFUConnectionManager {
   async getMinimumSFUServer(): Promise<string> {
     return new Promise((resolve, reject) => {
       this.listener.redisController!.SFUServerController.getAllSFUServer().then(async (data: any) => {
-        console.log(data);
         try {
           let okServer = undefined;
           let i = 0;

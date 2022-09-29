@@ -94,7 +94,7 @@ export class ServerEngine {
 
     this.webSocketConnection.start(server);
 
-    this.redisControllers?.SFUServerController.setSFUServer(`${process.env.MEDIASOUP_ANNOUNCED_IP}:${this._port}`);
+    this.redisControllers?.SFUServerController.setSFUServer(`${process.env.DOMAIN}:${this._port}`);
   }
 
   private _runExpressApp() {
@@ -122,7 +122,7 @@ export class ServerEngine {
     this.logger.info(`Running ${this._numworker} mediasoup Workers....`);
 
     for (let i = 0; i < this._numworker; i++) {
-      const worker = await mediasoup.createWorker({
+      const worker: Worker = await mediasoup.createWorker({
         logLevel: this._workerSettings.logLevel,
         logTags: this._workerSettings.logTags,
         rtcMinPort: Number(this._workerSettings.rtcMinPort),

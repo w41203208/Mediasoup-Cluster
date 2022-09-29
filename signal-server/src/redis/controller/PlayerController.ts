@@ -2,6 +2,7 @@ import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
 
 export class PlayerController extends ControllerImp {
+  static Instance?: PlayerController;
   private _rc: RedisClientType;
   constructor(redisClient: RedisClientType) {
     super();
