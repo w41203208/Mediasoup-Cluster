@@ -1,14 +1,26 @@
 version: '3.8'
 services:
-  sfu-frontend-demo:
-    container_name: sfu-frontend-demo
+  sfu-frontend-demo.pro:
+    container_name: sfu-frontend-demo.pro
+    image: 'sfufrontend'
+    working_dir: /home/frontend
+    command: bash -c "yarn && yarn pro"
+    stdin_open: true
+    tty: true
+    ports:
+      - '${PORT_PRO}:${PORT_PRO}/tcp'
+      - '${PORT_PRO}:${PORT_PRO}/udp'
+    volumes:
+      - .:/home/frontend
+  sfu-frontend-demo.dev:
+    container_name: sfu-frontend-demo.dv
     image: 'sfufrontend'
     working_dir: /home/frontend
     command: bash -c "yarn && yarn dev"
     stdin_open: true
     tty: true
     ports:
-      - '${PORT}:${PORT}/tcp'
-      - '${PORT}:${PORT}/udp'
+      - '${PORT_DEV}:${PORT_DEV}/tcp'
+      - '${PORT_DEV}:${PORT_DEV}/udp'
     volumes:
       - .:/home/frontend

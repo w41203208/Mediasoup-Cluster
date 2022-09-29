@@ -14,7 +14,7 @@ services:
       - '${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/udp'
       - '${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/tcp'
     environment:
-      - DOMAIN=${IP}
+      - DOMAIN=${DOMAIN}
       - PORT=${PORT}
       - MEDIASOUP_LISTEN_IP=${IP}
       - MEDIASOUP_ANNOUNCED_IP=${ANNOUNCE_IP}
@@ -39,7 +39,7 @@ services:
       - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/udp'
       - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/tcp'
     environment:
-      - DOMAIN=${IP_2}
+      - DOMAIN=${DOMAIN_2}
       - PORT=${PORT_2}
       - MEDIASOUP_LISTEN_IP=${IP_2}
       - MEDIASOUP_ANNOUNCED_IP=${ANNOUNCE_IP_2}

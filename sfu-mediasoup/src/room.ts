@@ -1,4 +1,4 @@
-import { Router, Transport, Consumer, Producer, PipeTransport } from 'mediasoup/node/lib/types';
+import { Router, Transport, Consumer, Producer, PipeTransport, Worker } from 'mediasoup/node/lib/types';
 import { ServerEngine } from './engine';
 import { WebSocket } from 'ws';
 import { WSTransport } from './websocket/wstransport';
@@ -224,8 +224,9 @@ export class Room {
       const consumer = await transport!.consume({
         producerId: producer_id,
         rtpCapabilities: rtpCapabilities,
+        paused: false,
       });
-      console.log('Create Consumer: [%s]', consumer.id);
+      console.log('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
       /* Register Consumer listen event */
       consumer.on('transportclose', () => {
         console.log('Consumer transport close', { consumer_id: `${consumer.id}` });
@@ -266,7 +267,7 @@ export class Room {
     this._producers.set(producer.id, producer);
     /* store redis producers */
 
-    console.log('Create Producer: [%s]', producer.id);
+    console.log('[CreateProducer-Event]：Create Producer [%s] with Router [%s]', producer.id, router_id);
     /*  Register producer listen event */
 
     let router: Router | null = null;
@@ -280,9 +281,9 @@ export class Room {
     /*  連線不同Router  */
     const routerList = this._getOtherRouters({ excludeRouterId: router_id });
     if (routerList.length !== 0) {
-      routerList.forEach((r) => {
-        this._connectToOtherRouter(router!, r, producer.id);
-      });
+      for (let r of routerList) {
+        await this._connectToOtherRouter(router!, r, producer.id);
+      }
     }
 
     let consumerMap = {} as any;
@@ -293,34 +294,29 @@ export class Room {
       for (let [key, value] of this._serverAndPipeTransport) {
         if (this._pipeTransports.has(value.localTransport_id)) {
           const pt = this._pipeTransports.get(value.localTransport_id)!;
+
           const consumer = await pt.consume({
             producerId: producer.id,
           });
+          console.log(
+            '[CreateConsumer-PipeTransport-Event]：Create Consumer [%s] use ProducerId [%s] with LocalPipeTransport [%s]-[%s]',
+            consumer.id,
+            producer.id,
+            key,
+            pt.id
+          );
           consumerMap[key] = {
             producer_id: producer.id,
             remotePipeTransport_id: value.remoteTransport_id,
             kind: consumer.kind,
             rtpParameters: consumer.rtpParameters,
           };
+          // await consumer.enableTraceEvent(['rtp']);
+          // consumer.on('trace', (trace) => {
+          //   console.log(trace);
+          // });
         }
       }
-
-      // 等功能做好我回來看看用這個方式怎麼解決非同步問題
-      // Object.entries(this._serverAndPipeTransport).forEach(async ([key, value]) => {
-      //   console.log('create producer on [%s] pipetransport [%s]', key, value);
-      //   if (this._pipeTransports.has(value)) {
-      //     console.log('create producer');
-      //     const pt = this._pipeTransports.get(value)!;
-      //     const consumer = await pt.consume({
-      //       producerId: producer.id,
-      //     });
-      //     consumerMap[key] = {
-      //       producer_id: producer.id,
-      //       kind: consumer.kind,
-      //       rtpParameters: consumer.rtpParameters,
-      //     };
-      //   }
-      // });
     }
 
     response({
@@ -329,15 +325,6 @@ export class Room {
         consumerMap: consumerMap,
       },
     });
-
-    /*  連線不同SFU  */
-    // ws.request({
-    //   type: EVENT_FOR_SIGNAL_REQUEST.CONNECT_PIPETRANSPORT,
-    //   data: {
-    //     room_id: this._id,
-    //     producer_id: producer.id,
-    //   },
-    // });
   }
 
   private _getOtherRouters({ excludeRouterId = '' }: { excludeRouterId: string }): Array<Router> {
@@ -352,9 +339,11 @@ export class Room {
   }
 
   private async _connectToOtherRouter(router: Router, otherRouter: Router, producerId: string) {
+    console.log('[PipeToRouter-Event]：Router [%s] pipe to Router [%s]', router.id, otherRouter.id);
     await router.pipeToRouter({
       producerId: producerId,
       router: otherRouter,
+      enableRtx: true,
     });
   }
 
@@ -363,9 +352,8 @@ export class Room {
 
     if (this._pipeTransportsRouter === undefined) {
       const worker = this._listener._getMediasoupWorkers();
-      const router = await worker.createRouter({ mediaCodecs });
-      this._pipeTransportsRouter = router;
-      console.log('Craete new PipeTransportRouter');
+      this._pipeTransportsRouter = await worker.createRouter({ mediaCodecs });
+      console.log('Craete new PipeTransportRouter [%s]', this._pipeTransportsRouter.id);
     } else {
       console.log('PipeTransportRouter is already exist!');
     }
@@ -384,7 +372,6 @@ export class Room {
       });
       this._serverAndPipeTransport.set(server_id, {
         localTransport_id: pipeTransport.id,
-        remoteTransport_id: '',
       });
       state = false;
     }
@@ -422,9 +409,11 @@ export class Room {
           ip: data.ip,
           port: data.port,
         });
-        console.log(pipeTransport.tuple);
-        const serverAndPT = this._serverAndPipeTransport.get(data.server_id)!;
-        serverAndPT.remoteTransport_id = data.remoteTransport_id;
+        console.log(await pipeTransport.dump());
+        const serverAndPT = {
+          remoteTransport_id: data.remoteTransport_id,
+          ...this._serverAndPipeTransport.get(data.server_id)!,
+        };
         this._serverAndPipeTransport.set(data.server_id, serverAndPT);
         msg = 'Successfully';
       } catch (error) {
@@ -444,25 +433,32 @@ export class Room {
   private async createPipeTransportProduce({ ws, data, response }: Handler) {
     const { producer_id, remotePipeTransport_id, kind, rtpParameters } = data;
 
+    let producer = null;
     if (this._pipeTransports.has(remotePipeTransport_id)) {
       const pt = this._pipeTransports.get(remotePipeTransport_id)!;
-      await pt.produce({
+      producer = await pt.produce({
         id: producer_id,
         kind: kind,
         rtpParameters: rtpParameters,
       });
+      console.log('[CreateProducer-PipeTransport-Event]：PipeTransport [%s] create Producer [%s]', pt.id, producer.id);
+
+      // TEST TO DEBUG
+      // await producer.enableTraceEvent(['rtp']);
+
+      // producer.on('trace', (trace) => {
+      //   console.log(trace);
+      // });
     }
 
     for (let [key, router] of this._routers) {
-      await this._connectToOtherRouter(this._pipeTransportsRouter!, router, producer_id);
+      await this._connectToOtherRouter(this._pipeTransportsRouter!, router, producer!.id);
     }
 
-    console.log('Create PipeTransport produce [%s]', producer_id);
     response({
       data: {
         producer_id,
       },
     });
-    // this.connectToOtherRouter();
   }
 }

@@ -124,6 +124,12 @@ export class RoomClient {
   closeRoom(roomId: string) {
     this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CLOSE_ROOM });
     this._socket.close();
+    this._recvTransport?.close();
+    this._sendTransport?.close();
+  }
+  leaveRoom(roomId: string) {
+    this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.LEAVE_ROOM });
+    this._socket.close();
   }
   test1() {
     this._socket.request({ data: {}, type: EVENT_FOR_TEST.TEST1 }).then((data) => {
@@ -153,11 +159,6 @@ export class RoomClient {
     await this.initTransports(this._device);
     console.log(this._device.rtpCapabilities);
     await this._socket.request({ data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities }, type: EVENT_FOR_CLIENT.GET_PRODUCERS });
-  }
-
-  leaveRoom(roomId: string) {
-    this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.LEAVE_ROOM });
-    this._socket.close();
   }
 
   getRouterRtpCapabilities(roomId: string): Promise<any> {
@@ -299,6 +300,9 @@ export class RoomClient {
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
+
+      producer.on('@close', () => {});
+
       console.log(producer);
       this._producers.set(producer.id, producer);
       /* 之後會區分開開啟與添加畫面的方法 */

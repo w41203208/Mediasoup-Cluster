@@ -9,6 +9,8 @@ import { SFUConnectionManager } from "./core/SFUConnectionManager";
 import { config } from "../config";
 import { SFUServer } from "./core/SFUServer";
 import { EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST } from "./EVENT";
+import { ControllerFactory } from './redis/ControllerFactory';
+import { PlayerController, RoomController } from './redis/controller';
 import { v4 } from "uuid";
 
 export class ServerEngine {
@@ -19,7 +21,7 @@ export class ServerEngine {
   public roomList: Map<string, Room>;
 
   /* redis */
-  private _redisControllers?: Record<string, any>;
+  private _controllerFactory?: ControllerFactory;
 
   /* sfuConnectionManager */
   private sfuServerConnection?: SFUConnectionManager;
@@ -33,22 +35,14 @@ export class ServerEngine {
     this.roomList = new Map();
   }
 
-  get redisController() {
-    return this._redisControllers;
-  }
-
   get getRoomList() {
     return this.roomList;
   }
 
   async run() {
-    this.redisClient = RedisClient.createInstance();
-    this._redisControllers = await this.redisClient.createRedisController(
-      await ControllerLoader.bootstrap()
-    );
-    this.sfuServerConnection = new SFUConnectionManager({
-      serverEngine: this,
-    });
+    this.redisClient = RedisClient.GetInstance();
+    this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
+    this.sfuServerConnection = new SFUConnectionManager(this, this._controllerFactory!);
 
     const httpsServer = new HttpsServer(this._httpsServerOption, this);
 
@@ -83,11 +77,10 @@ export class ServerEngine {
   }
 
   async handleCreateRoom(data: any, response: Function) {
-    const { RoomController } = this._redisControllers!;
+    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
     const { room_name, peer_id } = data;
-    console.log("User [%s] create room [%s].", peer_id, room_name);
+    console.log('User [%s] create room [%s].', peer_id, room_name);
     const roomUuId = Date.now() + ":" + v4();
-
     const rRoom = await RoomController.setRoom(roomUuId, room_name);
 
     let responseData;
@@ -116,7 +109,8 @@ export class ServerEngine {
   }
 
   async handleJoinRoom(data: any, response: Function) {
-    const { RoomController, PlayerController } = this._redisControllers!;
+    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
+    const PlayerController = this._controllerFactory?.getControler('Player') as PlayerController;
     const { room_id, peer } = data;
     console.log("User [%s] join room [%s].", peer.id, room_id);
 
@@ -135,6 +129,7 @@ export class ServerEngine {
           config.MediasoupSetting.router.mediaCodecs,
           this.sfuServerConnection!,
           this.redisClient!,
+          this._controllerFactory!,
           this // 兩個留一個
         );
         this.roomList.set(room.id, room);
@@ -143,6 +138,16 @@ export class ServerEngine {
       // 選擇適合的SFUServer建立Websocket連線，從local取得 或是 創建新的連線
 
       const ip_port = await this.sfuServerConnection!.getMinimumSFUServer();
+      if (ip_port === undefined) {
+        responseData = {
+          msg: 'Server is full',
+        };
+        response({
+          type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
+          data: responseData,
+        });
+        return;
+      }
 
       console.log("User [%s] choose [%s] sfuserver.", peer.id, ip_port);
 
@@ -235,8 +240,8 @@ export class ServerEngine {
                 ...localRest
               } = localConnectionData.data;
               /* 這裡理論state 回傳只會兩個都是 false or 都是 true */
-              console.log("remoteState", remoteState);
-              console.log("localState", localState);
+              // console.log('remoteState', remoteState);
+              // console.log('localState', localState);
               let promiseList = [];
               if (!remoteState) {
                 promiseList.push(
@@ -256,7 +261,7 @@ export class ServerEngine {
                   localServerSocket.request({
                     data: {
                       localTransport_id: localTransportId,
-                      remoteTranstport_id: remoteTransportId,
+                      remoteTransport_id: remoteTransportId,
                       server_id: serverId,
                       ...remoteRest,
                     },
@@ -265,20 +270,8 @@ export class ServerEngine {
                 );
               }
               const promiseData = await Promise.all(promiseList);
-              console.log("PipeTransport connect info：", promiseData);
-              /* 坐在 proudce */
-              // await localServerSocket.request({
-              //   data: {
-              //     transport_id: localTransportId,
-              //     producer_id: data.producer_id,
-              //   },
-              //   type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT_CONSUME,
-              // });
             });
           }
-
-          /* create and connect pipeTransport */
-
           responseData = {
             room_id: room.id,
           };

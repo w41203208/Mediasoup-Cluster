@@ -1,22 +1,27 @@
-import { Peer } from './peer';
 import { SFUServerSocket } from './SFUServerSocket';
 import { SFUServerController } from '../redis/controller';
 import { ServerEngine } from 'src/engine';
+import { ControllerFactory } from 'src/redis/ControllerFactory';
 
 require('dotenv').config();
 
 export class SFUConnectionManager {
-  private peopleLimit: number; // dev 3
+  private peopleLimit: number;
   private SFUServerSockets: Map<string, SFUServerSocket>;
+  private SFUServerController: SFUServerController;
+
   private listener: ServerEngine;
-  constructor({ serverEngine }: any) {
+  constructor(listener: ServerEngine, controllerFactroy: ControllerFactory) {
     if (Number(process.env.PORT) === 9998) {
       this.peopleLimit = 10000;
     } else {
       this.peopleLimit = 2;
     }
     this.SFUServerSockets = new Map();
-    this.listener = serverEngine;
+
+    this.SFUServerController = controllerFactroy.getControler('SFU') as SFUServerController;
+
+    this.listener = listener;
   }
 
   getServerSocket(id: string) {
@@ -24,62 +29,19 @@ export class SFUConnectionManager {
   }
 
   // 還有可能都沒選到代表全部 Server 都滿了
-  async getMinimumSFUServer(): Promise<string> {
+  async getMinimumSFUServer(): Promise<string | undefined> {
     return new Promise((resolve, reject) => {
-      this.listener.redisController!.SFUServerController.getAllSFUServer().then(async (data: any) => {
+      this.SFUServerController.getAllSFUServer().then(async (data: any) => {
         try {
           let okServer = undefined;
           let i = 0;
           while (i < data.length && okServer === undefined) {
-            // temp
+            const key = data[i];
             if (Number(process.env.PORT) === 9998) {
-              // temp
-              const key = data[i];
-              // temp
-              const [ip, port] = key.split(':');
-              if (port > Number(process.env.LIMIT)) {
-                // temp
-                const count = await this.listener.redisController!.SFUServerController.getSFUServerCount(key);
-                let new_count: number | void;
-                if (count < this.peopleLimit && okServer === undefined) {
-                  okServer = key;
-                  new_count = await this.listener.redisController!.SFUServerController.addSFUServerCount(key);
-                  if (new_count) {
-                    if (new_count >= this.peopleLimit + 1) {
-                      await this.listener.redisController!.SFUServerController.reduceSFUServerCount(key);
-                      okServer = undefined;
-                    }
-                  }
-                }
-                // temp
-              }
-              // temp
-              // temp
+              okServer = await this.tempSearchSFUServerFunction(key);
             } else {
-              // temp
-              const key = data[i];
-              // temp
-              const [ip, port] = key.split(':');
-              if (port < Number(process.env.LIMIT)) {
-                // temp
-                const count = await this.listener.redisController!.SFUServerController.getSFUServerCount(key);
-                let new_count: number | void;
-                if (count < this.peopleLimit && okServer === undefined) {
-                  okServer = key;
-                  new_count = await this.listener.redisController!.SFUServerController.addSFUServerCount(key);
-                  if (new_count) {
-                    if (new_count >= this.peopleLimit + 1) {
-                      await this.listener.redisController!.SFUServerController.reduceSFUServerCount(key);
-                      okServer = undefined;
-                    }
-                  }
-                }
-                // temp
-              }
-              // temp
-              // temp
+              okServer = await this.searchSFUServer(key);
             }
-            // temp
             i++;
           }
           resolve(okServer);
@@ -89,6 +51,46 @@ export class SFUConnectionManager {
         }
       });
     });
+  }
+
+  async searchSFUServer(key: string): Promise<string | undefined> {
+    let okServer = undefined;
+    const [ip, port] = key.split(':');
+    if (Number(port) < Number(process.env.LIMIT)) {
+      const count = await this.SFUServerController.getSFUServerCount(key);
+      let new_count: number | void;
+      if (count < this.peopleLimit && okServer === undefined) {
+        okServer = key;
+        new_count = await this.SFUServerController.addSFUServerCount(key);
+        if (new_count) {
+          if (new_count >= this.peopleLimit + 1) {
+            await this.SFUServerController.reduceSFUServerCount(key);
+            okServer = undefined;
+          }
+        }
+      }
+    }
+    return okServer;
+  }
+
+  async tempSearchSFUServerFunction(key: string): Promise<string | undefined> {
+    let okServer = undefined;
+    const [ip, port] = key.split(':');
+    if (Number(port) > Number(process.env.LIMIT)) {
+      const count = await this.SFUServerController.getSFUServerCount(key);
+      let new_count: number | void;
+      if (count < this.peopleLimit && okServer === undefined) {
+        okServer = key;
+        new_count = await this.SFUServerController.addSFUServerCount(key);
+        if (new_count) {
+          if (new_count >= this.peopleLimit + 1) {
+            await this.SFUServerController.reduceSFUServerCount(key);
+            okServer = undefined;
+          }
+        }
+      }
+    }
+    return okServer;
   }
 
   async connectToSFUServer(ip_port: string, room_id: string): Promise<SFUServerSocket> {

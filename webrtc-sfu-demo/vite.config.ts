@@ -17,6 +17,7 @@ export default ({ mode }) => {
         key: fs.readFileSync(`${__dirname}/.cert/key.pem`),
         cert: fs.readFileSync(`${__dirname}/.cert/cert.pem`),
       },
+      port: Number(env.VITE_PORT),
     },
     plugins: [vue()],
     env,

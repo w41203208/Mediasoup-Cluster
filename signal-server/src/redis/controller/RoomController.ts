@@ -1,14 +1,22 @@
 import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
+import { RedisClient } from '../redis';
 
 export class RoomController extends ControllerImp {
+  static Instance?: RoomController;
   private _rc: RedisClientType;
   constructor(redisClient: RedisClientType) {
     super();
     this._rc = redisClient;
   }
+  static GetInstance(rdc: RedisClientType) {
+    if (this.Instance === undefined) {
+      this.Instance = new RoomController(rdc);
+    }
+    return this.Instance;
+  }
 
-  setRoom(id: string, name: string) {
+  setRoom(id: string, name: string): Promise<false | Record<string, any>> {
     // console.log(await client.exists('SFUServer', 'test'));
     return new Promise(async (resolve, reject) => {
       try {

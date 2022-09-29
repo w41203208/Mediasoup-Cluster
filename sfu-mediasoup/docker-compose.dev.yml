@@ -14,7 +14,7 @@ services:
       - '${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/udp'
       - '${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/tcp'
     environment:
-      - DOMAIN=${IP}
+      - DOMAIN=${DOMAIN}
       - PORT=${PORT}
       - MEDIASOUP_LISTEN_IP=${IP}
       - MEDIASOUP_ANNOUNCED_IP=${ANNOUNCE_IP}
@@ -32,14 +32,14 @@ services:
     working_dir: /home/mediasoup
     # networks:
     #   ithelp_application:
-    #     ipv4_address: 172.28.0.3
+    #     ipv4_address: ${IP_2}
     ports:
       - '${PORT_2}:${PORT_2}/tcp'
       - '${PORT_2}:${PORT_2}/udp'
       - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/udp'
       - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/tcp'
     environment:
-      - DOMAIN=${IP_2}
+      - DOMAIN=${DOMAIN_2}
       - PORT=${PORT_2}
       - MEDIASOUP_LISTEN_IP=${IP_2}
       - MEDIASOUP_ANNOUNCED_IP=${ANNOUNCE_IP_2}

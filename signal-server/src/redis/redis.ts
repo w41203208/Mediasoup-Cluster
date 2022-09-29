@@ -13,7 +13,7 @@ export class RedisClient {
     return this.client;
   }
 
-  static createInstance() {
+  static GetInstance() {
     if (this.Instance === undefined) {
       this.Instance = new RedisClient();
     }
@@ -27,21 +27,6 @@ export class RedisClient {
         });
         await this.client.connect();
         resolve(this.client);
-      } catch (error) {
-        console.log(error);
-      }
-    });
-  }
-
-  createRedisController(controllers: Array<any>): Promise<Record<string, any>> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        let c = {} as any;
-        controllers.forEach((controller) => {
-          c[controller.name] = new controller(this.client);
-        });
-
-        resolve(c);
       } catch (error) {
         console.log(error);
       }

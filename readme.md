@@ -26,7 +26,8 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 
 ### Signal Server
 
-1. 待處理
+- docker build -t sfusignal .
+- docker-compose up -d
 
 ### Frontend
 
