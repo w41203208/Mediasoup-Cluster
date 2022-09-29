@@ -19,12 +19,12 @@
 </template>
 
 <script lang="ts">
-import { RoomClient } from '@/services/roomClient';
-import { defineComponent, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { RoomClient } from "@/services/roomClient";
+import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
-  name: 'room',
+  name: "room",
   setup() {
     const router = useRouter();
     const route = useRoute();
@@ -49,12 +49,12 @@ export default defineComponent({
       rcRef.value.produce({ type: type, deviceId: null });
     };
     const handleClickEvtExit = () => {
-      if (roomInfoReactive.role === 'host') {
+      if (roomInfoReactive.role === "host") {
         rcRef.value.closeRoom(roomInfoReactive.room);
       } else {
         rcRef.value.leaveRoom(roomInfoReactive.room);
       }
-      router.push('/');
+      router.push("/");
     };
 
     const handleClickEvtTest1 = () => {
@@ -68,8 +68,8 @@ export default defineComponent({
       const rc = rcRef.value;
       rc.localMediaContainer = localMediaRef.value;
       rc.remoteMediaContainer = remoteMediaRef.value;
-      rc.socket.on('connecting', () => {
-        if (roomInfoReactive.role === 'host') {
+      rc.socket.on("connecting", () => {
+        if (roomInfoReactive.role === "host") {
           rc.createRoom(roomInfoReactive.room);
         } else {
           rc.joinRoom(roomInfoReactive.room);
@@ -78,7 +78,7 @@ export default defineComponent({
     });
     onUnmounted(() => {
       const rc = rcRef.value;
-      if (roomInfoReactive.role === 'host') {
+      if (roomInfoReactive.role === "host") {
         rc.closeRoom(roomInfoReactive.room);
       } else {
         rc.leaveRoom(roomInfoReactive.room);
@@ -91,7 +91,6 @@ export default defineComponent({
       remoteMediaRef,
       handleClickEvtShare,
       handleClickEvtExit,
-
       handleClickEvtTest1,
       handleClickEvtTest2,
     };

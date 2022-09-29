@@ -1,5 +1,5 @@
 import { SFUServer } from './SFUServer';
-import { Peer } from './Peer';
+import { Peer } from './peer';
 import { SFUConnectionManager } from 'src/core/SFUConnectionManager';
 import { ServerEngine } from 'src/engine';
 import { EVENT_FOR_CLIENT_NOTIFICATION, EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST, EVENT_FROM_SFU } from '../EVENT';
@@ -15,6 +15,7 @@ import { ControllerFactory } from 'src/redis/ControllerFactory';
 export class Room {
   private _mediaCodecs: Record<string, any>;
   private _id: string;
+  private _name: string;
   private _sfuServers: Map<string, SFUServer>;
   private _routers: Map<string, any>;
   private _peers: Map<string, Peer>;
@@ -32,6 +33,7 @@ export class Room {
 
   constructor(
     room_id: string,
+    room_name: string,
     mediaCodecs: Record<string, any>,
     sfuConnectionManager: SFUConnectionManager,
     redisClient: RedisClient,
@@ -40,6 +42,7 @@ export class Room {
   ) {
     this._mediaCodecs = mediaCodecs;
     this._id = room_id;
+    this._name = room_name;
     this._sfuServers = new Map();
     this._routers = new Map();
     this._peers = new Map();
@@ -63,6 +66,10 @@ export class Room {
 
   get id() {
     return this._id;
+  }
+
+  get name() {
+    return this._name;
   }
 
   /************* Peer *************/
@@ -136,7 +143,7 @@ export class Room {
   addSFUServer(sfuServer: SFUServer) {
     this._sfuServers.set(sfuServer.id, sfuServer);
   }
-  async _handleSubscriberMessage(type: string, data: any) {}
+  async _handleSubscriberMessage(type: string, data: any) { }
 
   async _handlePeerRequest(peer: Peer, type: string, data: any, response: Function) {
     let serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
@@ -154,9 +161,12 @@ export class Room {
         await this.RoomController.delRoom(this._id);
         this.listener.deleteRoom(this._id);
 
+
         /* 剔除其他人 */
         this.serverHandleCloseRoom();
 
+        /* 關房後清除心跳時間 */
+        peer._heartCheck.reset();
         response({});
         break;
       case EVENT_FROM_CLIENT_REQUEST.LEAVE_ROOM:
@@ -432,7 +442,7 @@ export class Room {
           data: 'The host is disconnected, if the host does not connect back, the room will be deleted after five minutes',
         });
         this.RoomHeartCheck.reset().start(
-          () => {},
+          () => { },
           () => {
             this.serverHandleCloseRoom();
             this.listener.deleteRoom(this._id);

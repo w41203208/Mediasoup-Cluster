@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^0.27.2",
     "mediasoup-client": "^3.6.57",
     "sass": "^1.54.7",
     "uuid": "^8.3.2",

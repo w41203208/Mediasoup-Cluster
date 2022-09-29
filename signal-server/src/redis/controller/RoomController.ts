@@ -16,7 +16,7 @@ export class RoomController extends ControllerImp {
     return this.Instance;
   }
 
-  setRoom(id: string): Promise<false | Record<string, any>> {
+  setRoom(id: string, name: string): Promise<false | Record<string, any>> {
     // console.log(await client.exists('SFUServer', 'test'));
     return new Promise(async (resolve, reject) => {
       try {
@@ -28,6 +28,7 @@ export class RoomController extends ControllerImp {
               id,
               this.transformToJSON({
                 id: id,
+                name: name,
                 playerList: [],
                 serverList: [],
                 liveHoster: {},

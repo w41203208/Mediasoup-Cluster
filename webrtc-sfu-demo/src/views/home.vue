@@ -1,5 +1,11 @@
 <template>
-  <h1 class="py-2 px-3 text-4xl">Home page</h1>
+  <div class="flex items-center">
+    <h1 class="py-2 px-3 text-4xl">Home page</h1>
+    <div class="">
+      <h2>Name: {{ user.name }}</h2>
+      <h2>Uuid: {{ user.uuId }}</h2>
+    </div>
+  </div>
   <hr />
   <div class="flex-col flex py-1 m-3 flex-wrap md:flex-row">
     <div class="flex px-2 items-center my-1">
@@ -11,7 +17,7 @@
         @input="(e) => handleChangeRoomId(e)"
       />
     </div>
-    <div class="flex px-2 items-center my-1">
+    <!-- <div class="flex px-2 items-center my-1">
       <p class="pr-2 text-lg">UID：</p>
       <input
         type="text"
@@ -19,80 +25,96 @@
         :value="inputReactive.uid"
         @input="(e) => handleChangeUID(e)"
       />
-    </div>
-    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28" @click="handleClickCreateRoom">
+    </div> -->
+    <button
+      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28"
+      @click="handleClickCreateRoom"
+    >
       CreateRoom
     </button>
-    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28" @click="handleClickJoinRoom">
-      JoinRoom
+    <button
+      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-30"
+      @click="getRoomList"
+    >
+      refreshRoomList
     </button>
+    <!-- <button
+      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28"
+      @click="handleClickJoinRoom"
+    >
+      JoinRoom
+    </button> -->
   </div>
   <div>
-    <!-- <ul class="flex flex-wrap">
+    <ul class="flex flex-wrap">
       <li
         v-for="room in roomList"
-        :key="room.id"
+        :key="room.roomId"
         class="h-44 w-60 bg-slate-300 rounded px-2 py-1 m-2 flex-grow cursor-pointer"
-        @click="handleClickJoinRoom(room.id)"
+        @click="handleClickJoinRoom(room.roomId)"
       >
-        {{ room.name }}
+        {{ room.roomName }}
       </li>
-    </ul> -->
+    </ul>
   </div>
 </template>
 
 <script lang="ts">
-import { RoomClient } from '@/services/roomClient';
-import { defineComponent, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { getUuidByName, getRoomByUuId } from "@/services/api";
+import { getUserName } from "@/util/dummyName";
+import { defineComponent, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
-  name: 'home',
+  name: "home",
   setup() {
     // register store / router / .etc
     const router = useRouter();
-
     // Global Variable
     const inputReactive = reactive({
-      room: '',
-      uid: '',
+      room: "",
+      // uid: "",
     });
-    const roomList = ref([
-      {
-        id: 'test1',
-        name: 'test1',
-      },
-      {
-        id: 'test2',
-        name: 'test2',
-      },
-      {
-        id: 'test3',
-        name: 'test3',
-      },
-      {
-        id: 'test5',
-        name: 'test5',
-      },
-      {
-        id: 'test4',
-        name: 'test4',
-      },
-    ]);
+    const roomList = ref();
 
+    const user = reactive({
+      name: "",
+      uuId: "Permission denied",
+    });
+
+    user.name = getUserName();
+
+    getUuidByName(user.name)
+      .then((res: any) => {
+        user.uuId = res.data;
+        getRoomList();
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    const getRoomList = () => {
+      getRoomByUuId(user.uuId)
+        .then((res: any) => {
+          roomList.value = res.data;
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    };
     const handleChangeRoomId = (e: any) => {
       inputReactive.room = e.target.value;
     };
-    const handleChangeUID = (e: any) => {
-      inputReactive.uid = e.target.value;
-    };
-    const handleClickJoinRoom = () => {
+    // const handleChangeUID = (e: any) => {
+    //   inputReactive.uid = e.target.value;
+    // };
+    const handleClickJoinRoom = (room: string) => {
       router.push({
-        path: '/room',
+        path: "/room",
         query: {
-          uid: inputReactive.uid,
-          room: inputReactive.room,
-          role: 'audience',
+          uid: user.uuId,
+          room: room,
+          role: "audience",
         },
       });
     };
@@ -114,22 +136,23 @@ export default defineComponent({
     // };
     const handleClickCreateRoom = () => {
       router.push({
-        path: '/room',
+        path: "/room",
         query: {
-          uid: inputReactive.uid,
+          uid: user.uuId,
           room: inputReactive.room,
-          role: 'host',
+          role: "host",
         },
       });
     };
     return {
       inputReactive,
       roomList,
-
+      user,
       handleChangeRoomId,
       handleClickCreateRoom,
       handleClickJoinRoom,
-      handleChangeUID,
+      getRoomList,
+      // handleChangeUID,
     };
   },
 });
