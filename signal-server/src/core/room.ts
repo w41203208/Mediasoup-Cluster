@@ -1,5 +1,5 @@
 import { SFUServer } from './SFUServer';
-import { Peer } from './Peer';
+import { Peer } from './peer';
 import { SFUConnectionManager } from 'src/core/SFUConnectionManager';
 import { ServerEngine } from 'src/engine';
 import { EVENT_FOR_CLIENT_NOTIFICATION, EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST, EVENT_FROM_SFU } from '../EVENT';
