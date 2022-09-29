@@ -8,7 +8,7 @@ export class RoomController extends ControllerImp {
     this._rc = redisClient;
   }
 
-  setRoom(id: string) {
+  setRoom(id: string, name: string) {
     // console.log(await client.exists('SFUServer', 'test'));
     return new Promise(async (resolve, reject) => {
       try {
@@ -20,6 +20,7 @@ export class RoomController extends ControllerImp {
               id,
               this.transformToJSON({
                 id: id,
+                name: name,
                 playerList: [],
                 serverList: [],
                 liveHoster: {},

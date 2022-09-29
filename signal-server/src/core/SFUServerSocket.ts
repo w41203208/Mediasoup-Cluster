@@ -94,6 +94,7 @@ export class SFUServerSocket extends EventEmitter {
 
   request(sendData: SendData): Promise<any> {
     const id = ((sendData as any).id = v4());
+    console.log(id);
     (sendData as any).messageType = 'request';
     let resolve, reject;
     const promise = new Promise((res, rej) => {

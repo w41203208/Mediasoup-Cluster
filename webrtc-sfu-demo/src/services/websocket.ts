@@ -76,7 +76,6 @@ export class Socket extends EventEmitter {
             data: 'pong',
           };
           this.notify(sendData)
-          return
         }
         break;
       case 'roomState':
