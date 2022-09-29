@@ -1,14 +1,16 @@
 import { SFUServer } from './SFUServer';
-import { Peer } from '../core/peer';
+import { Peer } from './Peer';
 import { SFUConnectionManager } from 'src/core/SFUConnectionManager';
 import { ServerEngine } from 'src/engine';
 import { EVENT_FOR_CLIENT_NOTIFICATION, EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST, EVENT_FROM_SFU } from '../EVENT';
 import { RedisClient } from '../redis/redis';
 import { Subscriber } from '../redis/subscriber';
 import { Publisher } from '../redis/publisher';
+import { PlayerController, RoomController, SFUServerController } from '../redis/controller';
 
 /* TEMP */
-import { Timer } from './Timer';
+import { Timer } from '../util/Timer';
+import { ControllerFactory } from 'src/redis/ControllerFactory';
 
 export class Room {
   private _mediaCodecs: Record<string, any>;
@@ -21,6 +23,11 @@ export class Room {
   private _publisher: Publisher;
 
   private listener: ServerEngine;
+
+  private RoomController: RoomController;
+  private PlayerController: PlayerController;
+  private SFUServerController: SFUServerController;
+
   private RoomHeartCheck: Timer;
 
   constructor(
@@ -28,6 +35,7 @@ export class Room {
     mediaCodecs: Record<string, any>,
     sfuConnectionManager: SFUConnectionManager,
     redisClient: RedisClient,
+    controllerFactory: ControllerFactory,
     listener: ServerEngine
   ) {
     this._mediaCodecs = mediaCodecs;
@@ -40,6 +48,10 @@ export class Room {
     this._subscriber = Subscriber.createSubscriber(redisClient.Client!);
     this._publisher = Publisher.createPublisher(redisClient.Client!);
     this.listener = listener;
+    this.RoomController = controllerFactory.getControler('Room') as RoomController;
+    this.PlayerController = controllerFactory.getControler('Player') as PlayerController;
+    this.SFUServerController = controllerFactory.getControler('SFU') as SFUServerController;
+
     this.RoomHeartCheck = new Timer(1000 * 60 * 5);
 
     this._subscriber.subscribe(this._id);
@@ -78,8 +90,8 @@ export class Room {
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });
-    peer.on('handleOnNotification', (peer: Peer, type: string, data: any) => {
-      this._handleOnNotification(peer, type, data);
+    peer.on('handleOnRoomNotification', (peer: Peer, type: string, data: any, notify: Function) => {
+      this._handleOnNotification(peer, type, data, notify);
     });
   }
 
@@ -137,9 +149,9 @@ export class Room {
         /* 修改成獨立出去的兩個方法  */
 
         /* 刪了自己 */
-        await this.listener.redisController!.PlayerController.delPlayer(peer.id);
-        await this.listener.redisController!.SFUServerController.reduceSFUServerCount(peer.serverId);
-        await this.listener.redisController!.RoomController.delRoom(this._id);
+        await this.PlayerController.delPlayer(peer.id);
+        await this.SFUServerController.reduceSFUServerCount(peer.serverId!);
+        await this.RoomController.delRoom(this._id);
         this.listener.deleteRoom(this._id);
 
         /* 剔除其他人 */
@@ -149,13 +161,13 @@ export class Room {
         break;
       case EVENT_FROM_CLIENT_REQUEST.LEAVE_ROOM:
         console.log('User [%s] leave room [%s].', peer.id, this._id);
-        const rRoom = await this.listener.redisController!.RoomController.getRoom(this._id);
+        const rRoom = await this.RoomController.getRoom(this._id);
 
         if (rRoom) {
           const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
           rRoom.playerList = newPlayerList;
-          await this.listener.redisController!.RoomController.updateRoom(rRoom);
-          await this.listener.redisController!.PlayerController.delPlayer(peer.id);
+          await this.RoomController.updateRoom(rRoom);
+          await this.PlayerController.delPlayer(peer.id);
 
           this.removePeer(peer.id);
 
@@ -163,7 +175,7 @@ export class Room {
             this.listener.deleteRoom(this._id);
           }
 
-          await this.listener.redisController!.SFUServerController.reduceSFUServerCount(peer.serverId);
+          await this.SFUServerController.reduceSFUServerCount(peer.serverId!);
         }
 
         response({});
@@ -380,7 +392,7 @@ export class Room {
     }
   }
 
-  async _handleOnNotification(peer: Peer, type: string, data: any) {
+  async _handleOnNotification(peer: Peer, type: string, data: any, notify: Function) {
     switch (type) {
       case 'heartbeatCheck':
         if (data === 'pong') {
@@ -405,12 +417,12 @@ export class Room {
     peer.socket.close();
     console.log('close');
 
-    const rRoom = await this.listener.redisController!.RoomController.getRoom(this._id);
+    const rRoom = await this.RoomController.getRoom(this._id);
     if (rRoom) {
       const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
       rRoom.playerList = newPlayerList;
-      await this.listener.redisController!.RoomController.updateRoom(rRoom);
-      await this.listener.redisController!.PlayerController.delPlayer(peer.id);
+      await this.RoomController.updateRoom(rRoom);
+      await this.PlayerController.delPlayer(peer.id);
 
       this.removePeer(peer.id);
       if (rRoom.host.id === peer.id) {
@@ -436,7 +448,7 @@ export class Room {
       data: 'Room was closed by RoomOwner',
     });
     this._peers.forEach(async (peer) => {
-      await this.listener.redisController!.PlayerController.delPlayer(peer.id);
+      await this.PlayerController.delPlayer(peer.id);
       this.removePeer(peer.id);
       peer.socket.close();
     });

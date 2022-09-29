@@ -14,6 +14,9 @@ export class WSTransport extends EventEmitter {
     this._handleSocketConnection();
   }
   sendData(data: any) {
+    if (Number(process.env.PORT) === 9998) {
+      console.log(data);
+    }
     this._socket.send(JSON.stringify({ ...data }));
   }
 

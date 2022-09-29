@@ -1,6 +1,8 @@
 const os = require('os');
 const ifaces = os.networkInterfaces();
 
+const results = Object.create(null); // Or just '{}', an empty object
+
 console.log('MEDIASOUP_LISTEN_IP: [%s]', process.env.MEDIASOUP_LISTEN_IP);
 console.log('MEDIASOUP_PORT: [%s]', process.env.PORT);
 console.log('MEDIASOUP_ANNOUNCED_IP: [%s]', process.env.MEDIASOUP_ANNOUNCED_IP);
@@ -28,20 +30,20 @@ module.exports = {
     sslKey: './ssl/key.pem',
   },
   MediasoupSetting: {
-    numWorkers: 2, //Object.keys(os.cpus()).length
+    numWorkers: 3, //Object.keys(os.cpus()).length
     worker: {
       rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT) || 30001,
       rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT) || 30100,
-      logLevel: 'debug',
+      logLevel: 'warn',
       logTags: [
         'info',
         'ice',
         'dtls',
         'rtp',
-        // 'srtp',
-        // 'rtcp'
-        // 'rtx',
-        // 'bwe',
+        'srtp',
+        'rtcp',
+        'rtx',
+        'bwe',
         // 'score',
         // 'simulcast',
         // 'svc'
@@ -61,8 +63,8 @@ module.exports = {
     },
     pipeTransport: {
       listenIps: {
-        ip: '127.0.0.1',
-        announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, // replace by public IP address
+        ip: process.env.MEDIASOUP_LISTEN_IP,
+        announcedIp: getLocalIp(), // replace by public IP address
       },
     },
   },
