@@ -8,6 +8,12 @@ export class PlayerController extends ControllerImp {
     super();
     this._rc = redisClient;
   }
+  static GetInstance(rdc: RedisClientType) {
+    if (this.Instance === undefined) {
+      this.Instance = new PlayerController(rdc);
+    }
+    return this.Instance;
+  }
 
   getPlayer(id: string): Promise<any> {
     return new Promise(async (resolve, reject) => {

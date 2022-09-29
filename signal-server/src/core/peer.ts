@@ -2,26 +2,8 @@ const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
 import { WSTransport } from 'src/core/WSTransport';
 
-import { Timer } from './Timer';
-
-const EVENT_FROM_CLIENT_REQUEST = {
-  CREATE_ROOM: 'createRoom',
-  JOIN_ROOM: 'joinRoom',
-  GET_PRODUCERS: 'getProducers',
-  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
-  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
-  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
-  PRODUCE: 'produce',
-  CONSUME: 'consume',
-  GET_ROOM_INFO: 'getRoomInfo',
-  LEAVE_ROOM: 'leaveRoom',
-  CLOSE_ROOM: 'closeRoom',
-};
-
-const EVENT_FOR_TEST = {
-  TEST1: 'test1',
-  TEST2: 'test2',
-};
+import { Timer } from '../util/Timer';
+import { EVENT_FROM_CLIENT_REQUEST } from '../EVENT';
 
 export class Peer extends EventEmitter {
   private _id: string;
@@ -39,7 +21,6 @@ export class Peer extends EventEmitter {
   public _heartCheck: Timer;
 
   private _listener: ServerEngine;
-  private _inRoom: boolean;
 
   constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine) {
     super();
@@ -79,43 +60,17 @@ export class Peer extends EventEmitter {
           data.peer = this;
           this._listener.handlePeerRequest(type, data, response);
           break;
-        // test
-        case EVENT_FOR_TEST.TEST1:
-          console.log('test1');
-          let sum = 0;
-          for (let i = 0; i < 2000000000; i++) {
-            sum += i;
-          }
-          response({
-            type: 'test1',
-            data: sum,
-          });
-          break;
-        // test
-        // test
-        case EVENT_FOR_TEST.TEST2:
-          console.log('test2');
-          let sum1 = 0;
-          for (let i = 0; i < 2000000000; i++) {
-            sum1 += i;
-          }
-          response({
-            type: 'test2',
-            data: sum1,
-          });
-          break;
-        // test
         default:
           this.emit('handleOnRoomRequest', this, type, data, response);
           break;
       }
     });
 
-    this._ws.on('notification', (message: { type: string; data: any }) => {
+    this._ws.on('notification', (message: { type: string; data: any }, notify: Function) => {
       const { type, data } = message;
       switch (type) {
         default:
-          this.emit('handleOnNotification', this, type, data);
+          this.emit('handleOnRoomNotification', this, type, data, notify);
           break;
       }
     });
