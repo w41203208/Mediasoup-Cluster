@@ -45,7 +45,7 @@ export class HttpsServer {
   private _serverHandler() {
     if (this.app) {
       this.app.get('/new_sfu_server', (req: Request, res: Response) => {
-        res.send('testtest');
+        res.send(`${this._port}`);
       });
       this.app.get('/test', async (req: Request, res: Response) => {
         res.send('test');

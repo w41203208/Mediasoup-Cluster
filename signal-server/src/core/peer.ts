@@ -1,6 +1,6 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
-import { WSTransport } from 'src/core/WSTransport';
+import { WSTransport } from 'src/connect/WSTransport';
 
 import { Timer } from '../util/Timer';
 import { EVENT_FROM_CLIENT_REQUEST } from '../EVENT';

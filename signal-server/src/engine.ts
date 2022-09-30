@@ -1,9 +1,8 @@
-import { HttpsServer } from './core/HttpsServer';
-import { WSServer } from './core/WSServer';
+import { HttpsServer } from './connect/HttpsServer';
+import { WSServer } from './connect/WSServer';
 import { Peer } from './core/Peer';
 import { Room } from './core/Room';
 import { RedisClient } from './redis/redis';
-import { ControllerLoader } from './redis/ControllerLoader';
 import { EngineOptions, HttpsServerOptions } from './type';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { config } from '../config';
