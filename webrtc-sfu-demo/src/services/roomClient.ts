@@ -114,10 +114,10 @@ export class RoomClient {
 
   // host
   createRoom(roomId: string) {
-    this._socket.request({ data: { room_id: roomId }, type: EVENT_FOR_CLIENT.CREATE_ROOM }).then(({ data }) => {
+    this._socket.request({ data: { room_name: roomId }, type: EVENT_FOR_CLIENT.CREATE_ROOM }).then(({ data }) => {
       logger({ text: 'Create Room', data: data.msg });
       if (data.state) {
-        this.joinRoom(roomId);
+        this.joinRoom(data.roomUuId);
       }
     });
   }
