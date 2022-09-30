@@ -29,3 +29,8 @@ export const EVENT_FOR_SFU = {
 };
 
 export const EVENT_FROM_SFU = { CONNECT_PIPETRANSPORT: 'connectPipetransport' };
+
+export const EVENT_FOR_TEST = {
+  TEST1: 'test1',
+  TEST2: 'test2',
+};

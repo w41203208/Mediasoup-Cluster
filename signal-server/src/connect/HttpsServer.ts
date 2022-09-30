@@ -4,8 +4,8 @@ import { Application, Request, Response } from 'express';
 import { createServer } from 'https';
 import { ServerEngine } from 'src/engine';
 import { HttpsServerOptions, sslOption } from '../type';
-import bodyParser from 'body-parser'
-import { CryptoCore } from './CryptoCore';
+import bodyParser from 'body-parser';
+import { CryptoCore } from '../util/CryptoCore';
 
 export class HttpsServer {
   private _ip: string;
@@ -15,13 +15,13 @@ export class HttpsServer {
   private app?: Application;
   private _listener: ServerEngine;
   public uuId: string;
-  public cryptoCore: CryptoCore
-  constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine) {
+  public cryptoCore: CryptoCore;
+  constructor({ ip, port, ssl, cryptoKey }: HttpsServerOptions, listener: ServerEngine) {
     this._ip = ip;
     this._port = port;
     this._ssl = ssl;
-    this.uuId = "";
-    this.cryptoCore = new CryptoCore;
+    this.uuId = '';
+    this.cryptoCore = new CryptoCore(cryptoKey);
     this._listener = listener;
   }
 
@@ -53,13 +53,13 @@ export class HttpsServer {
       // const key = process.env.CRYPTO_KEY!;
       // const cipherKey = Buffer.from(key, "hex");
       this.app.get('/new_sfu_server', (req: Request, res: Response) => {
-        res.send('testtest');
+        res.send(`${this._port}`);
       });
       this.app.get('/test', async (req: Request, res: Response) => {
         res.send('test');
       });
       this.app.get('/getUuid/:crypto', (req: Request, res: Response) => {
-        const encrypted = this.cryptoCore.cipherIv(req.params.crypto)
+        const encrypted = this.cryptoCore.cipherIv(req.params.crypto);
         res.send(JSON.stringify(encrypted));
         this.uuId = encrypted;
       });
@@ -67,13 +67,11 @@ export class HttpsServer {
         try {
           const { uuId } = req.body;
           this.cryptoCore.decipherIv(uuId);
-          const roomList: Array<any> = []
+          const roomList: Array<any> = [];
 
-          this._listener.getRoomList.forEach((values, keys) => {
-            console.log(keys)
-
-            roomList.push({ 'roomId': keys, 'roomName': values.name })
-          })
+          this._listener.roomList.forEach((values, keys) => {
+            roomList.push({ roomId: keys, roomName: values.name });
+          });
           res.send(JSON.stringify(roomList));
         } catch (e) {
           console.log(`${e}`);

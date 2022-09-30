@@ -1,7 +1,7 @@
 version: '3.8'
 services:
-  sfusignal_1:
-    container_name: sfusignal_1
+  sfusignal_dev_1:
+    container_name: sfusignal_dev_1
     image: 'sfusignal'
     working_dir: /home/signal
     command: bash -c "yarn && yarn dev"
@@ -9,7 +9,7 @@ services:
     tty: true
     networks:
       signal_tuple_networks:
-        ipv4_address: 172.28.1.2
+        ipv4_address: 172.28.2.2
     ports:
       - '${PORT_1}:${PORT_1}/tcp'
       - '${PORT_1}:${PORT_1}/udp'
@@ -20,8 +20,8 @@ services:
       - CRYPTO_KEY=${CRYPTO_KEY_1}
     volumes:
       - .:/home/signal
-  sfusignal_2:
-    container_name: sfusignal_2
+  sfusignal_dev_2:
+    container_name: sfusignal_dev_2
     image: 'sfusignal'
     working_dir: /home/signal
     command: bash -c "yarn && yarn dev"
@@ -29,7 +29,7 @@ services:
     tty: true
     networks:
       signal_tuple_networks:
-        ipv4_address: 172.28.1.4
+        ipv4_address: 172.28.2.3
     ports:
       - '${PORT_2}:${PORT_2}/tcp'
       - '${PORT_2}:${PORT_2}/udp'
@@ -48,4 +48,4 @@ networks:
       driver: default
       config:
         - subnet: 172.28.0.0/16
-          gateway: 172.28.1.1
+          gateway: 172.28.2.1

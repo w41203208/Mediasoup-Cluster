@@ -1,11 +1,15 @@
 import { createClient, RedisClientType } from 'redis';
+import { RedisClientOptions } from '../type';
 
 export class RedisClient {
   static Instance?: RedisClient;
   private client?: RedisClientType;
-  constructor() {
+  constructor(option: RedisClientOptions) {
     (async () => {
-      this.client = await this.createRedisClient();
+      this.client = createClient({
+        url: option.redisHost,
+      });
+      await this.client.connect();
     })();
   }
 
@@ -13,23 +17,10 @@ export class RedisClient {
     return this.client;
   }
 
-  static GetInstance() {
+  static GetInstance(option: RedisClientOptions) {
     if (this.Instance === undefined) {
-      this.Instance = new RedisClient();
+      this.Instance = new RedisClient(option);
     }
     return this.Instance;
-  }
-  createRedisClient(): Promise<RedisClientType> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        this.client = createClient({
-          url: process.env.REDIS_HOST,
-        });
-        await this.client.connect();
-        resolve(this.client);
-      } catch (error) {
-        console.log(error);
-      }
-    });
   }
 }
