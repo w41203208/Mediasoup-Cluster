@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon index.js",
-    "devtest": "nodemon index.ts"
+    "dev": "nodemon index.ts"
   },
   "dependencies": {
     "@types/node": "^18.7.18",
