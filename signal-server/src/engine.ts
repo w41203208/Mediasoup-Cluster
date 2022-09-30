@@ -3,7 +3,7 @@ import { WSServer } from './connect/WSServer';
 import { Peer } from './core/Peer';
 import { Room } from './core/Room';
 import { RedisClient } from './redis/redis';
-import { EngineOptions, HttpsServerOptions } from './type';
+import { EngineOptions, HttpsServerOptions, RedisClientOptions } from './type';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { config } from '../config';
 import { SFUServer } from './core/SFUServer';
@@ -15,6 +15,7 @@ import { v4 } from 'uuid';
 export class ServerEngine {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
+  private _redisClientOption: RedisClientOptions;
 
   /* roomlist */
   private _roomList: Map<string, Room>;
@@ -28,8 +29,9 @@ export class ServerEngine {
   /* redisClient */
   private redisClient?: RedisClient;
 
-  constructor({ httpsServerOption }: EngineOptions) {
+  constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
+    this._redisClientOption = redisClientOption;
 
     this._roomList = new Map();
   }
@@ -38,12 +40,8 @@ export class ServerEngine {
     return this._roomList;
   }
 
-  get getRoomList() {
-    return this.roomList;
-  }
-
   async run() {
-    this.redisClient = RedisClient.GetInstance();
+    this.redisClient = RedisClient.GetInstance(this._redisClientOption);
     this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
     this.sfuServerConnection = new SFUConnectionManager(this, this._controllerFactory!);
 

@@ -21,7 +21,9 @@ export class WSTransport extends EventEmitter {
   }
 
   _handleSocketConnection() {
-    this._socket.on('close', (code: number, reason: Buffer) => {});
+    this._socket.on('close', (code: number, reason: Buffer) => {
+      this._socket.close();
+    });
     this._socket.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
       if (Number(process.env.PORT) === 9998) {

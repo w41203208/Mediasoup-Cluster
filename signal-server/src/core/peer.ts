@@ -3,7 +3,7 @@ import { ServerEngine } from '../engine';
 import { WSTransport } from 'src/connect/WSTransport';
 
 import { Timer } from '../util/Timer';
-import { EVENT_FROM_CLIENT_REQUEST } from '../EVENT';
+import { EVENT_FROM_CLIENT_REQUEST, EVENT_FOR_TEST } from '../EVENT';
 
 export class Peer extends EventEmitter {
   private _id: string;
@@ -60,6 +60,32 @@ export class Peer extends EventEmitter {
           data.peer = this;
           this._listener.handlePeerRequest(type, data, response);
           break;
+        // test
+        case EVENT_FOR_TEST.TEST1:
+          console.log('test1');
+          let sum = 0;
+          for (let i = 0; i < 2000000000; i++) {
+            sum += i;
+          }
+          response({
+            type: 'test1',
+            data: sum,
+          });
+          break;
+        // test
+        // test
+        case EVENT_FOR_TEST.TEST2:
+          console.log('test2');
+          let sum1 = 0;
+          for (let i = 0; i < 2000000000; i++) {
+            sum1 += i;
+          }
+          response({
+            type: 'test2',
+            data: sum1,
+          });
+          break;
+        // test
         default:
           this.emit('handleOnRoomRequest', this, type, data, response);
           break;

@@ -1,5 +1,5 @@
 import { SFUServer } from './SFUServer';
-import { Peer } from './peer';
+import { Peer } from './Peer';
 import { SFUConnectionManager } from 'src/core/SFUConnectionManager';
 import { ServerEngine } from 'src/engine';
 import { EVENT_FOR_CLIENT_NOTIFICATION, EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST, EVENT_FROM_SFU } from '../EVENT';
@@ -89,11 +89,6 @@ export class Room {
 
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
-    const that = this;
-    // peer._heartCheck.reset().start(
-    //   () => this.timeStart(peer),
-    //   () => this.timeout(peer)
-    // );
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });
@@ -143,7 +138,7 @@ export class Room {
   addSFUServer(sfuServer: SFUServer) {
     this._sfuServers.set(sfuServer.id, sfuServer);
   }
-  async _handleSubscriberMessage(type: string, data: any) { }
+  async _handleSubscriberMessage(type: string, data: any) {}
 
   async _handlePeerRequest(peer: Peer, type: string, data: any, response: Function) {
     let serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
@@ -160,7 +155,6 @@ export class Room {
         await this.SFUServerController.reduceSFUServerCount(peer.serverId!);
         await this.RoomController.delRoom(this._id);
         this.listener.deleteRoom(this._id);
-
 
         /* 剔除其他人 */
         this.serverHandleCloseRoom();
@@ -442,7 +436,7 @@ export class Room {
           data: 'The host is disconnected, if the host does not connect back, the room will be deleted after five minutes',
         });
         this.RoomHeartCheck.reset().start(
-          () => { },
+          () => {},
           () => {
             this.serverHandleCloseRoom();
             this.listener.deleteRoom(this._id);

@@ -4,7 +4,7 @@ services:
     container_name: sfusignal_1
     image: 'sfusignal'
     working_dir: /home/signal
-    command: bash -c "yarn && yarn devtest"
+    command: bash -c "yarn && yarn dev"
     stdin_open: true
     tty: true
     networks:
@@ -17,13 +17,14 @@ services:
       - LIMIT=${LIMIT_1}
       - REDIS_HOST=${REDIS_HOST_1}
       - PORT=${PORT_1}
+      - CRYPTO_KEY=${CRYPTO_KEY_1}
     volumes:
       - .:/home/signal
   sfusignal_2:
     container_name: sfusignal_2
     image: 'sfusignal'
     working_dir: /home/signal
-    command: bash -c "yarn && yarn devtest"
+    command: bash -c "yarn && yarn dev"
     stdin_open: true
     tty: true
     networks:
@@ -36,6 +37,7 @@ services:
       - LIMIT=${LIMIT_2}
       - REDIS_HOST=${REDIS_HOST_2}
       - PORT=${PORT_2}
+      - CRYPTO_KEY=${CRYPTO_KEY_2}
     volumes:
       - .:/home/signal
 

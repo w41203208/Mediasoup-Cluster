@@ -7,10 +7,16 @@ interface HttpsServerOptions {
   ip: string;
   ssl: sslOption;
   port: number;
+  cryptoKey: string;
+}
+
+interface RedisClientOptions {
+  redisHost: string;
 }
 
 interface EngineOptions {
   httpsServerOption: HttpsServerOptions;
+  redisClientOption: RedisClientOptions;
 }
 
-export { sslOption, EngineOptions, HttpsServerOptions };
+export { sslOption, EngineOptions, HttpsServerOptions, RedisClientOptions };
