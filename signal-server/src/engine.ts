@@ -12,6 +12,7 @@ import { EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST } from "./EVENT";
 import { ControllerFactory } from './redis/ControllerFactory';
 import { PlayerController, RoomController } from './redis/controller';
 import { v4 } from "uuid";
+import { CryptoCore } from "./core/CryptoCore";
 
 export class ServerEngine {
   /* settings */
@@ -29,10 +30,15 @@ export class ServerEngine {
   /* redisClient */
   private redisClient?: RedisClient;
 
+  /*crypto*/
+  private cryptoCore: CryptoCore
+
   constructor({ httpsServerOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
 
     this.roomList = new Map();
+
+    this.cryptoCore = new CryptoCore;
   }
 
   get getRoomList() {
@@ -44,14 +50,15 @@ export class ServerEngine {
     this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
     this.sfuServerConnection = new SFUConnectionManager(this, this._controllerFactory!);
 
-    const httpsServer = new HttpsServer(this._httpsServerOption, this);
+    const httpsServer = new HttpsServer(this._httpsServerOption, this, this.cryptoCore);
 
     const websocketServer = new WSServer(httpsServer.run().runToHttps());
 
     websocketServer.on("connection", (getTransport: Function) => {
       const peerTransport = getTransport();
-      const uuId = httpsServer.cryptoCore.decipherIv(httpsServer.uuId);
-      const peer = new Peer(uuId, "", peerTransport, this);
+      // const uuId = httpsServer.cryptoCore.decipherIv(httpsServer.uuId);
+      // const uuId = this.cryptoCore.decipherIv();
+      const peer = new Peer("", "", peerTransport, this, this.cryptoCore);
     });
   }
 
@@ -79,6 +86,7 @@ export class ServerEngine {
   async handleCreateRoom(data: any, response: Function) {
     const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
     const { room_name, peer_id } = data;
+
     console.log('User [%s] create room [%s].', peer_id, room_name);
     const roomUuId = Date.now() + ":" + v4();
     const rRoom = await RoomController.setRoom(roomUuId, room_name);
@@ -109,6 +117,7 @@ export class ServerEngine {
   }
 
   async handleJoinRoom(data: any, response: Function) {
+
     const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
     const PlayerController = this._controllerFactory?.getControler('Player') as PlayerController;
     const { room_id, peer } = data;
@@ -274,6 +283,7 @@ export class ServerEngine {
           }
           responseData = {
             room_id: room.id,
+            room_user_size: room.getAllPeers().size
           };
           response({
             type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,

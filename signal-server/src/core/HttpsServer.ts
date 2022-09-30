@@ -14,14 +14,13 @@ export class HttpsServer {
 
   private app?: Application;
   private _listener: ServerEngine;
-  public uuId: string;
-  public cryptoCore: CryptoCore
-  constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine) {
+  private cryptoCore: CryptoCore;
+
+  constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine, cryptoCore: CryptoCore) {
     this._ip = ip;
     this._port = port;
     this._ssl = ssl;
-    this.uuId = "";
-    this.cryptoCore = new CryptoCore;
+    this.cryptoCore = cryptoCore;
     this._listener = listener;
   }
 
@@ -49,9 +48,6 @@ export class HttpsServer {
 
   private _serverHandler() {
     if (this.app) {
-      // const iv = Crypto.randomBytes(12);
-      // const key = process.env.CRYPTO_KEY!;
-      // const cipherKey = Buffer.from(key, "hex");
       this.app.get('/new_sfu_server', (req: Request, res: Response) => {
         res.send('testtest');
       });
@@ -61,7 +57,6 @@ export class HttpsServer {
       this.app.get('/getUuid/:crypto', (req: Request, res: Response) => {
         const encrypted = this.cryptoCore.cipherIv(req.params.crypto)
         res.send(JSON.stringify(encrypted));
-        this.uuId = encrypted;
       });
       this.app.post('/getRoomList', (req: Request, res: Response) => {
         try {
@@ -70,10 +65,9 @@ export class HttpsServer {
           const roomList: Array<any> = []
 
           this._listener.getRoomList.forEach((values, keys) => {
-            console.log(keys)
-
-            roomList.push({ 'roomId': keys, 'roomName': values.name })
+            roomList.push({ 'roomId': keys, 'roomName': values.name, 'roomUserSize': values.getAllPeers().size })
           })
+
           res.send(JSON.stringify(roomList));
         } catch (e) {
           console.log(`${e}`);

@@ -4,6 +4,7 @@ import { WSTransport } from 'src/core/WSTransport';
 
 import { Timer } from '../util/Timer';
 import { EVENT_FROM_CLIENT_REQUEST } from '../EVENT';
+import { CryptoCore } from './CryptoCore';
 
 export class Peer extends EventEmitter {
   private _id: string;
@@ -22,7 +23,10 @@ export class Peer extends EventEmitter {
 
   private _listener: ServerEngine;
 
-  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine) {
+  /*crypto*/
+  private cryptoCore: CryptoCore;
+
+  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine, cryptoCore: CryptoCore) {
     super();
     /* base info */
     this._id = peer_id;
@@ -39,6 +43,7 @@ export class Peer extends EventEmitter {
 
     /* websocket */
     this._ws = websocket;
+    this.cryptoCore = cryptoCore;
     this._heartCheck = new Timer(10 * 1000);
 
     /* advanced */
@@ -53,12 +58,24 @@ export class Peer extends EventEmitter {
       const { type, data } = message;
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-          data.peer_id = this.id;
-          this._listener.handlePeerRequest(type, data, response);
+          try {
+            const deUserId = this.cryptoCore.decipherIv(data.peer_id)
+            this._id = deUserId;
+            data.peer_id = deUserId;
+            this._listener.handlePeerRequest(type, data, response);
+          } catch (err) {
+            console.log(err);
+          }
           break;
         case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-          data.peer = this;
-          this._listener.handlePeerRequest(type, data, response);
+          try {
+            const deUserId = this.cryptoCore.decipherIv(data.peer_id)
+            this._id = deUserId;
+            data.peer = this;
+            this._listener.handlePeerRequest(type, data, response);
+          } catch (err) {
+            console.log(err);
+          }
           break;
         default:
           this.emit('handleOnRoomRequest', this, type, data, response);

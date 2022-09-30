@@ -77,6 +77,10 @@ export class Room {
     return this._peers.get(id);
   }
 
+  getAllPeers() {
+    return this._peers;
+  }
+
   getJoinedPeers({ excludePeer = {} as Peer }): Array<Peer> {
     let producerList: Array<Peer> = [];
     this._peers.forEach((peer: any) => {
@@ -90,10 +94,10 @@ export class Room {
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
     const that = this;
-    // peer._heartCheck.reset().start(
-    //   () => this.timeStart(peer),
-    //   () => this.timeout(peer)
-    // );
+    peer._heartCheck.reset().start(
+      () => this.timeStart(peer),
+      () => this.timeout(peer)
+    );
     peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
       this._handlePeerRequest(peer, type, data, response);
     });

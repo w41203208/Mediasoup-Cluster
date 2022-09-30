@@ -1,4 +1,6 @@
 <template>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">Room Name:{{ roomInfoReactive.roomName }}</div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">People:{{ roomInfoReactive.roomName }}</div>
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
@@ -30,13 +32,15 @@ export default defineComponent({
     const route = useRoute();
     const roomInfoReactive = reactive({
       uid: route.query.uid!.toString(),
-      room: route.query.room!.toString(),
+      roomId: route.query.roomId!.toString(),
+      roomName: route.query.roomName!.toString(),
       role: route.query.role!.toString(),
     });
     const rcRef = ref<RoomClient>(
       new RoomClient({
         clientUID: roomInfoReactive.uid,
-        roomId: roomInfoReactive.room,
+        roomId: roomInfoReactive.roomId,
+        roomName: roomInfoReactive.roomName,
         clientRole: roomInfoReactive.role,
         isConsume: true,
         isProduce: true,
@@ -50,9 +54,9 @@ export default defineComponent({
     };
     const handleClickEvtExit = () => {
       if (roomInfoReactive.role === "host") {
-        rcRef.value.closeRoom(roomInfoReactive.room);
+        rcRef.value.closeRoom(roomInfoReactive.roomId);
       } else {
-        rcRef.value.leaveRoom(roomInfoReactive.room);
+        rcRef.value.leaveRoom(roomInfoReactive.roomId);
       }
       router.push("/");
     };
@@ -70,18 +74,18 @@ export default defineComponent({
       rc.remoteMediaContainer = remoteMediaRef.value;
       rc.socket.on("connecting", () => {
         if (roomInfoReactive.role === "host") {
-          rc.createRoom(roomInfoReactive.room);
+          rc.createRoom(roomInfoReactive.uid, roomInfoReactive.roomName);
         } else {
-          rc.joinRoom(roomInfoReactive.room);
+          rc.joinRoom(roomInfoReactive.uid, roomInfoReactive.roomId);
         }
       });
     });
     onUnmounted(() => {
       const rc = rcRef.value;
       if (roomInfoReactive.role === "host") {
-        rc.closeRoom(roomInfoReactive.room);
+        rc.closeRoom(roomInfoReactive.roomId);
       } else {
-        rc.leaveRoom(roomInfoReactive.room);
+        rc.leaveRoom(roomInfoReactive.roomId);
       }
     });
 
