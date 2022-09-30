@@ -17,7 +17,7 @@ export class ServerEngine {
   private _httpsServerOption: HttpsServerOptions;
 
   /* roomlist */
-  private roomList: Map<string, Room>;
+  private _roomList: Map<string, Room>;
 
   /* redis */
   private _controllerFactory?: ControllerFactory;
@@ -31,7 +31,11 @@ export class ServerEngine {
   constructor({ httpsServerOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
 
-    this.roomList = new Map();
+    this._roomList = new Map();
+  }
+
+  get roomList() {
+    return this._roomList;
   }
 
   async run() {
