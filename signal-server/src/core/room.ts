@@ -414,7 +414,11 @@ export class Room {
             () => this.timeStart(peer),
             () => this.timeout(peer)
           );
-          this.RoomHeartCheck.reset();
+          //判斷房主斷線後連回重設房間倒數時間
+          const rRoom = await this.RoomController.getRoom(this._id);
+          if (rRoom.host.id === peer.id) {
+            this.RoomHeartCheck.reset();
+          }
         }
     }
   }
@@ -466,6 +470,7 @@ export class Room {
       this.removePeer(peer.id);
       peer.socket.close();
     });
+    await this.RoomController.delRoom(this._id);
   }
 
   timeStart(peer: Peer) {
