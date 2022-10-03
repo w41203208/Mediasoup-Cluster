@@ -17,9 +17,13 @@ const sslOption = {
 
 const engineOptions = {
   httpsServerOption: {
+    ssl: sslOption,
     ip: config.ServerSetting.listenIp,
     port: config.ServerSetting.listenPort,
-    ssl: sslOption,
+    cryptoKey: config.ServerSetting.cryptoKey,
+  },
+  redisClientOption: {
+    redisHost: config.ServerSetting.redisHost,
   },
 };
 

@@ -4,8 +4,8 @@ import { Application, Request, Response } from 'express';
 import { createServer } from 'https';
 import { ServerEngine } from 'src/engine';
 import { HttpsServerOptions, sslOption } from '../type';
-import bodyParser from 'body-parser'
-import { CryptoCore } from './CryptoCore';
+import bodyParser from 'body-parser';
+import { CryptoCore } from '../util/CryptoCore';
 
 export class HttpsServer {
   private _ip: string;
@@ -16,11 +16,11 @@ export class HttpsServer {
   private _listener: ServerEngine;
   private cryptoCore: CryptoCore;
 
-  constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine, cryptoCore: CryptoCore) {
+  constructor({ ip, port, ssl, cryptoKey }: HttpsServerOptions, listener: ServerEngine) {
     this._ip = ip;
     this._port = port;
     this._ssl = ssl;
-    this.cryptoCore = cryptoCore;
+    this.cryptoCore = new CryptoCore(cryptoKey);
     this._listener = listener;
   }
 
@@ -49,22 +49,22 @@ export class HttpsServer {
   private _serverHandler() {
     if (this.app) {
       this.app.get('/new_sfu_server', (req: Request, res: Response) => {
-        res.send('testtest');
+        res.send(`${this._port}`);
       });
       this.app.get('/test', async (req: Request, res: Response) => {
         res.send('test');
       });
       this.app.get('/getUuid/:crypto', (req: Request, res: Response) => {
-        const encrypted = this.cryptoCore.cipherIv(req.params.crypto)
+        const encrypted = this.cryptoCore.cipherIv(req.params.crypto);
         res.send(JSON.stringify(encrypted));
       });
       this.app.post('/getRoomList', (req: Request, res: Response) => {
         try {
           const { uuId } = req.body;
           this.cryptoCore.decipherIv(uuId);
-          const roomList: Array<any> = []
+          const roomList: Array<any> = [];
 
-          this._listener.getRoomList.forEach((values, keys) => {
+          this._listener.roomList.forEach((values, keys) => {
             roomList.push({ 'roomId': keys, 'roomName': values.name, 'roomUserSize': values.getAllPeers().size })
           })
 

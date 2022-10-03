@@ -3,7 +3,7 @@ import { ServerEngine } from './engine';
 import { WebSocket } from 'ws';
 import { WSTransport } from './websocket/wstransport';
 
-const EVENT_FROM_SFU = {
+const EVENT_FROM_SIGNAL = {
   CREATE_ROUTER: 'createRouter',
   GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
   CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
@@ -13,6 +13,7 @@ const EVENT_FROM_SFU = {
   CREATE_PIPETRANSPORT: 'createPipeTransport',
   CONNECT_PIPETRANSPORT: 'connectPipeTransport',
   CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
+  CLOSE_TRANSPORT: 'closeTransport',
 };
 const EVENT_FOR_SIGNAL_REQUEST = {
   CONNECT_PIPETRANSPORT: 'connectPipetransport',
@@ -85,32 +86,35 @@ export class Room {
   }
   private _websocketHandler({ ws, type, data, response }: WebSocketHandler) {
     switch (type) {
-      case EVENT_FROM_SFU.CREATE_ROUTER:
+      case EVENT_FROM_SIGNAL.CREATE_ROUTER:
         this.createRouter({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.GET_ROUTER_RTPCAPABILITIES:
+      case EVENT_FROM_SIGNAL.GET_ROUTER_RTPCAPABILITIES:
         this.getRouterRtpCapabilities({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CREATE_WEBRTCTRANSPORT:
+      case EVENT_FROM_SIGNAL.CREATE_WEBRTCTRANSPORT:
         this.createWebRTCTransport({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CONNECT_WEBRTCTRANPORT:
+      case EVENT_FROM_SIGNAL.CONNECT_WEBRTCTRANPORT:
         this.connectWebRTCTranport({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CREATE_CONSUME:
+      case EVENT_FROM_SIGNAL.CREATE_CONSUME:
         this.createConsume({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CREATE_PRODUCE:
+      case EVENT_FROM_SIGNAL.CREATE_PRODUCE:
         this.createProduce({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CREATE_PIPETRANSPORT:
+      case EVENT_FROM_SIGNAL.CREATE_PIPETRANSPORT:
         this.createPipeTransport({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CONNECT_PIPETRANSPORT:
+      case EVENT_FROM_SIGNAL.CONNECT_PIPETRANSPORT:
         this.connectPipeTransport({ ws, data, response });
         break;
-      case EVENT_FROM_SFU.CREATE_PIPETRANSPORT_PRODUCE:
+      case EVENT_FROM_SIGNAL.CREATE_PIPETRANSPORT_PRODUCE:
         this.createPipeTransportProduce({ ws, data, response });
+        break;
+      case EVENT_FROM_SIGNAL.CLOSE_TRANSPORT:
+        this.closeTransport({ ws, data, response });
         break;
     }
   }
@@ -460,5 +464,9 @@ export class Room {
         producer_id,
       },
     });
+  }
+
+  private async closeTransport({ ws, data, response }: Handler) {
+    response({});
   }
 }

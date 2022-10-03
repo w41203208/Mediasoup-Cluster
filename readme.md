@@ -27,7 +27,8 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 ### Signal Server
 
 - docker build -t sfusignal .
-- docker-compose up -d
+- DEV：docker-compose -f docker-compose.dev.yml --env-file ./dev.env up -d
+- PRO：docker-compose -f docker-compose.yml --env-file ./pro.env up -d
 
 ### Frontend
 
@@ -39,3 +40,9 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 > #### ENV
 
 -
+
+## Problem
+
+### Memory leak
+
+### peer is duplicate

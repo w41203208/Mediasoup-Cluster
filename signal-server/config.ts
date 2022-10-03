@@ -2,10 +2,12 @@ require('dotenv').config();
 
 export const config = {
   ServerSetting: {
-    listenIp: '0.0.0.0',
+    listenIp: process.env.DOMAIN!,
     listenPort: Number(process.env.PORT),
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
+    cryptoKey: process.env.CRYPTO_KEY!,
+    redisHost: process.env.REDIS_HOST!,
   },
   MediasoupSetting: {
     router: {
