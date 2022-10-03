@@ -13,6 +13,7 @@ services:
     ports:
       - '${PORT_1}:${PORT_1}/tcp'
       - '${PORT_1}:${PORT_1}/udp'
+      - 9229:9229
     environment:
       - LIMIT=${LIMIT_1}
       - REDIS_HOST=${REDIS_HOST_1}
@@ -24,7 +25,7 @@ services:
     container_name: sfusignal_dev_2
     image: 'sfusignal'
     working_dir: /home/signal
-    command: bash -c "yarn && yarn dev"
+    command: bash -c "yarn && yarn start"
     stdin_open: true
     tty: true
     networks:

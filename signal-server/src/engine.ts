@@ -52,7 +52,7 @@ export class ServerEngine {
     websocketServer.on('connection', (getTransport: Function) => {
       const peerTransport = getTransport();
       const uuId = httpsServer.cryptoCore.decipherIv(httpsServer.uuId);
-      const peer = new Peer(uuId, '', peerTransport, this);
+      new Peer(uuId, '', peerTransport, this);
     });
   }
 
@@ -124,15 +124,16 @@ export class ServerEngine {
       if (this.roomList.has(room_id)) {
         room = this.roomList.get(room_id)!;
       } else {
-        room = new Room(
-          rRoom.id,
-          rRoom.name,
-          config.MediasoupSetting.router.mediaCodecs,
-          this.sfuServerConnection!,
-          this.redisClient!,
-          this._controllerFactory!,
-          this // 兩個留一個
-        );
+        room = new Room({
+          roomId: rRoom.id,
+          roomName: rRoom.name,
+          roomOwner: rRoom.host.id,
+          mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+          sfuConnectionManager: this.sfuServerConnection!,
+          redisClient: this.redisClient!,
+          controllerFactory: this._controllerFactory!,
+          listener: this,
+        });
         this.roomList.set(room.id, room);
       }
 
@@ -172,7 +173,9 @@ export class ServerEngine {
       rRoom.playerList.push(peer.id);
       const rPeer = await PlayerController.setPlayer(peer.id);
 
-      rPeer.serverId = ip_port;
+      console.log(rPeer);
+      console.log(localServerId);
+      rPeer.serverId = localServerId;
       // 改變 room 狀態 init -> public
       if (rRoom.host.id === peer.id) {
         rRoom.state = 'public';
