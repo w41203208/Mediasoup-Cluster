@@ -4,7 +4,7 @@ import { EventEmitter } from '../util/emitter';
 require('dotenv').config();
 
 export class WSTransport extends EventEmitter {
-  private _socket: WebSocket;
+  private _socket: WebSocket | null;
 
   constructor(socket: WebSocket) {
     super();
@@ -17,14 +17,14 @@ export class WSTransport extends EventEmitter {
     if (Number(process.env.PORT) === 9998) {
       console.log(data);
     }
-    this._socket.send(JSON.stringify({ ...data }));
+    this._socket!.send(JSON.stringify({ ...data }));
   }
 
   _handleSocketConnection() {
-    this._socket.on('close', (code: number, reason: Buffer) => {
-      this._socket.close();
+    this._socket!.on('close', (code: number, reason: Buffer) => {
+      console.log('socket in closed'); // 觸發this.close會監聽到
     });
-    this._socket.on('message', (message: any) => {
+    this._socket!.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
       if (Number(process.env.PORT) === 9998) {
         console.log(jsonMessage);
@@ -66,6 +66,9 @@ export class WSTransport extends EventEmitter {
   }
 
   close() {
-    this._socket.close();
+    console.log('To close socket');
+    this._socket!.close();
+
+    this._socket = null;
   }
 }
