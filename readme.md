@@ -40,3 +40,9 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 > #### ENV
 
 -
+
+## Problem
+
+### Memory leak
+
+### peer is duplicate
