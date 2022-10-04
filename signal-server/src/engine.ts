@@ -30,16 +30,11 @@ export class ServerEngine {
   /* redisClient */
   private redisClient?: RedisClient;
 
-  /*crypto*/
-  private cryptoCore: CryptoCore
-
   constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
     this._redisClientOption = redisClientOption;
 
     this._roomList = new Map();
-
-    this.cryptoCore = new CryptoCore(httpsServerOption.cryptoKey);
   }
 
   get roomList() {
@@ -51,13 +46,15 @@ export class ServerEngine {
     this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
     this.sfuServerConnection = new SFUConnectionManager(this, this._controllerFactory!);
 
-    const httpsServer = new HttpsServer(this._httpsServerOption, this, this.cryptoCore);
+    const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
 
-    const websocketServer = new WSServer(httpsServer.run().runToHttps());
+    const httpsServer = new HttpsServer(this._httpsServerOption, this, cryptoCore);
+
+    const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore);
 
     websocketServer.on('connection', (getTransport: Function) => {
       const peerTransport = getTransport();
-      new Peer("", "", peerTransport, this, this.cryptoCore);
+      new Peer("", "", peerTransport, this, cryptoCore);
     });
   }
 

@@ -19,13 +19,13 @@ export class Socket extends EventEmitter {
     this._baseUrl = url;
   }
 
-  start(): void {
+  start(token: string): void {
     const wsUrl = this._baseUrl!;
 
     if (!!this._socket || !this._disconnected) {
       return;
     }
-    this._socket = new WebSocket(wsUrl);
+    this._socket = new WebSocket(`${wsUrl}/?token=${token}`);
 
     this._disconnected = false;
 

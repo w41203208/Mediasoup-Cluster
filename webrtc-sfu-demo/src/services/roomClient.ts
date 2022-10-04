@@ -75,7 +75,7 @@ export class RoomClient {
     this._roomName = roomName;
     this._localMediaContainer = null;
     this._remoteMediaContainer = null;
-    this._socket = this._createSocketConnection();
+    this._socket = this._createSocketConnection(this._clientUID);
 
     this._isConsume = isConsume;
     this._isProduce = isProduce;
@@ -105,10 +105,10 @@ export class RoomClient {
     return this._roomId;
   }
 
-  private _createSocketConnection(): Socket {
+  private _createSocketConnection(token: string): Socket {
     const url = import.meta.env.VITE_WSSURL;
     const socket = new Socket({ url });
-    socket.start();
+    socket.start(token);
     return socket;
   }
 
