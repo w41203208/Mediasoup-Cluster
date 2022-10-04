@@ -133,8 +133,8 @@ export class RoomClient {
       .then(({ data }) => {
         logger({ text: "Create Room", data: data.msg });
         if (data.state) {
-          this.joinRoom(uid, data.roomUuId);
-          this._roomId = data.roomUuId;
+          this.joinRoom(uid, data.room_id);
+          this._roomId = data.room_id;
         }
       });
   }

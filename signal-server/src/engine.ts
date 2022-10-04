@@ -84,8 +84,8 @@ export class ServerEngine {
     const { room_name, peer_id } = data;
 
     console.log('User [%s] create room [%s].', peer_id, room_name);
-    const roomUuId = Date.now() + ':' + v4();
-    const rRoom = await RoomController.setRoom(roomUuId, room_name);
+    const room_id = Date.now() + ':' + v4();
+    const rRoom = await RoomController.setRoom(room_id, room_name);
 
     let responseData;
     if (rRoom) {
@@ -96,7 +96,7 @@ export class ServerEngine {
       await RoomController.updateRoom(rRoom);
       responseData = {
         msg: 'Successfully create!',
-        roomUuId: roomUuId,
+        room_id: room_id,
         state: true,
       };
     } else {
