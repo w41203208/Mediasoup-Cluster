@@ -56,8 +56,6 @@ export class Room {
   private PlayerController: PlayerController;
   private SFUServerController: SFUServerController;
 
-  // private RoomHeartCheck: TimeBomb;
-
   constructor({ roomId, roomName, roomOwner, mediaCodecs, sfuConnectionManager, redisClient, controllerFactory, listener }: RoomConstructor) {
     this._mediaCodecs = mediaCodecs;
     this._id = roomId;
