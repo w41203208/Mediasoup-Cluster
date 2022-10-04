@@ -52,7 +52,7 @@ export class WSTransport extends EventEmitter {
       this.sendData(sendData);
     });
   }
-  _handlerResponse() {}
+  _handlerResponse() { }
   _handlerNotification(notification: any) {
     this.emit('notification', notification, (sendData: any) => {
       sendData.messageType = 'notification';

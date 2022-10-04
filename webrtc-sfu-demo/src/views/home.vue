@@ -13,7 +13,7 @@
       <input
         type="text"
         class="outline-none border rounded px-1 py-0.5 focus:border-gray-700 hover:border-gray-700"
-        :value="inputReactive.room"
+        :value="inputReactive.roomName"
         @input="(e) => handleChangeRoomId(e)"
       />
     </div>
@@ -38,12 +38,6 @@
     >
       refreshRoomList
     </button>
-    <!-- <button
-      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-28"
-      @click="handleClickJoinRoom"
-    >
-      JoinRoom
-    </button> -->
   </div>
   <div>
     <ul class="flex flex-wrap">
@@ -51,9 +45,10 @@
         v-for="room in roomList"
         :key="room.roomId"
         class="h-44 w-60 bg-slate-300 rounded px-2 py-1 m-2 flex-grow cursor-pointer"
-        @click="handleClickJoinRoom(room.roomId)"
+        @click="handleClickJoinRoom(room.roomId, room.roomName)"
       >
-        {{ room.roomName }}
+        <p>Name:{{ room.roomName }}</p>
+        <p>People:{{ room.roomUserSize }}</p>
       </li>
     </ul>
   </div>
@@ -72,8 +67,7 @@ export default defineComponent({
     const router = useRouter();
     // Global Variable
     const inputReactive = reactive({
-      room: "",
-      // uid: "",
+      roomName: "",
     });
     const roomList = ref();
 
@@ -103,43 +97,26 @@ export default defineComponent({
         });
     };
     const handleChangeRoomId = (e: any) => {
-      inputReactive.room = e.target.value;
+      inputReactive.roomName = e.target.value;
     };
-    // const handleChangeUID = (e: any) => {
-    //   inputReactive.uid = e.target.value;
-    // };
-    const handleClickJoinRoom = (room: string) => {
+    const handleClickJoinRoom = (roomId: string, roomName: string) => {
       router.push({
         path: "/room",
         query: {
           uid: user.uuId,
-          room: room,
+          roomId: roomId,
+          roomName: roomName,
           role: "audience",
         },
       });
     };
-    // const handleClickJoinRoom = (id: string) => {
-    //   roomList.value.forEach((r) => {
-    //     if (r.id === id) {
-    //       inputReactive.room = r.id;
-    //       inputReactive.uid = '';
-    //     }
-    //   });
-    //   router.push({
-    //     path: '/room',
-    //     query: {
-    //       uid: inputReactive.uid,
-    //       room: inputReactive.room,
-    //       role: 'audience',
-    //     },
-    //   });
-    // };
     const handleClickCreateRoom = () => {
       router.push({
         path: "/room",
         query: {
           uid: user.uuId,
-          room: inputReactive.room,
+          roomId: "",
+          roomName: inputReactive.roomName,
           role: "host",
         },
       });
@@ -152,7 +129,6 @@ export default defineComponent({
       handleClickCreateRoom,
       handleClickJoinRoom,
       getRoomList,
-      // handleChangeUID,
     };
   },
 });

@@ -1,7 +1,6 @@
 const ws = require('ws');
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'https';
-import { IncomingMessage } from 'http';
 import { WSTransport } from './WSTransport';
 
 const { EventEmitter } = require('../util/emitter');
@@ -11,7 +10,6 @@ export class WSServer extends EventEmitter {
   constructor(httpsServer: Server) {
     super();
     const socket = (this._wsServer = new ws.Server({ server: httpsServer }));
-
     socket.on('open', () => {
       console.log('Websocket is connected');
     });
