@@ -6,6 +6,7 @@ import { ServerEngine } from 'src/engine';
 import { HttpsServerOptions, sslOption } from '../type';
 import bodyParser from 'body-parser';
 import { CryptoCore } from '../util/CryptoCore';
+import { IncomingMessage } from 'http';
 
 export class HttpsServer {
   private _ip: string;
@@ -54,14 +55,15 @@ export class HttpsServer {
       this.app.get('/test', async (req: Request, res: Response) => {
         res.send('test');
       });
-      this.app.get('/getUuid/:crypto', (req: Request, res: Response) => {
-        const encrypted = this.cryptoCore.cipherIv(req.params.crypto);
+      this.app.get('/getUuid', (incomingMessage: IncomingMessage, res: Response) => {
+        const parameter = this.urlParse(incomingMessage.url);
+        const encrypted = this.cryptoCore.cipherIv(parameter!);
         res.send(JSON.stringify(encrypted));
       });
-      this.app.post('/getRoomList', (req: Request, res: Response) => {
+      this.app.get('/getRoomList', (incomingMessage: IncomingMessage, res: Response) => {
         try {
-          const { uuId } = req.body;
-          this.cryptoCore.decipherIv(uuId);
+          const parameter = this.urlParse(incomingMessage.url);
+          this.cryptoCore.decipherIv(parameter);
           const roomList: Array<any> = [];
 
           this._listener.roomList.forEach((values, keys) => {
@@ -75,5 +77,17 @@ export class HttpsServer {
         }
       });
     }
+  }
+
+  urlParse(url: string | undefined) {
+    if (url === undefined) {
+      return;
+    }
+    const matchAns = url.split('/?id=')
+    if (!matchAns) {
+      return;
+    }
+    const newUrl = matchAns[1];
+    return newUrl;
   }
 }

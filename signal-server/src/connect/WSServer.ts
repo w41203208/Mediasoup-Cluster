@@ -17,7 +17,7 @@ export class WSServer extends EventEmitter {
     socket.on('open', () => {
       console.log('Websocket is connected');
     });
-    socket.on('connection', (ws: WebSocket, incomingMessage: IncomingMessage, res: Response) => {
+    socket.on('connection', (ws: WebSocket, incomingMessage: IncomingMessage) => {
       try {
         const parameter = this.urlParse(incomingMessage.url);
         this.cryptoCore.decipherIv(parameter)
