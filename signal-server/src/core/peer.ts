@@ -4,6 +4,7 @@ import { WSTransport } from 'src/connect/WSTransport';
 
 import { TimeBomb } from '../util/TimeBomb';
 import { EVENT_FROM_CLIENT_REQUEST, EVENT_FOR_TEST } from '../EVENT';
+import { CryptoCore } from 'src/util/CryptoCore';
 
 export class Peer extends EventEmitter {
   private _id: string;
@@ -19,10 +20,11 @@ export class Peer extends EventEmitter {
   private _listener?: ServerEngine;
 
   private _bomb?: TimeBomb | null;
-
   private _timeoutFunction: any;
 
-  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine) {
+  private cryptoCore: CryptoCore;
+
+  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, listener: ServerEngine, cryptoCore: CryptoCore) {
     super();
     /* base info */
     this._id = peer_id;
@@ -42,6 +44,7 @@ export class Peer extends EventEmitter {
 
     /* advanced */
     this._listener = listener;
+    this.cryptoCore = cryptoCore;
 
     this._handleTransportMessage();
   }
@@ -59,28 +62,24 @@ export class Peer extends EventEmitter {
       const { type, data } = message;
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-          // try {
-          //   const deUserId = this.cryptoCore.decipherIv(data.peer_id)
-          //   this._id = deUserId;
-          //   data.peer_id = deUserId;
-          //   this._listener.handlePeerRequest(type, data, response);
-          // } catch (err) {
-          //   console.log(err);
-          // }
-          data.peer_id = this.id;
-          this._listener!.handlePeerRequest(type, data, response);
+          try {
+            const deUserId = this.cryptoCore.decipherIv(data.peer_id)
+            this._id = deUserId;
+            data.peer_id = deUserId;
+            this._listener!.handlePeerRequest(type, data, response);
+          } catch (err) {
+            console.log(err);
+          }
           break;
         case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-          // try {
-          //   const deUserId = this.cryptoCore.decipherIv(data.peer_id)
-          //   this._id = deUserId;
-          //   data.peer = this;
-          //   this._listener.handlePeerRequest(type, data, response);
-          // } catch (err) {
-          //   console.log(err);
-          // }
-          data.peer = this;
-          this._listener!.handlePeerRequest(type, data, response);
+          try {
+            const deUserId = this.cryptoCore.decipherIv(data.peer_id)
+            this._id = deUserId;
+            data.peer = this;
+            this._listener!.handlePeerRequest(type, data, response);
+          } catch (err) {
+            console.log(err);
+          }
           break;
         // test
         case EVENT_FOR_TEST.TEST1:

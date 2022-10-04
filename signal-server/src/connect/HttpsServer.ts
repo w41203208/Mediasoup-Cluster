@@ -16,12 +16,12 @@ export class HttpsServer {
   private _listener: ServerEngine;
   private cryptoCore: CryptoCore;
 
-  constructor({ ip, port, ssl, cryptoKey }: HttpsServerOptions, listener: ServerEngine) {
+  constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine, cryptoCore: CryptoCore) {
     this._ip = ip;
     this._port = port;
     this._ssl = ssl;
-    this.cryptoCore = new CryptoCore(cryptoKey);
     this._listener = listener;
+    this.cryptoCore = cryptoCore;
   }
 
   run() {

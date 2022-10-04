@@ -115,10 +115,6 @@ export class Room {
 
   addPeer(peer: Peer) {
     this._peers.set(peer.id, peer);
-    // peer._heartCheck.reset().start(
-    //   () => this.timeStart(peer),
-    //   () => this.timeout(peer)
-    // );
     const bomb = new TimeBomb(10 * 1000, () => {
       this.leaveRoom(peer);
     });
@@ -445,14 +441,6 @@ export class Room {
         });
 
         this.selfDestruct();
-
-        // this.RoomHeartCheck.reset().start(
-        //   () => {},
-        //   () => {
-        //     this.serverHandleCloseRoom();
-        //     this.listener.deleteRoom(this._id);
-        //   }
-        // );
       }
     }
   }
@@ -460,16 +448,9 @@ export class Room {
   private _handleOnNotification(peer: Peer, type: string, data: any, notify: Function) {
     switch (type) {
       case 'heartbeatCheck':
-        // if (data === 'pong') {
-        //   peer.timeBomb.reset().start(
-        //     () => this.timeStart(peer),
-        //     () => this.timeout(peer)
-        //   );
-        //   this.RoomHeartCheck.reset();
-        // }
         if (data === 'pong') {
           peer.resetPing();
-          if (peer.ig === this._owner) {
+          if (peer.id === this._owner) {
             this._bomb.countDownReset();
           }
         }
@@ -482,36 +463,6 @@ export class Room {
         break;
     }
   }
-
-  // async serverHandleLeaveRoom(peer: Peer) {
-  //   console.log('User [%s] was disconnect room [%s].', peer.id, this._id);
-  //   peer.socket.close();
-  //   console.log('close');
-
-  //   const rRoom = await this.RoomController.getRoom(this._id);
-  //   if (rRoom) {
-  //     const newPlayerList = rRoom.playerList.filter((playerId: string) => playerId !== peer.id);
-  //     rRoom.playerList = newPlayerList;
-  //     await this.RoomController.updateRoom(rRoom);
-  //     await this.PlayerController.delPlayer(peer.id);
-
-  //     this.removePeer(peer.id);
-  //     if (rRoom.host.id === peer.id) {
-  //       console.log('Delete room after 5 minutes');
-  //       this.broadcast(this._peers, {
-  //         type: 'roomState',
-  //         data: 'The host is disconnected, if the host does not connect back, the room will be deleted after five minutes',
-  //       });
-  //       this.RoomHeartCheck.reset().start(
-  //         () => {},
-  //         () => {
-  //           this.serverHandleCloseRoom();
-  //           this.listener.deleteRoom(this._id);
-  //         }
-  //       );
-  //     }
-  //   }
-  // }
 
   async kickAllPeer() {
     this.broadcast(this._peers, {
@@ -540,27 +491,6 @@ export class Room {
   died() {
     this.listener.deleteRoom(this._id);
   }
-
-  // async serverHandleCloseRoom() {
-  //   this._peers.forEach(async (peer) => {
-  //     await this.PlayerController.delPlayer(peer.id);
-  //     this.removePeer(peer.id);
-  //     peer.socket.close();
-  //   });
-  // }
-
-  // timeStart(peer: Peer) {
-  //   const timeStart = peer.notify({
-  //     type: 'heartbeatCheck',
-  //     data: 'ping',
-  //   });
-  //   return timeStart;
-  // }
-
-  // timeout(peer: Peer) {
-  //   const timeout = this.serverHandleLeaveRoom(peer);
-  //   return timeout;
-  // }
 
   // consume({ consumerPeer, producer }) {
   //   consumerPeer.createConsumer(producer);
