@@ -13,6 +13,8 @@ import { PlayerController, RoomController } from './redis/controller';
 import { v4 } from 'uuid';
 import { CryptoCore } from './util/CryptoCore';
 
+import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+
 export class ServerEngine {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
@@ -54,7 +56,12 @@ export class ServerEngine {
 
     websocketServer.on('connection', (getTransport: Function) => {
       const peerTransport = getTransport();
+<<<<<<< HEAD
       new Peer("", "", peerTransport, this, cryptoCore);
+=======
+      // const uuId = httpsServer.cryptoCore.decipherIv(httpsServer.uuId);
+      new Peer(v4(), '', peerTransport, this);
+>>>>>>> jay_dev
     });
   }
 
@@ -187,6 +194,7 @@ export class ServerEngine {
 
       // update room data in redis
       await RoomController.updateRoom(rRoom);
+
       localServerSocket
         .request({
           data: {
@@ -290,3 +298,7 @@ export class ServerEngine {
     this.roomList.delete(id);
   }
 }
+
+// import { TEST } from './worker/workerTest';
+
+// TEST();

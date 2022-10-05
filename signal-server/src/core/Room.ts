@@ -399,8 +399,7 @@ export class Room {
     /* 剔除房間內的人包含房主自己 */
     this.kickAllPeer();
 
-    await this.RoomController.delRoom(this._id);
-    this.listener.deleteRoom(this._id);
+    await this.died(); // 應該是可以不用等待
 
     response({});
   }
@@ -486,7 +485,8 @@ export class Room {
     this._bomb.countDownStart();
   }
 
-  died() {
+  async died() {
+    await this.RoomController.delRoom(this._id);
     this.listener.deleteRoom(this._id);
   }
 
