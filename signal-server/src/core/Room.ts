@@ -335,6 +335,7 @@ export class Room {
           router_id: peer.routerId,
           transport_id: peer.sendTransport.id,
           rtpParameters: data.rtpParameters,
+          rtpCapabilities: peer.rtpCapabilities,
           kind: data.kind,
         },
       })
@@ -454,6 +455,8 @@ export class Room {
     if (!serverSocket) return;
 
     peer.rtpCapabilities = data.rtpCapabilities;
+
+    /* take all producer */
 
     const producerList = this.getOtherPeerProducers(peer.id);
 

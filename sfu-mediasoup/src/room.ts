@@ -261,7 +261,7 @@ export class Room {
   }
 
   private async createProduceHandler({ ws, data, response }: Handler) {
-    const { router_id, transport_id, rtpParameters, kind } = data;
+    const { router_id, transport_id, rtpParameters, rtpCapabilities, kind } = data;
     const transport = this._transports.get(transport_id);
 
     if (transport === undefined) {
@@ -301,7 +301,7 @@ export class Room {
 
       for (let [key, value] of this._serverAndPipeTransport) {
         if (this._pipeTransports.has(value.localTransport_id)) {
-          const consumer = await this.createPipeTransportConsume(value.localTransport_id, producer.id);
+          const consumer = await this.createPipeTransportConsume(value.localTransport_id, producer.id, rtpCapabilities);
           consumerMap[key] = {
             producer_id: producer.id,
             remotePipeTransport_id: value.remoteTransport_id,
@@ -460,16 +460,21 @@ export class Room {
   }
 
   private async createPipeTransportConsumeHandler({ ws, data, response }: Handler) {
-    const { producerId, remotePipeTransport_id: pipeTransport_id } = data;
+    const { producerId, remotePipeTransport_id: pipeTransport_id, rtpCapabilities } = data;
 
     let consumer = null;
     if (this._pipeTransports.has(pipeTransport_id)) {
-      const consumer = await this.createPipeTransportConsume(pipeTransport_id, producerId);
+      const consumer = await this.createPipeTransportConsume(pipeTransport_id, producerId, rtpCapabilities);
     }
   }
 
-  private async createPipeTransportConsume(pipeTransportId: string, producerId: string) {
+  private async createPipeTransportConsume(pipeTransportId: string, producerId: string, rtpCapabilities: any) {
     const pt = this._pipeTransports.get(pipeTransportId)!;
+
+    if (!this._pipeTransportsRouter?.canConsume({ producerId, rtpCapabilities })) {
+      console.error('can not consume');
+      return false;
+    }
 
     const consumer = await pt.consume({
       producerId: producerId,

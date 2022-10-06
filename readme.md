@@ -47,3 +47,13 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 - peer is duplicate
 - for 0~99 to excute join room, redis player count is weird
 - 當一個 sfu server 滿了，房主也已經開視訊，新的人加入會沒有畫面（get producer）
+
+## Web mediasoupclient
+
+- rtpParameter - producer
+
+- rtpCapability - consumer
+
+- producer：根據使用者創建的 track ortc 解析，產生 rtpParameters，然後 dtlsrole 是 client 端的 peer 為 server，mediasoup peer 為 client
+
+- consumer：根據 rtpCapability 來創建，dtlsrole 跟上面應該相反
