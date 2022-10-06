@@ -63,6 +63,22 @@ export class RoomController extends ControllerImp {
     });
   }
 
+  getAllRoom(): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const data = await this._rc.hGetAll('Room');
+        data
+        const temp_list: Array<string> = [];
+        Object.entries(data).forEach(([key, value]) => {
+          temp_list.push(this.transformToJS(value));
+        });
+        resolve(temp_list);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   delRoom(id: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {

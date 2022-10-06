@@ -13,11 +13,15 @@ export class EventEmitter {
   remove(event: string, listener: Callback) {
     if (this._listeners === undefined) return;
     const listeners = this._listeners;
+
     if (listeners[event] !== undefined) {
       const handler = listeners[event].filter((l) => {
-        return l.toString() !== listener.toString();
+        const lStr = l.toString().replace(/\s*/g, "");
+        const listenerStr = listener.toString().replace(/\s*/g, "");
+        return lStr !== listenerStr;
       });
       listeners[event] = handler;
+      this._listeners[event] = [...listeners[event]];
     }
   }
   emit(event: string, ...args: any) {

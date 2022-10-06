@@ -9,15 +9,15 @@ services:
     command: redis-server --requirepass test
     volumes:
       - redis-data:/data
-  redis.pro:
-    restart: always
-    container_name: redis.pro
-    image: redis:alpine
-    ports:
-      - 6378:6379
-    command: redis-server --requirepass test
-    volumes:
-      - redis-data1:/data
+  # redis.pro:
+  #   restart: always
+  #   container_name: redis.pro
+  #   image: redis:alpine
+  #   ports:
+  #     - 6378:6379
+  #   command: redis-server --requirepass test
+  #   volumes:
+  #     - redis-data1:/data
 volumes:
   redis-data:
-  redis-data1:
+  # redis-data1:

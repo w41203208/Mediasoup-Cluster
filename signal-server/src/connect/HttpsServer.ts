@@ -7,6 +7,7 @@ import { HttpsServerOptions, sslOption } from '../type';
 import bodyParser from 'body-parser';
 import { CryptoCore } from '../util/CryptoCore';
 import { IncomingMessage } from 'http';
+import { RoomController } from 'src/redis/controller';
 
 export class HttpsServer {
   private _ip: string;
@@ -64,13 +65,12 @@ export class HttpsServer {
         try {
           const parameter = this.urlParse(incomingMessage.url);
           this.cryptoCore.decipherIv(parameter);
-          const roomList: Array<any> = [];
 
-          this._listener.roomList.forEach((values, keys) => {
-            roomList.push({ 'roomId': keys, 'roomName': values.name, 'roomUserSize': values.getAllPeers().size })
+          this._listener.getAllRoom().then(response => {
+            return res.send(JSON.stringify(response));
+          }).catch(err => {
+            console.log(err);
           })
-
-          res.send(JSON.stringify(roomList));
         } catch (e) {
           console.log(`${e}`);
           res.status(403).json({ e });

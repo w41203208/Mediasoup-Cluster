@@ -393,10 +393,27 @@ export class ServerEngine {
     }
   }
 
+  async getAllRoom() {
+    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
+    const temp_list = await RoomController.getAllRoom()
+    const roomList: { roomId: string; roomName: string; roomUserSize: number; }[] = [];
+    temp_list.forEach((values: {
+      playerList: Array<string>; id: string; name: string;
+    }) => {
+      roomList.push({
+        'roomId': values.id,
+        'roomName': values.name,
+        'roomUserSize': values.playerList.length
+      })
+    })
+    return roomList;
+  }
+
   deleteRoom(id: string) {
     this.roomList.delete(id);
   }
 }
+
 
 // import { TEST } from './worker/workerTest';
 

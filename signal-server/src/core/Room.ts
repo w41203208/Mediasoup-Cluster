@@ -46,9 +46,9 @@ export class Room {
   private _routers: Map<string, any>;
   private _peers: Map<string, Peer>;
   private _sfuConnectionManager: SFUConnectionManager;
-  private _subscriber: Subscriber;
+  private _subscriber?: Subscriber;
   private _publisher: Publisher;
-  private _bomb: TimeBomb;
+  private _bomb?: TimeBomb;
 
   private listener: ServerEngine;
 
@@ -166,7 +166,7 @@ export class Room {
   addSFUServer(sfuServer: SFUServer) {
     this._sfuServers.set(sfuServer.id, sfuServer);
   }
-  private _handleSubscriberMessage(type: string, data: any) {}
+  private _handleSubscriberMessage(type: string, data: any) { }
 
   private _handlePeerRequest({ peer, type, data, response }: PeerRequestHandler) {
     switch (type) {
@@ -488,7 +488,7 @@ export class Room {
         if (data === 'pong') {
           peer.resetPing();
           if (peer.id === this._owner) {
-            this._bomb.countDownReset();
+            this._bomb!.countDownReset();
           }
         }
     }
@@ -508,12 +508,18 @@ export class Room {
   }
 
   private selfDestruct() {
-    this._bomb.countDownStart();
+    this._bomb!.countDownStart();
   }
 
   private async died() {
     await this.RoomController.delRoom(this._id);
     this.listener.deleteRoom(this._id);
+    this._bomb = undefined;
+    this._subscriber?.remove('handleOnRoom', (message: any) => {
+      const { type, data } = message;
+      this._handleSubscriberMessage(type, data);
+    });
+    this._subscriber = undefined;
   }
 
   // consume({ consumerPeer, producer }) {
