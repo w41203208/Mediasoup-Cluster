@@ -13,6 +13,8 @@ import { PlayerController, RoomController } from './redis/controller';
 import { v4 } from 'uuid';
 import { CryptoCore } from './util/CryptoCore';
 
+import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+
 export class ServerEngine {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
@@ -54,7 +56,7 @@ export class ServerEngine {
 
     websocketServer.on('connection', (getTransport: Function) => {
       const peerTransport = getTransport();
-      new Peer("", "", peerTransport, this, cryptoCore);
+      new Peer('', '', peerTransport, this, cryptoCore);
     });
   }
 
@@ -113,7 +115,6 @@ export class ServerEngine {
   }
 
   async handleJoinRoom(data: any, response: Function) {
-
     const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
     const PlayerController = this._controllerFactory?.getControler('Player') as PlayerController;
     const { room_id, peer } = data;
@@ -186,6 +187,113 @@ export class ServerEngine {
 
       // update room data in redis
       await RoomController.updateRoom(rRoom);
+
+      // serversocketevent
+      // localServerSocket
+      //   .request({
+      //     data: {
+      //       room_id: room_id,
+      //       mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+      //     },
+      //     type: EVENT_FOR_SFU.CREATE_ROUTER,
+      //   })
+      //   .then(async ({ data }) => {
+      //     const { router_id } = data;
+      //     console.log('User [%s] get router [%s]', peer.id, router_id);
+
+      //     room.addRouter(router_id);
+      //     peer.routerId = router_id;
+      //     rPeer.routerId = router_id;
+
+      //     await PlayerController.updatePlayer(rPeer);
+
+      //     /* create and connect pipeTransport */
+      //     // 找其他 sfu server
+      //     const remoteServerSocketIdList = rRoom.serverList.filter((serverId: string) => {
+      //       if (serverId !== localServerId) {
+      //         return serverId;
+      //       }
+      //     });
+      //     // log other sfu servr
+      //     console.log(remoteServerSocketIdList);
+      //     // if sfu server list not 0 size
+      //     if (remoteServerSocketIdList.length !== 0) {
+      //       remoteServerSocketIdList.map(async (serverId: string) => {
+      //         const remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(serverId, room_id);
+      //         console.log('test ', peer.id);
+      //         Promise.all([
+      //           remoteServerSocket.request({
+      //             data: {
+      //               server_id: localServerId,
+      //               mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+      //             },
+      //             type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
+      //           }),
+      //           localServerSocket.request({
+      //             data: {
+      //               server_id: serverId,
+      //               mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
+      //             },
+      //             type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
+      //           }),
+      //         ])
+      //           .then(([remoteConnectionData, localConnectionData]) => {
+      //             const { transport_id: remoteTransportId, state: remoteState, ...remoteRest } = remoteConnectionData.data;
+      //             const { transport_id: localTransportId, state: localState, ...localRest } = localConnectionData.data;
+      //             /* 這裡理論state 回傳只會兩個都是 false or 都是 true */
+      //             // console.log('remoteState', remoteState);
+      //             // console.log('localState', localState);
+      //             let promiseList = [];
+      //             if (!remoteState) {
+      //               promiseList.push(
+      //                 remoteServerSocket.request({
+      //                   data: {
+      //                     localTransport_id: remoteTransportId,
+      //                     remoteTransport_id: localTransportId,
+      //                     server_id: localServerId,
+      //                     ...localRest,
+      //                   },
+      //                   type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
+      //                 })
+      //               );
+      //             }
+      //             if (!localState) {
+      //               promiseList.push(
+      //                 localServerSocket.request({
+      //                   data: {
+      //                     localTransport_id: localTransportId,
+      //                     remoteTransport_id: remoteTransportId,
+      //                     server_id: serverId,
+      //                     ...remoteRest,
+      //                   },
+      //                   type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
+      //                 })
+      //               );
+      //             }
+      //             return Promise.all(promiseList);
+      //           })
+      //           .then((data) => {
+      //             responseData = {
+      //               room_id: room.id,
+      //               room_user_size: room.getAllPeers().size,
+      //             };
+      //             response({
+      //               type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
+      //               data: responseData,
+      //             });
+      //           });
+      //       });
+      //     } else {
+      //       responseData = {
+      //         room_id: room.id,
+      //         room_user_size: room.getAllPeers().size,
+      //       };
+      //       response({
+      //         type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
+      //         data: responseData,
+      //       });
+      //     }
+      //   });
       localServerSocket
         .request({
           data: {
@@ -267,7 +375,7 @@ export class ServerEngine {
           }
           responseData = {
             room_id: room.id,
-            room_user_size: room.getAllPeers().size
+            room_user_size: room.getAllPeers().size,
           };
           response({
             type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
@@ -289,3 +397,7 @@ export class ServerEngine {
     this.roomList.delete(id);
   }
 }
+
+// import { TEST } from './worker/workerTest';
+
+// TEST();

@@ -33,24 +33,39 @@ export class PlayerController extends ControllerImp {
   setPlayer(id: string): Promise<boolean | any> {
     return new Promise(async (resolve, reject) => {
       try {
-        if (!(await this.isPlayerExist(id))) {
-          const data = await this._rc
-            .multi()
-            .hSet(
-              'Player',
-              id,
-              this.transformToJSON({
-                id: id,
-                serverId: '',
-                routerId: '',
-              })
-            )
-            .hGet('Player', id)
-            .exec();
-          resolve(this.transformToJS(data[1]));
-        } else {
-          resolve(false);
-        }
+        // if (!(await this.isPlayerExist(id))) {
+        //   const data = await this._rc
+        //     .multi()
+        //     .hSet(
+        //       'Player',
+        //       id,
+        //       this.transformToJSON({
+        //         id: id,
+        //         serverId: '',
+        //         routerId: '',
+        //       })
+        //     )
+        //     .hGet('Player', id)
+        //     .exec();
+        //   resolve(this.transformToJS(data[1]));
+
+        // } else {
+        //   resolve(false);
+        // }
+        const data = await this._rc
+          .multi()
+          .hSet(
+            'Player',
+            id,
+            this.transformToJSON({
+              id: id,
+              serverId: '',
+              routerId: '',
+            })
+          )
+          .hGet('Player', id)
+          .exec();
+        resolve(this.transformToJS(data[1]));
       } catch (error) {
         reject(error);
         console.log(error);

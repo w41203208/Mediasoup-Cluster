@@ -43,6 +43,7 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 
 ## Problem
 
-### Memory leak
-
-### peer is duplicate
+- Memory leak
+- peer is duplicate
+- for 0~99 to excute join room, redis player count is weird
+- 當一個 sfu server 滿了，房主也已經開視訊，新的人加入會沒有畫面（get producer）

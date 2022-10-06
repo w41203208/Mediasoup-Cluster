@@ -22,7 +22,7 @@ export class WSTransport extends EventEmitter {
 
   _handleSocketConnection() {
     this._socket!.on('close', (code: number, reason: Buffer) => {
-      console.log('socket in closed'); // 觸發this.close會監聽到
+      console.log('socket is closed'); // 觸發this.close會監聽到
     });
     this._socket!.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
@@ -52,7 +52,7 @@ export class WSTransport extends EventEmitter {
       this.sendData(sendData);
     });
   }
-  _handlerResponse() { }
+  _handlerResponse() {}
   _handlerNotification(notification: any) {
     this.emit('notification', notification, (sendData: any) => {
       sendData.messageType = 'notification';

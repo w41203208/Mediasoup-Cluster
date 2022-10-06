@@ -3,7 +3,9 @@ import { SFUServerController } from '../redis/controller';
 import { ServerEngine } from 'src/engine';
 import { ControllerFactory } from 'src/redis/ControllerFactory';
 
-require('dotenv').config();
+// require('dotenv').config();
+
+let num = 0;
 
 export class SFUConnectionManager {
   private peopleLimit: number;
@@ -58,15 +60,16 @@ export class SFUConnectionManager {
     const [ip, port] = key.split(':');
     if (Number(port) < Number(process.env.LIMIT)) {
       const count = await this.SFUServerController.getSFUServerCount(key);
-      let new_count: number | void;
+      console.log('get count: ', count);
       if (count < this.peopleLimit && okServer === undefined) {
         okServer = key;
-        new_count = await this.SFUServerController.addSFUServerCount(key);
-        if (new_count) {
-          if (new_count >= this.peopleLimit + 1) {
-            await this.SFUServerController.reduceSFUServerCount(key);
-            okServer = undefined;
-          }
+        const new_count = await this.SFUServerController.addSFUServerCount(key);
+        console.log('get new_count: ', new_count);
+        if (new_count >= this.peopleLimit + 1) {
+          ++num;
+          console.log('Num is: ', num);
+          await this.SFUServerController.reduceSFUServerCount(key);
+          okServer = undefined;
         }
       }
     }
