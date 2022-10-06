@@ -13,7 +13,7 @@ services:
     volumes:
       - .:/home/frontend
   sfu-frontend-demo.dev:
-    container_name: sfu-frontend-demo.dv
+    container_name: sfu-frontend-demo.dev
     image: 'sfufrontend'
     working_dir: /home/frontend
     command: bash -c "yarn && yarn dev"
@@ -22,5 +22,17 @@ services:
     ports:
       - '${PORT_DEV}:${PORT_DEV}/tcp'
       - '${PORT_DEV}:${PORT_DEV}/udp'
+    volumes:
+      - .:/home/frontend
+  sfu-frontend-demo.dev2:
+    container_name: sfu-frontend-demo.dev2
+    image: 'sfufrontend'
+    working_dir: /home/frontend
+    command: bash -c "yarn && yarn dev2"
+    stdin_open: true
+    tty: true
+    ports:
+      - '${PORT_DEV_2}:${PORT_DEV_2}/tcp'
+      - '${PORT_DEV_2}:${PORT_DEV_2}/udp'
     volumes:
       - .:/home/frontend

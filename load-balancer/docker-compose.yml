@@ -8,5 +8,6 @@ services:
       - '9990:80'
     volumes:
       - ./.conf:/etc/nginx/conf.d/default.conf
+      - ./ssl:/etc/ssl
     stdin_open: true
     tty: true
