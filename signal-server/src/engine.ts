@@ -124,7 +124,6 @@ export class ServerEngine {
     if (rRoom) {
       // 建立或取得 localRoom
       let room: Room;
-      console.log(this.roomList);
       if (this.roomList.has(room_id)) {
         room = this.roomList.get(room_id)!;
       } else {

@@ -46,9 +46,9 @@ export class Room {
   private _routers: Map<string, any>;
   private _peers: Map<string, Peer>;
   private _sfuConnectionManager: SFUConnectionManager;
-  private _subscriber: Subscriber;
+  private _subscriber?: Subscriber;
   private _publisher: Publisher;
-  private _bomb: TimeBomb;
+  private _bomb?: TimeBomb;
 
   private listener: ServerEngine;
 
@@ -401,7 +401,13 @@ export class Room {
 
     await this.RoomController.delRoom(this._id);
     this.listener.deleteRoom(this._id);
-
+    this._bomb = undefined;
+    this._subscriber?.remove('handleOnRoom', (message: any) => {
+      const { type, data } = message;
+      this._handleSubscriberMessage(type, data);
+    });
+    this._subscriber = undefined;
+    console.log(`this._subscriber ${this._subscriber}`)
     response({});
   }
 
@@ -409,7 +415,6 @@ export class Room {
     console.log('User [%s] leave room [%s].', peer.id, this._id);
 
     await this.leaveRoom(peer); // 這裡有沒有需要等呢?
-
     response({});
   }
 
@@ -449,7 +454,7 @@ export class Room {
         if (data === 'pong') {
           peer.resetPing();
           if (peer.id === this._owner) {
-            this._bomb.countDownReset();
+            this._bomb!.countDownReset();
           }
         }
     }
@@ -483,7 +488,8 @@ export class Room {
   }
 
   private selfDestruct() {
-    this._bomb.countDownStart();
+    this._bomb!.countDownStart();
+    this._bomb = undefined;
   }
 
   died() {
