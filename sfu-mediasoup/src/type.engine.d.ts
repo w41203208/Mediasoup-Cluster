@@ -14,6 +14,10 @@ interface ServerOptions {
   ssl: sslOption;
   port: number;
 }
+
+interface RedisClientOptions {
+  redisHost: string;
+}
 interface MediasoupOptions {
   numWorkers: number;
   workerSettings: Record<string, any>;
@@ -24,6 +28,7 @@ interface MediasoupOptions {
 interface EngineOptions {
   serverOption: ServerOptions;
   mediasoupOption: MediasoupOptions;
+  redisClientOption: RedisClientOptions;
 }
 
-export { sslOption, ServerOptions, MediasoupOptions, EngineOptions, RouterOptions };
+export { sslOption, ServerOptions, MediasoupOptions, EngineOptions, RouterOptions, RedisClientOptions };

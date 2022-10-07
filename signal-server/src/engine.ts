@@ -86,7 +86,7 @@ export class ServerEngine {
     const { room_name, peer_id } = data;
 
     console.log('User [%s] create room [%s].', peer_id, room_name);
-    const room_id = Date.now() + ':' + v4();
+    const room_id = Date.now() + '-' + v4();
     const rRoom = await RoomController.setRoom(room_id, room_name);
 
     let responseData;
@@ -348,8 +348,6 @@ export class ServerEngine {
                 promiseList.push(
                   remoteServerSocket.request({
                     data: {
-                      localTransport_id: remoteTransportId,
-                      remoteTransport_id: localTransportId,
                       server_id: localServerId,
                       ...localRest,
                     },
@@ -361,8 +359,6 @@ export class ServerEngine {
                 promiseList.push(
                   localServerSocket.request({
                     data: {
-                      localTransport_id: localTransportId,
-                      remoteTransport_id: remoteTransportId,
                       server_id: serverId,
                       ...remoteRest,
                     },
@@ -371,8 +367,10 @@ export class ServerEngine {
                 );
               }
               const promiseData = await Promise.all(promiseList);
+              console.log('Join Room Finanlly!!!!!');
             });
           }
+          console.log('Join Room Return!!!!!');
           responseData = {
             room_id: room.id,
             room_user_size: room.getAllPeers().size,

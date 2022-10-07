@@ -8,6 +8,10 @@ export class RedisClient {
     (async () => {
       this.client = createClient({
         url: option.redisHost,
+        isolationPoolOptions: {
+          max: 10, // maximum size of the pool
+          min: 2, // minimum size of the pool
+        },
       });
       await this.client.connect();
     })();

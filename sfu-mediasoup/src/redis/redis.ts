@@ -1,36 +1,30 @@
-import { ControllerImp } from './ControllerImp';
-const redis = require('redis');
+import { createClient, RedisClientType } from 'redis';
+import { RedisClientOptions } from './type';
 
-export async function createRedisController(controllers: ControllerImp[]): Promise<any> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const client = redis.createClient({
-        url: process.env.REDIS_HOST,
+export class RedisClient {
+  static Instance?: RedisClient;
+  private client?: RedisClientType;
+  constructor(option: RedisClientOptions) {
+    (async () => {
+      this.client = createClient({
+        url: option.redisHost,
+        isolationPoolOptions: {
+          max: 10, // maximum size of the pool
+          min: 2, // minimum size of the pool
+        },
       });
-      await client.connect();
-      let c = {} as any;
-      controllers.forEach((controller: any) => {
-        c[controller.name] = new controller(client);
-      });
+      await this.client.connect();
+    })();
+  }
 
-      resolve(c);
-    } catch (error) {
-      console.log(error);
+  get Client() {
+    return this.client;
+  }
+
+  static GetInstance(option: RedisClientOptions) {
+    if (this.Instance === undefined) {
+      this.Instance = new RedisClient(option);
     }
-  });
+    return this.Instance;
+  }
 }
-
-// class Test {
-//   test() {}
-// }
-
-// class GG extends Test {}
-
-// const hi = (tests: Test[]) => {};
-
-// const gg: GG = {
-//   test: () => {
-//     return '';
-//   },
-// };
-// hi([gg]);

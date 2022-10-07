@@ -68,7 +68,7 @@ export class SFUConnectionManager {
         if (new_count >= this.peopleLimit + 1) {
           ++num;
           console.log('Num is: ', num);
-          await this.SFUServerController.reduceSFUServerCount(key);
+          await this.SFUServerController.reduceSFUServerCount(key); // 在裡面印看看
           okServer = undefined;
         }
       }
