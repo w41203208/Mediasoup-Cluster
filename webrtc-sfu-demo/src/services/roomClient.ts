@@ -309,7 +309,13 @@ export class RoomClient {
   produce({ type, deviceId = null }: { type: string; deviceId: string | null }) {
     switch (type) {
       case mediaType.video:
-        this.enableWebCam({ deviceId, constraints: null });
+        /*抓取相機解析度*/
+        const constraints = {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 },
+        };
+        this.enableWebCam({ deviceId, constraints: constraints });
         break;
     }
   }
@@ -328,32 +334,34 @@ export class RoomClient {
       }
       const params = {
         track,
-        // encodings: [
-        //   {
-        //     rid: 'r0',
-        //     maxBitrate: 100000,
-        //     //scaleResolutionDownBy: 10.0,
-        //     scalabilityMode: 'S1T3',
-        //   },
-        //   {
-        //     rid: 'r1',
-        //     maxBitrate: 300000,
-        //     scalabilityMode: 'S1T3',
-        //   },
-        //   {
-        //     rid: 'r2',
-        //     maxBitrate: 900000,
-        //     scalabilityMode: 'S1T3',
-        //   },
-        // ],
-        // codecOptions: {
-        //   videoGoogleStartBitrate: 1000,
-        // },
+        encodings: [
+          {
+            rid: 'r0',
+            maxBitrate: 500000,
+            scaleResolutionDownBy: 6,
+            scalabilityMode: 'S1T3',
+          },
+          {
+            rid: 'r1',
+            maxBitrate: 1000000,
+            scaleResolutionDownBy: 3,
+            scalabilityMode: 'S1T3',
+          },
+          {
+            rid: 'r2',
+            maxBitrate: 5000000,
+            scaleResolutionDownBy: 1,
+            scalabilityMode: 'S1T3',
+          },
+        ],
+        codecOptions: {
+          videoGoogleStartBitrate: 1000,
+        },
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on('@close', () => {});
+      producer.on('@close', () => { });
 
       console.log(producer);
       this._producers.set(producer.id, producer);
@@ -361,6 +369,8 @@ export class RoomClient {
       const elem = document.createElement('video');
       elem.srcObject = stream;
       elem.autoplay = true;
+      elem.width = 640;
+      elem.height = 480;
       this._localMediaContainer?.appendChild(elem);
     } catch (error: any) {
       console.log(error);
@@ -380,6 +390,8 @@ export class RoomClient {
       kind,
       rtpParameters,
     });
+
+    console.log(`consumer ${JSON.stringify(rtpParameters)}`)
     this._consumers.set(consumer.id, consumer);
 
     const stream = new MediaStream();
@@ -391,6 +403,8 @@ export class RoomClient {
       elem = document.createElement('video');
       elem.srcObject = stream;
       elem.id = consumer.id;
+      elem.width = 640;
+      elem.height = 480;
       elem.autoplay = true;
       this._remoteMediaContainer?.appendChild(elem);
     } else {

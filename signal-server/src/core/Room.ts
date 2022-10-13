@@ -327,6 +327,8 @@ export class Room {
   produceHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
 
+    console.log(`data.rtpParameters ${data.rtpParameters}`)
+
     if (!serverSocket) return;
     serverSocket
       .request({

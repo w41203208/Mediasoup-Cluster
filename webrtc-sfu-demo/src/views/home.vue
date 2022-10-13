@@ -26,10 +26,18 @@
         @input="(e) => handleChangeUID(e)"
       />
     </div> -->
-    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-32" @click="handleClickCreateRoom">
+    <button
+      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-36"
+      @click="handleClickCreateRoom"
+    >
       CreateRoom
     </button>
-    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-32" @click="getRoomList">refreshRoomList</button>
+    <button
+      class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-36"
+      @click="getRoomList"
+    >
+      refreshRoomList
+    </button>
   </div>
   <div>
     <ul class="flex flex-wrap">
@@ -47,25 +55,25 @@
 </template>
 
 <script lang="ts">
-import { getUuidByName, getRoomByUuId } from '@/services/api';
-import { getUserName } from '@/util/dummyName';
-import { defineComponent, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { getUuidByName, getRoomByUuId } from "@/services/api";
+import { getUserName } from "@/util/dummyName";
+import { defineComponent, reactive, ref } from "vue";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
-  name: 'home',
+  name: "home",
   setup() {
     // register store / router / .etc
     const router = useRouter();
     // Global Variable
     const inputReactive = reactive({
-      roomName: '',
+      roomName: "",
     });
     const roomList = ref();
 
     const user = reactive({
-      name: '',
-      uuId: 'Permission denied',
+      name: "",
+      uuId: "Permission denied",
     });
 
     user.name = getUserName();
@@ -93,23 +101,23 @@ export default defineComponent({
     };
     const handleClickJoinRoom = (roomId: string, roomName: string) => {
       router.push({
-        path: '/room',
+        path: "/room",
         query: {
           uid: user.uuId,
           roomId: roomId,
           roomName: roomName,
-          role: 'audience',
+          role: "audience",
         },
       });
     };
     const handleClickCreateRoom = () => {
       router.push({
-        path: '/room',
+        path: "/room",
         query: {
           uid: user.uuId,
-          roomId: '',
+          roomId: "",
           roomName: inputReactive.roomName,
-          role: 'host',
+          role: "host",
         },
       });
     };

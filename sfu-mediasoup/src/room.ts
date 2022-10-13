@@ -188,8 +188,8 @@ export class Room {
     }
 
     /* Register transport listen event */
-    transport.on('@close', () => {});
-    transport.on('dtlsstatechange', () => {});
+    transport.on('@close', () => { });
+    transport.on('dtlsstatechange', () => { });
 
     /* Register transport listen event */
 
@@ -234,6 +234,12 @@ export class Room {
         rtpCapabilities: rtpCapabilities,
         paused: false,
       });
+
+      await consumer.setPreferredLayers({ spatialLayer: 2 })
+      setTimeout(async () => {
+        await consumer.setPreferredLayers({ spatialLayer: 0 })
+      }, 20000);
+
       console.log('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
       /* Register Consumer listen event */
       consumer.on('transportclose', () => {
