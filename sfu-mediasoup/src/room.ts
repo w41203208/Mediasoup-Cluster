@@ -15,6 +15,7 @@ const EVENT_FROM_SIGNAL = {
   CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
   CREATE_PIPETRANSPORT_CONSUME: 'createPipeTransportConsume',
   CREATE_PLAINTRANSPORT: 'createPlainTransport',
+  SET_PREFERRED_LAYERS: "setPreferredLayers",
   CLOSE_TRANSPORT: 'closeTransport',
 };
 const EVENT_FOR_SIGNAL_REQUEST = {
@@ -117,6 +118,9 @@ export class Room {
         break;
       case EVENT_FROM_SIGNAL.CREATE_PIPETRANSPORT_CONSUME:
         this.createPipeTransportConsumeHandler({ ws, data, response });
+      case EVENT_FROM_SIGNAL.SET_PREFERRED_LAYERS:
+        this.setPreferredLayers({ ws, data, response });
+        break;
       case EVENT_FROM_SIGNAL.CLOSE_TRANSPORT:
         this.closeTransport({ ws, data, response });
         break;
@@ -234,11 +238,6 @@ export class Room {
         rtpCapabilities: rtpCapabilities,
         paused: false,
       });
-
-      await consumer.setPreferredLayers({ spatialLayer: 2 })
-      setTimeout(async () => {
-        await consumer.setPreferredLayers({ spatialLayer: 0 })
-      }, 20000);
 
       console.log('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
       /* Register Consumer listen event */
@@ -489,7 +488,15 @@ export class Room {
     return consumer;
   }
 
+  private async setPreferredLayers({ ws, data, response }: Handler) {
+    const { consumer_id } = data;
+    console.log(`client trans consumer_id ${consumer_id}`)
+    // await consumer.setPreferredLayers({ spatialLayer: ${spatialLayer} })
+  }
+
   private async closeTransport({ ws, data, response }: Handler) {
     response({});
   }
+
+
 }

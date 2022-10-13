@@ -191,6 +191,9 @@ export class Room {
       case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
         this.getProduceHandler({ peer, data, response });
         break;
+      case EVENT_FROM_CLIENT_REQUEST.SET_PREFERRED_LAYERS:
+        this.setPreferredLayers({ peer, data, response });
+        break;
     }
   }
   async closeRoomHandler({ peer, data, response }: Handler) {
@@ -451,6 +454,47 @@ export class Room {
       });
   }
 
+  setPreferredLayers({ peer, data, response }: Handler) {
+    const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
+    if (!serverSocket) return;
+    const { consumer_id } = data
+
+    response({});
+
+    serverSocket
+      .request({
+        type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
+        data: {
+          consumer_id: consumer_id,
+        },
+      });
+  }
+
+  private _handleOnNotification(peer: Peer, type: string, data: any, notify: Function) {
+    switch (type) {
+      case 'heartbeatCheck':
+        if (data === 'pong') {
+          peer.resetPing();
+          if (peer.id === this._owner) {
+            this._bomb!.countDownReset();
+          }
+        }
+    }
+  }
+
+  handleServerSocketRequest(type: string, data: any, response: Function) {
+    switch (type) {
+      case EVENT_FROM_SFU.CONNECT_PIPETRANSPORT:
+        break;
+    }
+  }
+
+  private broadcast(peers: Map<string, Peer>, data: any) {
+    peers.forEach((peer) => {
+      peer.notify(data);
+    });
+  }
+
   getProduceHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
@@ -484,31 +528,6 @@ export class Room {
       });
   }
 
-  private _handleOnNotification(peer: Peer, type: string, data: any, notify: Function) {
-    switch (type) {
-      case 'heartbeatCheck':
-        if (data === 'pong') {
-          peer.resetPing();
-          if (peer.id === this._owner) {
-            this._bomb!.countDownReset();
-          }
-        }
-    }
-  }
-
-  handleServerSocketRequest(type: string, data: any, response: Function) {
-    switch (type) {
-      case EVENT_FROM_SFU.CONNECT_PIPETRANSPORT:
-        break;
-    }
-  }
-
-  private broadcast(peers: Map<string, Peer>, data: any) {
-    peers.forEach((peer) => {
-      peer.notify(data);
-    });
-  }
-
   private selfDestruct() {
     this._bomb!.countDownStart();
   }
@@ -523,6 +542,7 @@ export class Room {
     });
     this._subscriber = undefined;
   }
+
 
   // consume({ consumerPeer, producer }) {
   //   consumerPeer.createConsumer(producer);

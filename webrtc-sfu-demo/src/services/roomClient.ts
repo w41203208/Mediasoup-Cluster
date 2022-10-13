@@ -27,6 +27,7 @@ const EVENT_FOR_CLIENT = {
   CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
   PRODUCE: 'produce',
   CONSUME: 'consume',
+  SET_PREFERRED_LAYERS: "setPreferredLayers",
   GET_ROOM_INFO: 'getRoomInfo',
   LEAVE_ROOM: 'leaveRoom',
   CLOSE_ROOM: 'closeRoom',
@@ -391,9 +392,7 @@ export class RoomClient {
       rtpParameters,
     });
 
-    console.log(`consumer ${JSON.stringify(rtpParameters)}`)
     this._consumers.set(consumer.id, consumer);
-
     const stream = new MediaStream();
     console.log(consumer.track);
     stream.addTrack(consumer.track);
@@ -412,5 +411,19 @@ export class RoomClient {
       elem.srcObject = stream;
       elem.autoplay = true;
     }
+  }
+
+  async setPreferredLayers() {
+    let consumer_id = null;
+    this._consumers.forEach((consumer) => {
+      consumer_id = consumer.id;
+    })
+    console.log(consumer_id)
+    await this._socket.request({
+      data: {
+        consumer_id: consumer_id,
+      },
+      type: EVENT_FOR_CLIENT.SET_PREFERRED_LAYERS,
+    });
   }
 }

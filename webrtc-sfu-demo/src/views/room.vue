@@ -4,6 +4,7 @@
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
+    <button class="m-btn" @click="setPreferredLayers">setPreferredLayers</button>
     <button class="m-btn">OpenAudio</button>
     <button class="m-btn">CloseVideo</button>
     <button class="m-btn">CloseAudio</button>
@@ -52,6 +53,11 @@ export default defineComponent({
     const handleClickEvtShare = (type: string) => {
       rcRef.value.produce({ type: type, deviceId: null });
     };
+
+    const setPreferredLayers = () => {
+      rcRef.value.setPreferredLayers();
+    };
+
     const handleClickEvtExit = () => {
       if (roomInfoReactive.role === "host") {
         rcRef.value.closeRoom(roomInfoReactive.roomId);
@@ -97,6 +103,7 @@ export default defineComponent({
       handleClickEvtExit,
       handleClickEvtTest1,
       handleClickEvtTest2,
+      setPreferredLayers,
     };
   },
 });
