@@ -16,6 +16,9 @@ const engineOptions = {
     port: config.ServerSetting.listenPort,
     ssl: sslOption,
   },
+  redisClientOption: {
+    redisHost: config.ServerSetting.redisHost,
+  },
   mediasoupOption: {
     numWorkers: config.MediasoupSetting.numWorkers,
     workerSettings: config.MediasoupSetting.worker,

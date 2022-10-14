@@ -15,6 +15,31 @@ export class RoomController extends ControllerImp {
     }
     return this.Instance;
   }
+  setRoomProducer(id: string, pid: string): Promise<null> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.producerList`;
+        await this._rc.lPush(key, pid);
+        resolve(null);
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  getRoomProducer(id: string): Promise<Array<string>> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.producerList`;
+        const data = await this._rc.lRange(id, 0, -1);
+        resolve(data);
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
 
   setRoom(id: string, name: string): Promise<false | Record<string, any>> {
     // console.log(await client.exists('SFUServer', 'test'));

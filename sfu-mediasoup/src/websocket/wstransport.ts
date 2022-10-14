@@ -21,7 +21,6 @@ export class WSTransport extends EventEmitter {
   _handleScoketConnection() {
     this._socket.on('close', (code: number, reason: Buffer) => {
       this._socket.close();
-      
     });
     this._socket.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);

@@ -54,7 +54,7 @@ export class Room {
   private _webRTCTransportSettings: Record<string, any>;
   private _pipeTransportSettings: Record<string, any>;
 
-  private _serverAndPipeTransport: Map<string, Record<string, any>>;
+  private _serverAndPipeTransport: Map<string, string>;
 
   constructor({ id, listener, webRTCTransportSettings, pipeTransportSettings }: RoomConstructorInterface) {
     this._id = id;
@@ -117,8 +117,9 @@ export class Room {
         break;
       case EVENT_FROM_SIGNAL.CREATE_PIPETRANSPORT_CONSUME:
         this.createPipeTransportConsumeHandler({ ws, data, response });
+        break;
       case EVENT_FROM_SIGNAL.CLOSE_TRANSPORT:
-        this.closeTransport({ ws, data, response });
+        this.closeTransportHandler({ ws, data, response });
         break;
     }
   }
@@ -137,7 +138,6 @@ export class Room {
     }
 
     this._routers.set(ok_router.id, ok_router);
-
     response({
       data: {
         router_id: ok_router.id,
@@ -219,12 +219,14 @@ export class Room {
   }
 
   private async createConsumeHandler({ ws, data, response }: Handler) {
+    console.log('data: ', data);
     const { router_id, transport_id, rtpCapabilities, producers } = data;
     const router = this._routers.get(router_id);
     const transport = this._transports.get(transport_id);
 
+    console.log('router: ', router);
     let new_consumerList = [];
-    for (let { producer_id } of producers) {
+    for (let producer_id of producers) {
       if (!router!.canConsume({ producerId: producer_id, rtpCapabilities })) {
         console.error('can not consume');
         return;
@@ -261,7 +263,7 @@ export class Room {
   }
 
   private async createProduceHandler({ ws, data, response }: Handler) {
-    const { router_id, transport_id, rtpParameters, kind } = data;
+    const { router_id, transport_id, rtpParameters, rtpCapabilities, kind } = data;
     const transport = this._transports.get(transport_id);
 
     if (transport === undefined) {
@@ -277,7 +279,11 @@ export class Room {
 
     console.log('[CreateProducer-Event]：Create Producer [%s] with Router [%s]', producer.id, router_id);
     /*  Register producer listen event */
-
+    producer.on('transportclose', () => {
+      console.log('Consumer transport close', { consumer_id: `${producer.id}` });
+      this._consumers.delete(producer.id);
+    });
+    /*  Register producer listen event */
     let router: Router | null = null;
     if (this._routers.has(router_id)) {
       router = this._routers.get(router_id)!;
@@ -298,20 +304,24 @@ export class Room {
     /* 連線到PipeTransportRouter */
     if (this._pipeTransportsRouter !== undefined) {
       await this._connectToOtherRouter(router!, this._pipeTransportsRouter, producer.id);
-
       for (let [key, value] of this._serverAndPipeTransport) {
-        if (this._pipeTransports.has(value.localTransport_id)) {
-          const consumer = await this.createPipeTransportConsume(value.localTransport_id, producer.id);
-          consumerMap[key] = {
-            producer_id: producer.id,
-            remotePipeTransport_id: value.remoteTransport_id,
-            kind: consumer.kind,
-            rtpParameters: consumer.rtpParameters,
-          };
-          // await consumer.enableTraceEvent(['rtp']);
-          // consumer.on('trace', (trace) => {
-          //   console.log(trace);
-          // });
+        if (consumerMap[key] === undefined) {
+          consumerMap[key] = [];
+        }
+        if (this._pipeTransports.has(value)) {
+          const pt = this._pipeTransports.get(value)!;
+          const consumer = await this.createPipeTransportConsume(pt, producer.id, rtpCapabilities);
+          if (consumer) {
+            consumerMap[key].push({
+              producer_id: producer.id,
+              kind: consumer.kind,
+              rtpParameters: consumer.rtpParameters,
+            });
+            // await consumer.enableTraceEvent(['rtp']);
+            // consumer.on('trace', (trace) => {
+            //   console.log(trace);
+            // });
+          }
         }
       }
     }
@@ -358,8 +368,8 @@ export class Room {
     let pipeTransport: PipeTransport | null = null;
     let state: boolean = false; // control if has already pipetransport connect to remote sfu server
     if (this._serverAndPipeTransport.has(server_id)) {
-      const transportInfo = this._serverAndPipeTransport.get(server_id)!;
-      pipeTransport = this._pipeTransports.get(transportInfo.localTransport_id)!;
+      const transportId = this._serverAndPipeTransport.get(server_id)!;
+      pipeTransport = this._pipeTransports.get(transportId)!;
       state = true;
     } else {
       const { listenIps } = this._pipeTransportSettings;
@@ -367,9 +377,7 @@ export class Room {
         listenIp: listenIps,
         enableRtx: true,
       });
-      this._serverAndPipeTransport.set(server_id, {
-        localTransport_id: pipeTransport.id,
-      });
+      this._serverAndPipeTransport.set(server_id, pipeTransport.id);
       state = false;
     }
 
@@ -397,8 +405,10 @@ export class Room {
   }
 
   private async connectPipeTransportHandler({ ws, data, response }: Handler) {
-    if (this._pipeTransports.has(data.localTransport_id)) {
-      const pipeTransport = this._pipeTransports.get(data.localTransport_id)!;
+    const pipeTransportId = this._serverAndPipeTransport.get(data.server_id)!;
+
+    if (this._pipeTransports.has(pipeTransportId)) {
+      const pipeTransport = this._pipeTransports.get(pipeTransportId)!;
 
       let msg: string = '';
       try {
@@ -407,11 +417,6 @@ export class Room {
           port: data.port,
         });
         console.log(await pipeTransport.dump());
-        const serverAndPT = {
-          remoteTransport_id: data.remoteTransport_id,
-          ...this._serverAndPipeTransport.get(data.server_id)!,
-        };
-        this._serverAndPipeTransport.set(data.server_id, serverAndPT);
         msg = 'Successfully';
       } catch (error) {
         msg = 'Failed';
@@ -423,53 +428,106 @@ export class Room {
         },
       });
     } else {
-      response({});
+      response({
+        data: {},
+      });
     }
   }
 
   private async createPipeTransportProduceHandler({ ws, data, response }: Handler) {
-    const { producer_id, remotePipeTransport_id: pipeTransport_id, kind, rtpParameters } = data;
+    const { server_id, consumerMap } = data;
 
+    /**
+     *  consumerMap = [
+     *      {
+     *        producer_id,
+     *        kind,
+     *        rtpParameters
+     *      }
+     *    ]
+     */
+
+    const pipeTransportId = this._serverAndPipeTransport.get(server_id)!;
     let producer = null;
-    if (this._pipeTransports.has(pipeTransport_id)) {
-      const pt = this._pipeTransports.get(pipeTransport_id)!;
-      producer = await pt.produce({
-        id: producer_id,
-        kind: kind,
-        rtpParameters: rtpParameters,
-      });
-      console.log('[CreateProducer-PipeTransport-Event]：PipeTransport [%s] create Producer [%s]', pt.id, producer.id);
+    if (this._pipeTransports.has(pipeTransportId)) {
+      const pt = this._pipeTransports.get(pipeTransportId)!;
+      for (let { producer_id, kind, rtpParameters } of consumerMap) {
+        producer = await pt.produce({
+          id: producer_id,
+          kind: kind,
+          rtpParameters: rtpParameters,
+        });
+        this._producers.set(producer.id, producer);
+        // TEST TO DEBUG
+        // await producer.enableTraceEvent(['rtp']);
 
-      // TEST TO DEBUG
-      // await producer.enableTraceEvent(['rtp']);
-
-      // producer.on('trace', (trace) => {
-      //   console.log(trace);
-      // });
+        // producer.on('trace', (trace) => {
+        //   console.log(trace);
+        // });
+        console.log('[CreateProducer-PipeTransport-Event]：PipeTransport [%s] create Producer [%s]', pt.id, producer.id);
+        for (let [key, router] of this._routers) {
+          await this._connectToOtherRouter(this._pipeTransportsRouter!, router, producer!.id);
+        }
+        console.log('testoutestinerter');
+      }
     }
-
-    for (let [key, router] of this._routers) {
-      await this._connectToOtherRouter(this._pipeTransportsRouter!, router, producer!.id);
-    }
-
+    console.log('testouter');
     response({
-      data: {
-        producer_id,
-      },
+      data: {},
     });
   }
 
   private async createPipeTransportConsumeHandler({ ws, data, response }: Handler) {
-    const { producerId, remotePipeTransport_id: pipeTransport_id } = data;
+    const { server_id, producerMap } = data;
+    /**
+     *  producerMap = {
+     *    routerId: [
+     *      {
+     *        producerId,
+     *        rtpCapabilities
+     *      }
+     *    ]
+     *  }
+     */
+    let pipeTransport = null;
+    const pipeTransportId = this._serverAndPipeTransport.get(server_id)!;
+    let consumerMap = {} as any;
+    if (this._pipeTransports.has(pipeTransportId)) {
+      pipeTransport = this._pipeTransports.get(pipeTransportId)!;
+      if (consumerMap[server_id] === undefined) {
+        consumerMap[server_id] = [];
+      }
+      for (let [routerId, producerInfoArray] of Object.entries(producerMap)) {
+        const router = this._routers.get(routerId)!;
+        for (let { producerId, rtpCapabilities } of producerInfoArray as Array<any>) {
+          if (this._pipeTransportsRouter !== undefined) {
+            await this._connectToOtherRouter(router, this._pipeTransportsRouter, producerId);
+            const consumer = await this.createPipeTransportConsume(pipeTransport, producerId, rtpCapabilities);
 
-    let consumer = null;
-    if (this._pipeTransports.has(pipeTransport_id)) {
-      const consumer = await this.createPipeTransportConsume(pipeTransport_id, producerId);
+            if (consumer) {
+              consumerMap[server_id].push({
+                producer_id: producerId,
+                remotePipeTransport_id: pipeTransportId,
+                kind: consumer.kind,
+                rtpParameters: consumer.rtpParameters,
+              });
+            }
+          }
+        }
+      }
     }
+    response({
+      data: {
+        consumerMap: consumerMap,
+      },
+    });
   }
 
-  private async createPipeTransportConsume(pipeTransportId: string, producerId: string) {
-    const pt = this._pipeTransports.get(pipeTransportId)!;
+  private async createPipeTransportConsume(pt: PipeTransport, producerId: string, rtpCapabilities: any) {
+    if (!this._pipeTransportsRouter?.canConsume({ producerId, rtpCapabilities })) {
+      console.error('can not consume');
+      return false;
+    }
 
     const consumer = await pt.consume({
       producerId: producerId,
@@ -483,7 +541,18 @@ export class Room {
     return consumer;
   }
 
-  private async closeTransport({ ws, data, response }: Handler) {
-    response({});
+  private async closeTransportHandler({ ws, data, response }: Handler) {
+    const { sendTransport_id, recvTransport_id } = data;
+    this.closeTransport(sendTransport_id);
+    this.closeTransport(recvTransport_id);
+    response({ data: {} });
+  }
+
+  private closeTransport(id: string) {
+    if (this._transports.has(id)) {
+      const transport = this._transports.get(id);
+      transport?.close();
+      this._transports.delete(id);
+    }
   }
 }

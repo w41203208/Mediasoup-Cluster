@@ -4,10 +4,11 @@ import { WSServer } from './websocket/index';
 import { Application, Request, Response } from 'express';
 import { Worker, Router, Transport, Consumer, Producer } from 'mediasoup/node/lib/types';
 import { Logger } from './util/logger';
-import { sslOption, EngineOptions, RouterOptions } from './type.engine';
+import { sslOption, EngineOptions, RouterOptions, RedisClientOptions } from './type.engine';
 
-import { Controllers, createRedisController } from './redis/index';
+import { RedisClient } from './redis/redis';
 import { Room } from './room';
+import { ControllerFactory } from './redis/ControllerFactory';
 
 const express = require('express');
 const mediasoup = require('mediasoup');
@@ -22,44 +23,43 @@ const EVENT_FOR_SFU = {
   CREATE_PRODUCE: 'createProduce',
 };
 
-interface WebSocketHandler {
-  id: string;
-  type: string;
-  data: Record<string, any> | any;
-  ws: WebSocket;
-}
-
-interface Handler {
-  id: string;
-  data: Record<string, any> | any;
-  ws: WebSocket;
-}
-
 export class ServerEngine {
+  // redis settings
+  private _redisClientOption: RedisClientOptions;
+
+  // server settings
   private _ip: string;
   private _port: number;
   private _ssl: sslOption;
+
+  // mediasoup settings
   private _numworker: number;
   private _webRTCTransportSettings: Record<string, any>;
   private _workerSettings: Record<string, any>;
   private _pipeTransportSettings: Record<string, any>;
 
+  // attributes
   private _nextMediasoupWorkerIdx: number = 0;
 
+  // objects
   private app?: Application;
   private webSocketConnection?: WSServer;
   private mediasoupWorkers: Array<Worker> = [];
   private redisControllers?: Record<string, any>;
   private logger: Logger = new Logger();
-
   private _rooms: Map<string, Room>;
+  private redisClient?: RedisClient;
+  private _controllerFactory?: ControllerFactory;
 
-  constructor({ serverOption, mediasoupOption }: EngineOptions) {
+  constructor({ serverOption, mediasoupOption, redisClientOption }: EngineOptions) {
     // server setting
     const { ip, port, ssl } = serverOption;
     this._ip = ip;
     this._port = port || 3001;
     this._ssl = ssl;
+
+    // redis setting
+    this._redisClientOption = redisClientOption;
 
     // mediasoup setting
     const { numWorkers, webRtcTransportSettings, workerSettings, pipeTransportSettings } = mediasoupOption;
@@ -71,7 +71,8 @@ export class ServerEngine {
     this._rooms = new Map();
   }
   public async run() {
-    this.redisControllers = await createRedisController(Controllers);
+    this.redisClient = RedisClient.GetInstance(this._redisClientOption);
+    this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
 
     await this._runMediasoupWorkers();
 
@@ -94,7 +95,9 @@ export class ServerEngine {
 
     this.webSocketConnection.start(server);
 
-    this.redisControllers?.SFUServerController.setSFUServer(`${process.env.DOMAIN}:${this._port}`);
+    const sfuControoler = this._controllerFactory.getControler('SFU');
+
+    sfuControoler!.setSFUServer(`${process.env.DOMAIN}:${this._port}`);
   }
 
   private _runExpressApp() {
