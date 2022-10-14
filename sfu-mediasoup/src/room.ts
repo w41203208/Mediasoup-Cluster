@@ -54,6 +54,11 @@ export class Room {
   private _webRTCTransportSettings: Record<string, any>;
   private _pipeTransportSettings: Record<string, any>;
 
+  /**
+   * 儲存這個room有跟哪些其他 sfu server 建立連線了
+   * key = ip:port
+   * value = pipeTransport.id
+   */
   private _serverAndPipeTransport: Map<string, string>;
 
   constructor({ id, listener, webRTCTransportSettings, pipeTransportSettings }: RoomConstructorInterface) {
@@ -219,12 +224,9 @@ export class Room {
   }
 
   private async createConsumeHandler({ ws, data, response }: Handler) {
-    console.log('data: ', data);
     const { router_id, transport_id, rtpCapabilities, producers } = data;
     const router = this._routers.get(router_id);
     const transport = this._transports.get(transport_id);
-
-    console.log('router: ', router);
     let new_consumerList = [];
     for (let producer_id of producers) {
       if (!router!.canConsume({ producerId: producer_id, rtpCapabilities })) {
