@@ -489,9 +489,11 @@ export class Room {
   }
 
   private async setPreferredLayers({ ws, data, response }: Handler) {
-    const { consumer_id } = data;
-    console.log(`client trans consumer_id ${consumer_id}`)
-    // await consumer.setPreferredLayers({ spatialLayer: ${spatialLayer} })
+    const { consumer_id, spatialLayer } = data;
+    console.log(`client trans consumer_id ${consumer_id}`);
+    const consumer = this._consumers.get(consumer_id);
+    await consumer!.setPreferredLayers(
+      { spatialLayer: spatialLayer })
   }
 
   private async closeTransport({ ws, data, response }: Handler) {

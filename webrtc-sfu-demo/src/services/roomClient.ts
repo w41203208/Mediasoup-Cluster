@@ -339,13 +339,13 @@ export class RoomClient {
           {
             rid: 'r0',
             maxBitrate: 500000,
-            scaleResolutionDownBy: 6,
+            scaleResolutionDownBy: 3,
             scalabilityMode: 'S1T3',
           },
           {
             rid: 'r1',
             maxBitrate: 1000000,
-            scaleResolutionDownBy: 3,
+            scaleResolutionDownBy: 1.5,
             scalabilityMode: 'S1T3',
           },
           {
@@ -370,8 +370,8 @@ export class RoomClient {
       const elem = document.createElement('video');
       elem.srcObject = stream;
       elem.autoplay = true;
-      elem.width = 640;
-      elem.height = 480;
+      elem.width = 1280;
+      elem.height = 720;
       this._localMediaContainer?.appendChild(elem);
     } catch (error: any) {
       console.log(error);
@@ -402,8 +402,8 @@ export class RoomClient {
       elem = document.createElement('video');
       elem.srcObject = stream;
       elem.id = consumer.id;
-      elem.width = 640;
-      elem.height = 480;
+      elem.width = 1280;
+      elem.height = 720;
       elem.autoplay = true;
       this._remoteMediaContainer?.appendChild(elem);
     } else {
@@ -413,15 +413,15 @@ export class RoomClient {
     }
   }
 
-  async setPreferredLayers() {
+  async setPreferredLayers(spatialLayer: number) {
     let consumer_id = null;
     this._consumers.forEach((consumer) => {
       consumer_id = consumer.id;
     })
-    console.log(consumer_id)
     await this._socket.request({
       data: {
         consumer_id: consumer_id,
+        spatialLayer: spatialLayer,
       },
       type: EVENT_FOR_CLIENT.SET_PREFERRED_LAYERS,
     });

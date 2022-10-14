@@ -457,7 +457,7 @@ export class Room {
   setPreferredLayers({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
-    const { consumer_id } = data
+    const { consumer_id, spatialLayer } = data
 
     response({});
 
@@ -466,6 +466,7 @@ export class Room {
         type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
         data: {
           consumer_id: consumer_id,
+          spatialLayer: spatialLayer,
         },
       });
   }
