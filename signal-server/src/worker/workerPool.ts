@@ -43,16 +43,6 @@ export class WorkerPool {
       id = this._workerIndex;
       this._workerIndex++;
     }
-    // else if (this._strategy === 'leastbusy') {
-    //   let min = Infinity;
-    //   for (let i = 0; i < this._size; i++) {
-    //     let worker = this._workers[i];
-    //     if (worker.in_flight_commands.size < min) {
-    //       min = worker.in_flight_commands.size;
-    //       id = i;
-    //     }
-    //   }
-    // }
     console.log('Selected Worker:', id);
     return this._workers[id];
   }

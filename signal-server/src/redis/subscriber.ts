@@ -3,7 +3,6 @@ import { v4 } from 'uuid';
 import { EventEmitter } from '../util/emitter';
 
 export class Subscriber extends EventEmitter {
-  static Instance?: Subscriber;
   private _id?: string;
   private _subscriber?: RedisClientType;
   constructor(reidsClient: RedisClientType) {
@@ -11,7 +10,6 @@ export class Subscriber extends EventEmitter {
     (async () => {
       this._id = v4();
       this._subscriber = reidsClient.duplicate();
-
       await this._subscriber.connect();
       // this._subscriber = createClient({
       //   url: process.env.REDIS_HOST,
@@ -22,14 +20,6 @@ export class Subscriber extends EventEmitter {
   get id() {
     return this._id;
   }
-
-  static createSubscriber(reidsClient: RedisClientType) {
-    if (this.Instance === undefined) {
-      this.Instance = new Subscriber(reidsClient);
-    }
-    return this.Instance;
-  }
-
   subscribe(channelName: string) {
     try {
       this._subscriber!.executeIsolated(async (isolatedClient: any) => {
@@ -37,6 +27,17 @@ export class Subscriber extends EventEmitter {
           const jsonMessage = JSON.parse(message);
           this.emit('handleOnRoom', jsonMessage);
         });
+      });
+    } catch (error) {
+      if (error instanceof WatchError) {
+        console.log(error);
+      }
+    }
+  }
+  unSubscribe(channelName: string) {
+    try {
+      this._subscriber!.executeIsolated(async (isolatedClient: any) => {
+        isolatedClient.unsubscribe(channelName);
       });
     } catch (error) {
       if (error instanceof WatchError) {
