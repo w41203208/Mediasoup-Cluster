@@ -15,6 +15,17 @@ export class RoomController extends ControllerImp {
     }
     return this.Instance;
   }
+  getRoomSubscriberNum(channelName: string): Promise<number> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const data = await this._rc.pubSubNumSub(channelName);
+        resolve(data[channelName]);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   setRoomProducer(id: string, pid: string): Promise<null> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -32,7 +43,7 @@ export class RoomController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         const key = `${id}.producerList`;
-        const data = await this._rc.lRange(id, 0, -1);
+        const data = await this._rc.lRange(key, 0, -1);
         resolve(data);
       } catch (error) {
         console.log(error);

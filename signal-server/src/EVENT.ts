@@ -27,6 +27,7 @@ export const EVENT_FOR_SFU = {
   CONNECT_PIPETRANSPORT: 'connectPipeTransport',
   CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
   CREATE_PIPETRANSPORT_CONSUME: 'createPipeTransportConsume',
+  CLOSE_TRANSPORT: 'closeTransport',
 };
 
 export const EVENT_FROM_SFU = { CONNECT_PIPETRANSPORT: 'connectPipetransport' };
@@ -37,5 +38,7 @@ export const EVENT_FOR_TEST = {
 };
 
 export const EVENT_PUBLISH = {
-  CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
+  CREATE_PIPETRANSPORT_CONSUME: 'createPipeTransportConsume',
+  CREATE_CONSUME: 'createConsume',
+  EVENT_EXECUTE_COMPLETE: 'eventExecuteComplete',
 };

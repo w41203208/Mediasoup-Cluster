@@ -61,6 +61,11 @@ export class Room {
    */
   private _serverAndPipeTransport: Map<string, string>;
 
+  /**
+   * 儲存這個 producer 紀錄已經 pipeToRouter 過
+   */
+  private _alreadyPipeToRouterProudcer: Map<string, string>;
+
   constructor({ id, listener, webRTCTransportSettings, pipeTransportSettings }: RoomConstructorInterface) {
     this._id = id;
     this._listener = listener;
@@ -72,6 +77,7 @@ export class Room {
     this._pipeTransports = new Map();
     this._pipeTransportsRouter;
     this._serverAndPipeTransport = new Map();
+    this._alreadyPipeToRouterProudcer = new Map();
 
     this._webRTCTransportSettings = webRTCTransportSettings;
     this._pipeTransportSettings = pipeTransportSettings;
@@ -491,6 +497,7 @@ export class Room {
      *    ]
      *  }
      */
+
     let pipeTransport = null;
     const pipeTransportId = this._serverAndPipeTransport.get(server_id)!;
     let consumerMap = {} as any;
@@ -503,16 +510,21 @@ export class Room {
         const router = this._routers.get(routerId)!;
         for (let { producerId, rtpCapabilities } of producerInfoArray as Array<any>) {
           if (this._pipeTransportsRouter !== undefined) {
-            await this._connectToOtherRouter(router, this._pipeTransportsRouter, producerId);
-            const consumer = await this.createPipeTransportConsume(pipeTransport, producerId, rtpCapabilities);
+            if (this._alreadyPipeToRouterProudcer.has(producerId)) {
+              continue;
+            } else {
+              this._alreadyPipeToRouterProudcer.set(producerId, producerId);
+              await this._connectToOtherRouter(router, this._pipeTransportsRouter, producerId);
+              const consumer = await this.createPipeTransportConsume(pipeTransport, producerId, rtpCapabilities);
 
-            if (consumer) {
-              consumerMap[server_id].push({
-                producer_id: producerId,
-                remotePipeTransport_id: pipeTransportId,
-                kind: consumer.kind,
-                rtpParameters: consumer.rtpParameters,
-              });
+              if (consumer) {
+                consumerMap[server_id].push({
+                  producer_id: producerId,
+                  remotePipeTransport_id: pipeTransportId,
+                  kind: consumer.kind,
+                  rtpParameters: consumer.rtpParameters,
+                });
+              }
             }
           }
         }
@@ -553,6 +565,7 @@ export class Room {
   private closeTransport(id: string) {
     if (this._transports.has(id)) {
       const transport = this._transports.get(id);
+      console.log('[WebRTCTransport-CloseTransport-Event]：Close transport [%s]', transport?.id);
       transport?.close();
       this._transports.delete(id);
     }

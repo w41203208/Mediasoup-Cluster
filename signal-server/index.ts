@@ -16,6 +16,9 @@ const sslOption = {
 };
 
 const engineOptions = {
+  roomOption: {
+    ip: config.ServerSetting.ip,
+  },
   httpsServerOption: {
     ssl: sslOption,
     ip: config.ServerSetting.listenIp,
