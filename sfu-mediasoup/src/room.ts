@@ -218,15 +218,22 @@ export class Room {
   }
 
   private async connectWebRTCTranportHandler({ ws, data, response }: Handler) {
-    const { router_id, transport_id, dtlsParameters } = data;
-    const transport = this._transports.get(transport_id);
-    await transport?.connect({
-      dtlsParameters: dtlsParameters,
-    });
+    try {
+      const { router_id, transport_id, dtlsParameters } = data;
+      const transport = this._transports.get(transport_id);
+      await transport?.connect({
+        dtlsParameters: dtlsParameters,
+      });
 
-    response({
-      data: 'Successfully',
-    });
+      response({
+        data: 'Successfully',
+      });
+    } catch (error) {
+      new Error('WebRTCTransport connect is failed!!!');
+      response({
+        data: 'Failed',
+      });
+    }
   }
 
   private async createConsumeHandler({ ws, data, response }: Handler) {

@@ -414,7 +414,9 @@ export class Room {
       .then(({ data }) => {
         response({
           type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT,
-          data: data,
+          data: {
+            msg: data
+          },
         });
       });
   }

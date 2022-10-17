@@ -159,3 +159,13 @@
 //     return enObj;
 //   }
 // }
+
+class Test {
+  constructor(value: number) {
+    return {
+      test: value,
+    };
+  }
+}
+
+const test = Test(1);

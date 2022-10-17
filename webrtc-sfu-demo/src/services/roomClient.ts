@@ -227,6 +227,7 @@ export class RoomClient {
       });
       /* Register sendTransport listen event */
       this._sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+        console.log(dtlsParameters);
         try {
           const { data } = await this._socket.request({
             data: {
