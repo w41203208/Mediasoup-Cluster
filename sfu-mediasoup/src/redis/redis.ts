@@ -8,7 +8,8 @@ export async function createRedisController(controllers: ControllerImp[]): Promi
         url: process.env.REDIS_HOST,
       });
       await client.connect();
-      client.select(2);
+      //選擇redis db
+      client.select(1);
       let c = {} as any;
       controllers.forEach((controller: any) => {
         c[controller.name] = new controller(client);
