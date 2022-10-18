@@ -159,13 +159,10 @@
 //     return enObj;
 //   }
 // }
+import { Log } from './src/util/Log';
 
-class Test {
-  constructor(value: number) {
-    return {
-      test: value,
-    };
-  }
-}
-
-const test = Test(1);
+const log = new Log();
+log.debug('HIHI %s %d %d', 'test', 1, 2);
+log.error('test');
+log.warn('test');
+log.info('test');
