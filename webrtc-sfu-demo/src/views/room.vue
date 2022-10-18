@@ -9,6 +9,7 @@
     <button class="m-btn">CloseAudio</button>
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
+    <button class="m-btn" @click="TESTNET">TESTNET</button>
   </div>
   <div class="mx-3 p-5">
     <h1 class="text-lg font-semibold">Local Media</h1>
@@ -37,7 +38,7 @@ export default defineComponent({
     const route = useRoute();
     const selectLayer = ref("3");
     const layers = reactive([
-      { val: "3", item: "select Resolution" },
+      { val: "3", item: "Select Resolution" },
       { val: "2", item: "1080p" },
       { val: "1", item: "720p" },
       { val: "0", item: "360p" },
@@ -86,6 +87,9 @@ export default defineComponent({
     const handleClickEvtTest2 = () => {
       rcRef.value.test2();
     };
+    const TESTNET = () => {
+      rcRef.value.testNet();
+    };
 
     onMounted(() => {
       const rc = rcRef.value;
@@ -118,6 +122,7 @@ export default defineComponent({
       handleClickEvtExit,
       handleClickEvtTest1,
       handleClickEvtTest2,
+      TESTNET,
       setPreferredLayers,
     };
   },

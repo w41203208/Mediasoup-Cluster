@@ -87,5 +87,5 @@ export class SFUServerController extends ControllerImp {
     });
   }
 
-  set() {}
+  set() { }
 }

@@ -1,4 +1,4 @@
-FROM :18.04
+FROM ubuntu:18.04
 
 WORKDIR /home/mediasoup
 
@@ -25,7 +25,4 @@ ENV PATH="/root/.nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
 RUN node --version
 RUN npm --version
 RUN apt update && apt install yarn -y
-RUN npm install -g ts-node
-RUN npm install -g nodemon
-RUN npm install -g debug
-
+RUN npm install -g ts-node && npm install -g nodemon && npm install -g debug && npm install
