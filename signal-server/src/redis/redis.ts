@@ -1,5 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
 import { RedisClientOptions } from '../type';
+import { config } from 'config';
 
 export class RedisClient {
   static Instance?: RedisClient;
@@ -10,6 +11,7 @@ export class RedisClient {
         url: option.redisHost,
       });
       await this.client.connect();
+      this.client.select(parseInt(config.ServerSetting.redisDBIndex));
     })();
   }
 

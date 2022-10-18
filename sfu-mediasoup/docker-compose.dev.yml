@@ -21,6 +21,7 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT}
       - MEDIASOUP_MAX_PORT=${MAX_PORT}
       - REDIS_HOST=${REDIS_HOST}
+      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
       - .:/home/mediasoup
     stdin_open: true
@@ -46,6 +47,7 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT_2}
       - MEDIASOUP_MAX_PORT=${MAX_PORT_2}
       - REDIS_HOST=${REDIS_HOST}
+      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
       - .:/home/mediasoup
     stdin_open: true

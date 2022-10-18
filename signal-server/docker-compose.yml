@@ -16,6 +16,7 @@ services:
     environment:
       - LIMIT=${LIMIT_1}
       - REDIS_HOST=${REDIS_HOST_1}
+      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
       - PORT=${PORT_1}
       - CRYPTO_KEY=${CRYPTO_KEY_1}
     volumes:
@@ -36,6 +37,7 @@ services:
     environment:
       - LIMIT=${LIMIT_2}
       - REDIS_HOST=${REDIS_HOST_2}
+      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
       - PORT=${PORT_2}
       - CRYPTO_KEY=${CRYPTO_KEY_2}
     volumes:

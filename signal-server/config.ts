@@ -8,6 +8,7 @@ export const config = {
     sslKey: './ssl/key.pem',
     cryptoKey: process.env.CRYPTO_KEY!,
     redisHost: process.env.REDIS_HOST!,
+    redisDBIndex: process.env.REDIS_DB_INDEX!,
   },
   MediasoupSetting: {
     router: {
