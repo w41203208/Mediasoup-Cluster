@@ -158,7 +158,7 @@ export class ServerEngine {
       console.log('User [%s] choose [%s] sfuserver.', peer.id, ip_port);
 
       const localServerId = ip_port;
-      const localServerSocket = await this.sfuServerConnection!.connectToSFUServer("192.168.1.103:20000", room_id);
+      const localServerSocket = await this.sfuServerConnection!.connectToSFUServer(localServerId, room_id);
 
 
       // new SFUServer，SFUServer 添加到 room
