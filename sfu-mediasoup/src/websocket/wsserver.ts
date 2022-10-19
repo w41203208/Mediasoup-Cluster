@@ -1,7 +1,6 @@
 import { EventEmitter } from '../emitter';
 import { Server } from 'https';
 import { WebSocketServer, WebSocket } from 'ws';
-import { Logger } from '../util/logger';
 import { IncomingMessage } from 'http';
 import { WSTransport } from './wstransport';
 const ws = require('ws');
@@ -9,16 +8,12 @@ const ws = require('ws');
 export class WSServer extends EventEmitter {
   private _disconnected: boolean = true;
   private _socket?: WebSocketServer;
-
-  private logger: Logger;
   constructor() {
     super();
-    this.logger = new Logger();
   }
 
   get socket() {
     if (!!this._socket || !this._disconnected) {
-      this.logger.info('Websocket is connected!');
       return;
     }
     return this._socket!;
@@ -30,9 +25,7 @@ export class WSServer extends EventEmitter {
     }
     const socket = (this._socket = new ws.Server({ server }));
 
-    socket.on('open', () => {
-      this.logger.info('Websocket is connected!');
-    });
+    socket.on('open', () => {});
     socket.on('connection', (ws: WebSocket, incomingMessage: IncomingMessage) => {
       const url = this.urlParse(incomingMessage.url);
       this.emit(

@@ -3,7 +3,6 @@ import { WebSocket } from 'ws';
 import { WSServer } from './websocket/index';
 import { Application, Request, Response } from 'express';
 import { Worker, Router, Transport, Consumer, Producer } from 'mediasoup/node/lib/types';
-import { Logger } from './util/logger';
 import { sslOption, EngineOptions, RouterOptions, RedisClientOptions } from './type.engine';
 
 import { RedisClient } from './redis/redis';
@@ -46,7 +45,6 @@ export class ServerEngine {
   private webSocketConnection?: WSServer;
   private mediasoupWorkers: Array<Worker> = [];
   private redisControllers?: Record<string, any>;
-  private logger: Logger = new Logger();
   private _rooms: Map<string, Room>;
   private redisClient?: RedisClient;
   private _controllerFactory?: ControllerFactory;
@@ -122,8 +120,6 @@ export class ServerEngine {
   }
 
   private async _runMediasoupWorkers() {
-    this.logger.info(`Running ${this._numworker} mediasoup Workers....`);
-
     for (let i = 0; i < this._numworker; i++) {
       const worker: Worker = await mediasoup.createWorker({
         logLevel: this._workerSettings.logLevel,
@@ -131,9 +127,7 @@ export class ServerEngine {
         rtcMinPort: Number(this._workerSettings.rtcMinPort),
         rtcMaxPort: Number(this._workerSettings.rtcMaxPort),
       });
-      worker.on('@success', () => {
-        this.logger.info(`Number ${i} mediasoup Worker is created`);
-      });
+      worker.on('@success', () => {});
 
       this.mediasoupWorkers.push(worker);
     }

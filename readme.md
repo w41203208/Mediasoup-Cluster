@@ -61,6 +61,8 @@ Release：192.168.1.98:30000、192.168.1.98:20000 -> 這裡要修改 Signal Serv
 
 - rtpCapability - consumer
 
-- producer：根據使用者創建的 track ortc 解析，產生 rtpParameters，然後 dtlsrole 是 client 端的 peer 為 server，mediasoup peer 為 client
+- producer：根據使用者創建的 track ortc 解析，產生 rtpParameters。
 
-- consumer：根據 rtpCapability 來創建，dtlsRole 跟上面應該相反
+- consumer：根據 rtpCapability 來創建
+
+- dtlsRole：consumer and producer is all server

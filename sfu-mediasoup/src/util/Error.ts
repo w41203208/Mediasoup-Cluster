@@ -4,7 +4,7 @@ enum ErrorType {
   REQUEST_ERROR = 'requestError',
 }
 
-type ErrorHandlerFunc = (text: string) => void;
+export type ErrorHandlerFunc = (text: string) => void;
 
 export interface ErrorHandler {
   errorHandler: ErrorHandlerFunc;

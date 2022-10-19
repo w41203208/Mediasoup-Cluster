@@ -3,7 +3,7 @@ import { WSServer } from './connect/WSServer';
 import { Peer } from './core/Peer';
 import { Room } from './core/Room';
 import { RedisClient } from './redis/redis';
-import { EngineOptions, HttpsServerOptions, RedisClientOptions, RoomOptions } from './type';
+import { EngineOptions, HttpsServerOptions, RedisClientOptions, RoomOptions } from './type.engine';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { config } from '../config';
 import { SFUServer } from './core/SFUServer';
@@ -13,9 +13,11 @@ import { PlayerController, RoomController } from './redis/controller';
 import { v4 } from 'uuid';
 import { CryptoCore } from './util/CryptoCore';
 
-import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+// temp
+import { Log } from './util/Log';
+import { ErrorHandler } from './util/Error';
 
-export class ServerEngine {
+export class ServerEngine implements ErrorHandler {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
   private _redisClientOption: RedisClientOptions;
@@ -32,6 +34,8 @@ export class ServerEngine {
 
   /* redisClient */
   private redisClient?: RedisClient;
+
+  private log: Log = Log.GetInstance();
 
   constructor({ httpsServerOption, redisClientOption, roomOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
@@ -84,36 +88,41 @@ export class ServerEngine {
   }
 
   async handleCreateRoom(data: any, response: Function) {
-    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
-    const { room_name, peer_id } = data;
+    try {
+      if (!data.peer_id) {
+        throw new Error('no input peer_id parameters');
+      } else if (!data.room_name) {
+        throw new Error('no input room_name parameters');
+      }
+      const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
 
-    console.log('User [%s] create room [%s].', peer_id, room_name);
-    const room_id = room_name + '-' + Date.now() + '-' + v4();
-    const rRoom = await RoomController.setRoom(room_id, room_name);
+      this.log.info('User [%s] create room [%s].', data.peer_id, data.room_name);
+      const room_id = data.room_name + '-' + Date.now() + '-' + v4();
+      const rRoom = await RoomController.setRoom(room_id, data.room_name);
 
-    let responseData;
-    if (rRoom) {
-      rRoom.host = {
-        id: peer_id,
-        producerIdList: [],
-      };
-      await RoomController.updateRoom(rRoom);
-      responseData = {
-        msg: 'Successfully create!',
-        room_id: room_id,
-        state: true,
-      };
-    } else {
-      responseData = {
-        msg: 'already exists!',
-        state: false,
-      };
+      let responseData;
+      if (rRoom) {
+        rRoom.host = {
+          id: data.peer_id,
+          producerIdList: [],
+        };
+        await RoomController.updateRoom(rRoom);
+        responseData = {
+          msg: 'Successfully create!',
+          room_id: room_id,
+          state: true,
+        };
+      } else {
+        throw new Error('room has already exists');
+      }
+
+      response({
+        type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
+        data: responseData,
+      });
+    } catch (e) {
+      console.log(e);
     }
-
-    response({
-      type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
-      data: responseData,
-    });
   }
 
   async handleJoinRoom(data: any, response: Function) {
@@ -289,25 +298,24 @@ export class ServerEngine {
 
   async getAllRoom() {
     const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
-    const temp_list = await RoomController.getAllRoom()
-    const roomList: { roomId: string; roomName: string; roomUserSize: number; }[] = [];
-    temp_list.forEach((values: {
-      playerList: Array<string>; id: string; name: string;
-    }) => {
+    const temp_list = await RoomController.getAllRoom();
+    const roomList: { roomId: string; roomName: string; roomUserSize: number }[] = [];
+    temp_list.forEach((values: { playerList: Array<string>; id: string; name: string }) => {
       roomList.push({
-        'roomId': values.id,
-        'roomName': values.name,
-        'roomUserSize': values.playerList.length
-      })
-    })
+        roomId: values.id,
+        roomName: values.name,
+        roomUserSize: values.playerList.length,
+      });
+    });
     return roomList;
   }
 
   deleteRoom(id: string) {
     this.roomList.delete(id);
   }
-}
 
+  errorHandler(text: string): void {}
+}
 
 // import { TEST } from './worker/workerTest';
 

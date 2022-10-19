@@ -57,7 +57,7 @@ export class Socket extends EventEmitter {
   close() {
     this._socket?.close();
   }
-  _handlerRequest(_data: any) { }
+  _handlerRequest(_data: any) {}
 
   _handlerResponse(_data: any) {
     const { id, type, data } = _data;
@@ -70,12 +70,12 @@ export class Socket extends EventEmitter {
     const { type, data } = _data;
     switch (type) {
       case 'heartbeatCheck':
-        if (data === 'ping') {
+        if (data.msg === 'ping') {
           let sendData: SendData = {
             type: 'heartbeatCheck',
-            data: 'pong',
+            data: { msg: 'pong' },
           };
-          this.notify(sendData)
+          this.notify(sendData);
         }
         break;
       case 'roomState':
