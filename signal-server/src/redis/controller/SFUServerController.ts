@@ -1,6 +1,5 @@
 import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
-import { RedisClient } from '../redis';
 
 export class SFUServerController extends ControllerImp {
   static Instance?: SFUServerController;

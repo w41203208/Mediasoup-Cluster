@@ -5,9 +5,6 @@ services:
     image: sfuserver
     container_name: ${CONTAINER_NAME}
     working_dir: /home/mediasoup
-    # networks:
-    #   ithelp_application:
-    #     ipv4_address: ${IP}
     ports:
       - '${PORT}:${PORT}/tcp'
       - '${PORT}:${PORT}/udp'
@@ -23,7 +20,9 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
-      - .:/home/mediasoup
+      - ./src:/home/mediasoup/src
+      - ./config.ts:/home/mediasoup/config.ts
+      - ./index.ts:/home/mediasoup/index.ts
     stdin_open: true
     tty: true
     command: bash -c "npm run start"
@@ -31,9 +30,6 @@ services:
     image: sfuserver
     container_name: ${CONTAINER_NAME_2}
     working_dir: /home/mediasoup
-    # networks:
-    #   ithelp_application:
-    #     ipv4_address: ${IP_2}
     ports:
       - '${PORT_2}:${PORT_2}/tcp'
       - '${PORT_2}:${PORT_2}/udp'
@@ -49,15 +45,9 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
-      - .:/home/mediasoup
+      - ./src:/home/mediasoup/src
+      - ./config.ts:/home/mediasoup/config.ts
+      - ./index.ts:/home/mediasoup/index.ts
     stdin_open: true
     tty: true
     command: bash -c "npm run start"
-# networks:
-#   ithelp_application:
-#     driver: bridge
-#     ipam:
-#       driver: default
-#       config:
-#         - subnet: 172.28.0.0/16
-#           gateway: 172.28.0.1

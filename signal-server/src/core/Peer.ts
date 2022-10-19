@@ -63,7 +63,7 @@ export class Peer extends EventEmitter {
       switch (type) {
         case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
           try {
-            const deUserId = this.cryptoCore.decipherIv(data.peer_id)
+            const deUserId = this.cryptoCore.decipherIv(data.peer_id);
             this._id = deUserId;
             data.peer_id = deUserId;
             this._listener!.handlePeerRequest(type, data, response);
@@ -73,7 +73,7 @@ export class Peer extends EventEmitter {
           break;
         case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
           try {
-            const deUserId = this.cryptoCore.decipherIv(data.peer_id)
+            const deUserId = this.cryptoCore.decipherIv(data.peer_id);
             this._id = deUserId;
             data.peer = this;
             this._listener!.handlePeerRequest(type, data, response);
@@ -209,7 +209,7 @@ export class Peer extends EventEmitter {
       this._bomb!.countDownStart();
       this._ws?.notify({
         type: 'heartbeatCheck',
-        data: 'ping',
+        data: { msg: 'ping' },
       });
     }, 10 * 1000);
   }

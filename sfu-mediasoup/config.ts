@@ -28,6 +28,7 @@ module.exports = {
     listenPort: process.env.PORT || 8585,
     sslCert: './ssl/cert.pem',
     sslKey: './ssl/key.pem',
+    redisHost: process.env.REDIS_HOST!,
   },
   MediasoupSetting: {
     numWorkers: 3, //Object.keys(os.cpus()).length

@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
-import { RedisClientOptions } from '../type';
 import { config } from '../../config';
+import { RedisClientOptions } from '../type.engine';
 
 export class RedisClient {
   static Instance?: RedisClient;
@@ -9,6 +9,10 @@ export class RedisClient {
     (async () => {
       this.client = createClient({
         url: option.redisHost,
+        isolationPoolOptions: {
+          max: 10, // maximum size of the pool
+          min: 2, // minimum size of the pool
+        },
       });
       await this.client.connect();
       this.client.select(parseInt(config.ServerSetting.redisDBIndex));

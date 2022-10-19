@@ -2,6 +2,7 @@ import { config } from './config';
 const fs = require('fs');
 const path = require('path');
 
+import { Log } from './src/util/Log';
 import { ServerEngine } from './src/engine';
 
 // // 要讓 Node 環境允許未授權的憑證，不然就是要使用以下方法，讓 Node 不會拒絕未授權憑證。
@@ -16,6 +17,9 @@ const sslOption = {
 };
 
 const engineOptions = {
+  roomOption: {
+    ip: config.ServerSetting.ip,
+  },
   httpsServerOption: {
     ssl: sslOption,
     ip: config.ServerSetting.listenIp,
@@ -27,5 +31,10 @@ const engineOptions = {
   },
 };
 
+const log = Log.GetInstance();
+
+log.info('Server IP： %s', engineOptions.httpsServerOption.ip);
+log.info('Server Port： %s', engineOptions.httpsServerOption.port);
+log.info('Redis Info： %s', engineOptions.redisClientOption.redisHost);
 const engine = new ServerEngine(engineOptions);
 engine.run();

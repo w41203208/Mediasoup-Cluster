@@ -3,11 +3,11 @@ import cors from 'cors';
 import { Application, Request, Response } from 'express';
 import { createServer } from 'https';
 import { ServerEngine } from '../engine';
-import { HttpsServerOptions, sslOption } from '../type';
+import { HttpsServerOptions, sslOption } from '../type.engine';
 import bodyParser from 'body-parser';
 import { CryptoCore } from '../util/CryptoCore';
 import { IncomingMessage } from 'http';
-import { RoomController } from '../redis/controller';
+import { Log } from '../util/Log';
 
 export class HttpsServer {
   private _ip: string;
@@ -17,6 +17,8 @@ export class HttpsServer {
   private app?: Application;
   private _listener: ServerEngine;
   private cryptoCore: CryptoCore;
+
+  private log: Log = Log.GetInstance();
 
   constructor({ ip, port, ssl }: HttpsServerOptions, listener: ServerEngine, cryptoCore: CryptoCore) {
     this._ip = ip;
@@ -42,7 +44,7 @@ export class HttpsServer {
     const httpsServer = createServer(this._ssl, this.app);
 
     const server = httpsServer.listen(this._port, this._ip, () => {
-      console.log(`Server is listening at https://${this._ip}:${this._port}`);
+      this.log.info('Server is listening at https://%s:%s', this._ip, this._port);
     });
 
     return server;
@@ -66,11 +68,14 @@ export class HttpsServer {
           const parameter = this.urlParse(incomingMessage.url);
           this.cryptoCore.decipherIv(parameter);
 
-          this._listener.getAllRoom().then(response => {
-            return res.send(JSON.stringify(response));
-          }).catch(err => {
-            console.log(err);
-          })
+          this._listener
+            .getAllRoom()
+            .then((response) => {
+              return res.send(JSON.stringify(response));
+            })
+            .catch((err) => {
+              console.log(err);
+            });
         } catch (e) {
           console.log(`${e}`);
           res.status(403).json({ e });
@@ -83,7 +88,7 @@ export class HttpsServer {
     if (url === undefined) {
       return;
     }
-    const matchAns = url.split('/?id=')
+    const matchAns = url.split('/?id=');
     if (!matchAns) {
       return;
     }

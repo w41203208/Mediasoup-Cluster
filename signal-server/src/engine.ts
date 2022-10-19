@@ -3,7 +3,7 @@ import { WSServer } from './connect/WSServer';
 import { Peer } from './core/Peer';
 import { Room } from './core/Room';
 import { RedisClient } from './redis/redis';
-import { EngineOptions, HttpsServerOptions, RedisClientOptions } from './type';
+import { EngineOptions, HttpsServerOptions, RedisClientOptions, RoomOptions } from './type.engine';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { config } from '../config';
 import { SFUServer } from './core/SFUServer';
@@ -13,12 +13,15 @@ import { PlayerController, RoomController } from './redis/controller';
 import { v4 } from 'uuid';
 import { CryptoCore } from './util/CryptoCore';
 
-import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+// temp
+import { Log } from './util/Log';
+import { ErrorHandler } from './util/Error';
 
-export class ServerEngine {
+export class ServerEngine implements ErrorHandler {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
   private _redisClientOption: RedisClientOptions;
+  private _roomOption: RoomOptions;
 
   /* roomlist */
   private _roomList: Map<string, Room>;
@@ -32,9 +35,12 @@ export class ServerEngine {
   /* redisClient */
   private redisClient?: RedisClient;
 
-  constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
+  private log: Log = Log.GetInstance();
+
+  constructor({ httpsServerOption, redisClientOption, roomOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
     this._redisClientOption = redisClientOption;
+    this._roomOption = roomOption;
 
     this._roomList = new Map();
   }
@@ -82,36 +88,41 @@ export class ServerEngine {
   }
 
   async handleCreateRoom(data: any, response: Function) {
-    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
-    const { room_name, peer_id } = data;
+    try {
+      if (!data.peer_id) {
+        throw new Error('no input peer_id parameters');
+      } else if (!data.room_name) {
+        throw new Error('no input room_name parameters');
+      }
+      const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
 
-    console.log('User [%s] create room [%s].', peer_id, room_name);
-    const room_id = Date.now() + ':' + v4();
-    const rRoom = await RoomController.setRoom(room_id, room_name);
+      this.log.info('User [%s] create room [%s].', data.peer_id, data.room_name);
+      const room_id = data.room_name + '-' + Date.now() + '-' + v4();
+      const rRoom = await RoomController.setRoom(room_id, data.room_name);
 
-    let responseData;
-    if (rRoom) {
-      rRoom.host = {
-        id: peer_id,
-        producerIdList: [],
-      };
-      await RoomController.updateRoom(rRoom);
-      responseData = {
-        msg: 'Successfully create!',
-        room_id: room_id,
-        state: true,
-      };
-    } else {
-      responseData = {
-        msg: 'already exists!',
-        state: false,
-      };
+      let responseData;
+      if (rRoom) {
+        rRoom.host = {
+          id: data.peer_id,
+          producerIdList: [],
+        };
+        await RoomController.updateRoom(rRoom);
+        responseData = {
+          msg: 'Successfully create!',
+          room_id: room_id,
+          state: true,
+        };
+      } else {
+        throw new Error('room has already exists');
+      }
+
+      response({
+        type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
+        data: responseData,
+      });
+    } catch (e) {
+      console.log(e);
     }
-
-    response({
-      type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
-      data: responseData,
-    });
   }
 
   async handleJoinRoom(data: any, response: Function) {
@@ -129,6 +140,7 @@ export class ServerEngine {
         room = this.roomList.get(room_id)!;
       } else {
         room = new Room({
+          roomOption: this._roomOption,
           roomId: rRoom.id,
           roomName: rRoom.name,
           roomOwner: rRoom.host.id,
@@ -188,113 +200,6 @@ export class ServerEngine {
 
       // update room data in redis
       await RoomController.updateRoom(rRoom);
-
-      // serversocketevent
-      // localServerSocket
-      //   .request({
-      //     data: {
-      //       room_id: room_id,
-      //       mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
-      //     },
-      //     type: EVENT_FOR_SFU.CREATE_ROUTER,
-      //   })
-      //   .then(async ({ data }) => {
-      //     const { router_id } = data;
-      //     console.log('User [%s] get router [%s]', peer.id, router_id);
-
-      //     room.addRouter(router_id);
-      //     peer.routerId = router_id;
-      //     rPeer.routerId = router_id;
-
-      //     await PlayerController.updatePlayer(rPeer);
-
-      //     /* create and connect pipeTransport */
-      //     // 找其他 sfu server
-      //     const remoteServerSocketIdList = rRoom.serverList.filter((serverId: string) => {
-      //       if (serverId !== localServerId) {
-      //         return serverId;
-      //       }
-      //     });
-      //     // log other sfu servr
-      //     console.log(remoteServerSocketIdList);
-      //     // if sfu server list not 0 size
-      //     if (remoteServerSocketIdList.length !== 0) {
-      //       remoteServerSocketIdList.map(async (serverId: string) => {
-      //         const remoteServerSocket = await this.sfuServerConnection!.connectToSFUServer(serverId, room_id);
-      //         console.log('test ', peer.id);
-      //         Promise.all([
-      //           remoteServerSocket.request({
-      //             data: {
-      //               server_id: localServerId,
-      //               mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
-      //             },
-      //             type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
-      //           }),
-      //           localServerSocket.request({
-      //             data: {
-      //               server_id: serverId,
-      //               mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
-      //             },
-      //             type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
-      //           }),
-      //         ])
-      //           .then(([remoteConnectionData, localConnectionData]) => {
-      //             const { transport_id: remoteTransportId, state: remoteState, ...remoteRest } = remoteConnectionData.data;
-      //             const { transport_id: localTransportId, state: localState, ...localRest } = localConnectionData.data;
-      //             /* 這裡理論state 回傳只會兩個都是 false or 都是 true */
-      //             // console.log('remoteState', remoteState);
-      //             // console.log('localState', localState);
-      //             let promiseList = [];
-      //             if (!remoteState) {
-      //               promiseList.push(
-      //                 remoteServerSocket.request({
-      //                   data: {
-      //                     localTransport_id: remoteTransportId,
-      //                     remoteTransport_id: localTransportId,
-      //                     server_id: localServerId,
-      //                     ...localRest,
-      //                   },
-      //                   type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
-      //                 })
-      //               );
-      //             }
-      //             if (!localState) {
-      //               promiseList.push(
-      //                 localServerSocket.request({
-      //                   data: {
-      //                     localTransport_id: localTransportId,
-      //                     remoteTransport_id: remoteTransportId,
-      //                     server_id: serverId,
-      //                     ...remoteRest,
-      //                   },
-      //                   type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
-      //                 })
-      //               );
-      //             }
-      //             return Promise.all(promiseList);
-      //           })
-      //           .then((data) => {
-      //             responseData = {
-      //               room_id: room.id,
-      //               room_user_size: room.getAllPeers().size,
-      //             };
-      //             response({
-      //               type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
-      //               data: responseData,
-      //             });
-      //           });
-      //       });
-      //     } else {
-      //       responseData = {
-      //         room_id: room.id,
-      //         room_user_size: room.getAllPeers().size,
-      //       };
-      //       response({
-      //         type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
-      //         data: responseData,
-      //       });
-      //     }
-      //   });
       localServerSocket
         .request({
           data: {
@@ -349,8 +254,6 @@ export class ServerEngine {
                 promiseList.push(
                   remoteServerSocket.request({
                     data: {
-                      localTransport_id: remoteTransportId,
-                      remoteTransport_id: localTransportId,
                       server_id: localServerId,
                       ...localRest,
                     },
@@ -362,8 +265,6 @@ export class ServerEngine {
                 promiseList.push(
                   localServerSocket.request({
                     data: {
-                      localTransport_id: localTransportId,
-                      remoteTransport_id: remoteTransportId,
                       server_id: serverId,
                       ...remoteRest,
                     },
@@ -372,8 +273,10 @@ export class ServerEngine {
                 );
               }
               const promiseData = await Promise.all(promiseList);
+              console.log('Join Room Finanlly!!!!!');
             });
           }
+          console.log('Join Room Return!!!!!');
           responseData = {
             room_id: room.id,
             room_user_size: room.getAllPeers().size,
@@ -396,25 +299,24 @@ export class ServerEngine {
 
   async getAllRoom() {
     const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
-    const temp_list = await RoomController.getAllRoom()
-    const roomList: { roomId: string; roomName: string; roomUserSize: number; }[] = [];
-    temp_list.forEach((values: {
-      playerList: Array<string>; id: string; name: string;
-    }) => {
+    const temp_list = await RoomController.getAllRoom();
+    const roomList: { roomId: string; roomName: string; roomUserSize: number }[] = [];
+    temp_list.forEach((values: { playerList: Array<string>; id: string; name: string }) => {
       roomList.push({
-        'roomId': values.id,
-        'roomName': values.name,
-        'roomUserSize': values.playerList.length
-      })
-    })
+        roomId: values.id,
+        roomName: values.name,
+        roomUserSize: values.playerList.length,
+      });
+    });
     return roomList;
   }
 
   deleteRoom(id: string) {
     this.roomList.delete(id);
   }
-}
 
+  errorHandler(text: string): void {}
+}
 
 // import { TEST } from './worker/workerTest';
 

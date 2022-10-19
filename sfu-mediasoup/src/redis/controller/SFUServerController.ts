@@ -1,13 +1,20 @@
-import { ControllerImp } from './ControllerImp';
+import { ControllerImp } from '../ControllerImp';
 
 import { RedisClientType } from 'redis';
 
 export class SFUServerController extends ControllerImp {
+  static Instance?: SFUServerController;
   private _rc: RedisClientType;
   constructor(redisClient: RedisClientType) {
     super();
     this._rc = redisClient;
     // this.testInit();
+  }
+  static GetInstance(rdc: RedisClientType) {
+    if (this.Instance === undefined) {
+      this.Instance = new SFUServerController(rdc);
+    }
+    return this.Instance;
   }
 
   getSFUServer(id: string) {

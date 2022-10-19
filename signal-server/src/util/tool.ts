@@ -1,8 +1,13 @@
-type FunctionExcute = ([key, value]: [key: string, value: any]) => {};
+function stringToArray8(str: string): Uint8Array {
+  const enc = new TextEncoder();
+  const transformString = enc.encode(str);
 
-export const test = (obj: any, excute: FunctionExcute) => {
-  Object.entries(obj).forEach(excute);
-  return function () {
-    return;
-  };
-};
+  const buffer = new ArrayBuffer(str.length);
+  const view = new Uint8Array(buffer);
+
+  view.forEach((v, index) => {
+    view[index] = transformString[index];
+  });
+
+  return view;
+}

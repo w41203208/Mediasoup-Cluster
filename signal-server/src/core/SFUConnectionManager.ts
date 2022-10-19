@@ -14,7 +14,7 @@ export class SFUConnectionManager {
 
   private listener: ServerEngine;
   constructor(listener: ServerEngine, controllerFactroy: ControllerFactory) {
-    if (Number(process.env.PORT) === 9998 && Number(process.env.PORT) === 9997) {
+    if (Number(process.env.PORT) === 9998 || Number(process.env.PORT) === 9997) {
       this.peopleLimit = 10000;
     } else {
       this.peopleLimit = 2;

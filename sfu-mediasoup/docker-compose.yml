@@ -22,11 +22,13 @@ services:
       - MEDIASOUP_MAX_PORT=${MAX_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
-    # volumes:
-      # - .:/home/mediasoup
-    # stdin_open: true
-    # tty: true
-    # command: bash -c "npm install && npm run start"
+    volumes:
+      - ./src:/home/mediasoup/src
+      - ./config.ts:/home/mediasoup/config.ts
+      - ./index.ts:/home/mediasoup/index.ts
+    stdin_open: true
+    tty: true
+    command: bash -c "npm run start"
   webrtcsfu2:
     image: sfuserver
     container_name: ${CONTAINER_NAME_2}
@@ -49,7 +51,9 @@ services:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
-      - .:/home/mediasoup
+      - ./src:/home/mediasoup/src
+      - ./config.ts:/home/mediasoup/config.ts
+      - ./index.ts:/home/mediasoup/index.ts
     stdin_open: true
     tty: true
     command: bash -c "npm run start"

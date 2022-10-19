@@ -1,6 +1,5 @@
 import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
-import { RedisClient } from '../redis';
 
 export class RoomController extends ControllerImp {
   static Instance?: RoomController;
@@ -14,6 +13,42 @@ export class RoomController extends ControllerImp {
       this.Instance = new RoomController(rdc);
     }
     return this.Instance;
+  }
+  getRoomSubscriberNum(channelName: string): Promise<number> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const data = await this._rc.pubSubNumSub(channelName);
+        resolve(data[channelName]);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  setRoomProducer(id: string, pid: string): Promise<null> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.producerList`;
+        await this._rc.lPush(key, pid);
+        resolve(null);
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  getRoomProducer(id: string): Promise<Array<string>> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.producerList`;
+        const data = await this._rc.lRange(key, 0, -1);
+        resolve(data);
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
   }
 
   setRoom(id: string, name: string): Promise<false | Record<string, any>> {
@@ -67,7 +102,7 @@ export class RoomController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         const data = await this._rc.hGetAll('Room');
-        data
+        data;
         const temp_list: Array<string> = [];
         Object.entries(data).forEach(([key, value]) => {
           temp_list.push(this.transformToJS(value));

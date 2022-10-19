@@ -4,8 +4,7 @@ import { Server } from 'https';
 import { WSTransport } from './WSTransport';
 import { IncomingMessage } from 'http';
 import { CryptoCore } from '../util/CryptoCore';
-
-const { EventEmitter } = require('../util/emitter');
+import { EventEmitter } from '../util/emitter';
 
 export class WSServer extends EventEmitter {
   private _wsServer?: WebSocketServer;
@@ -20,7 +19,7 @@ export class WSServer extends EventEmitter {
     socket.on('connection', (ws: WebSocket, incomingMessage: IncomingMessage) => {
       try {
         const parameter = this.urlParse(incomingMessage.url);
-        this.cryptoCore.decipherIv(parameter)
+        this.cryptoCore.decipherIv(parameter);
         console.log('Has Someone connected in!');
         this.emit('connection', () => {
           const transport = new WSTransport(ws);
@@ -37,7 +36,7 @@ export class WSServer extends EventEmitter {
     if (url === undefined) {
       return;
     }
-    const matchAns = url.split('/?token=')
+    const matchAns = url.split('/?token=');
     if (!matchAns) {
       return;
     }
