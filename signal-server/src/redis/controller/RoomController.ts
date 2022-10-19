@@ -1,6 +1,5 @@
 import { ControllerImp } from '../ControllerImp';
 import { RedisClientType } from 'redis';
-import { RedisClient } from '../redis';
 
 export class RoomController extends ControllerImp {
   static Instance?: RoomController;
@@ -103,7 +102,7 @@ export class RoomController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         const data = await this._rc.hGetAll('Room');
-        data
+        data;
         const temp_list: Array<string> = [];
         Object.entries(data).forEach(([key, value]) => {
           temp_list.push(this.transformToJS(value));

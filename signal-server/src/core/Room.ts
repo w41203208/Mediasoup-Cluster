@@ -1,53 +1,18 @@
 import { SFUServer } from './SFUServer';
 import { Peer } from './Peer';
-import { SFUConnectionManager } from 'src/core/SFUConnectionManager';
-import { ServerEngine } from 'src/engine';
+import { SFUConnectionManager } from '../core/SFUConnectionManager';
+import { ServerEngine } from '../engine';
 import { EVENT_FOR_CLIENT_NOTIFICATION, EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST, EVENT_FROM_SFU, EVENT_PUBLISH } from '../EVENT';
-import { RedisClient } from '../redis/redis';
 import { Subscriber } from '../redis/subscriber';
 import { Publisher } from '../redis/publisher';
 import { PlayerController, RoomController, SFUServerController } from '../redis/controller';
-import { Worker, isMainThread, workerData, parentPort } from 'worker_threads';
-/* TEMP */
 import { TimeBomb } from '../util/TimeBomb';
-import { ControllerFactory } from 'src/redis/ControllerFactory';
-import { RoomOptions } from 'src/type';
 import { v4 } from 'uuid';
-
-interface PeerRequestHandler {
-  peer: Peer;
-  type: string;
-  data: Record<string, any> | any;
-  response: Function;
-}
-
-interface Handler {
-  peer: Peer;
-  data: Record<string, any> | any;
-  response: Function;
-}
-
-interface RoomConstructor {
-  roomOption: RoomOptions;
-  roomId: string;
-  roomName: string;
-  roomOwner: string;
-  mediaCodecs: Record<string, any>;
-  sfuConnectionManager: SFUConnectionManager;
-  redisClient: RedisClient;
-  controllerFactory: ControllerFactory;
-
-  listener: ServerEngine;
-}
+import { Log } from '../util/Log';
+import { PeerRequestHandler, Handler, RoomConstructor, PubHandlerMapData } from './type.room';
 
 enum PubHandlerType {
   GETPRODUCER_COMPLETE = 'getProducerComplete',
-}
-
-interface PubHandlerMapData {
-  count: number;
-  type: string;
-  data: Record<string, any>;
 }
 
 export class Room {
@@ -71,6 +36,8 @@ export class Room {
   private SFUServerController: SFUServerController;
 
   private pubHandlerMap: Map<string, PubHandlerMapData>;
+
+  private log: Log = Log.GetInstance();
   constructor({
     roomOption,
     roomId,
@@ -130,17 +97,19 @@ export class Room {
 
   getJoinedPeers({ excludePeer = {} as Peer }: { excludePeer: Peer | string }): Array<Peer> {
     let producerList: Array<Peer> = [];
-    this._peers.forEach((peer: any) => {
-      if (typeof excludePeer === 'object') {
+    if (typeof excludePeer === 'object') {
+      this._peers.forEach((peer: any) => {
         if (peer.id !== excludePeer.id) {
           producerList.push(peer);
         }
-      } else if (typeof excludePeer === 'string') {
+      });
+    } else if (typeof excludePeer === 'string') {
+      this._peers.forEach((peer: any) => {
         if (peer.id !== excludePeer) {
           producerList.push(peer);
         }
-      }
-    });
+      });
+    }
     return producerList;
   }
 
@@ -209,7 +178,7 @@ export class Room {
   private _handleOnNotification(peer: Peer, type: string, data: any, notify: Function) {
     switch (type) {
       case 'heartbeatCheck':
-        if (data === 'pong') {
+        if (data.msg === 'pong') {
           peer.resetPing();
           if (peer.id === this._owner) {
             this._bomb!.countDownReset();
@@ -264,7 +233,7 @@ export class Room {
     }
   }
   async closeRoomHandler({ peer, data, response }: Handler) {
-    console.log('User [%s] close room [%s].', peer.id, this._id);
+    this.log.info('User [%s] close room [%s].', peer.id, this._id);
 
     response({});
 
@@ -307,7 +276,7 @@ export class Room {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
 
-    console.log('User [%s] leave room [%s].', peer.id, this._id);
+    this.log.info('User [%s] leave room [%s].', peer.id, this._id);
 
     serverSocket.request({
       data: {
@@ -341,7 +310,7 @@ export class Room {
 
       await this.SFUServerController.reduceSFUServerCount(peer.serverId!);
       if (this._owner === peer.id) {
-        console.log('Delete room after 5 minutes');
+        this.log.info('Room [%s] will be deleted after 5 minutes.', this._id);
 
         this.broadcast(this._peers, {
           type: 'roomState',
@@ -375,7 +344,6 @@ export class Room {
 
   createWebRtcTransportHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
-
     if (!serverSocket) return;
 
     serverSocket
@@ -388,7 +356,7 @@ export class Room {
         type: EVENT_FOR_SFU.CREATE_WEBRTCTRANSPORT,
       })
       .then(({ data }) => {
-        console.log('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
+        this.log.info('User [%s] createWebRTCTransport [%s] type is [%s]', peer.id, data.transport_id, data.transportType);
         peer.addTransport(data.transport_id, data.transportType);
         response({
           type: EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT,
@@ -415,7 +383,7 @@ export class Room {
         response({
           type: EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT,
           data: {
-            msg: data
+            msg: data,
           },
         });
       });
@@ -452,9 +420,9 @@ export class Room {
         this.RoomController.setRoomProducer(this._id, producer_id); // 應該也不用等待
 
         peer.addProducer(producer_id);
-        console.log('User [%s] use webrtcTransport [%s] produce [%s].', peer.id, peer.sendTransport.id, producer_id);
+        this.log.info('User [%s] use webrtcTransport [%s] produce [%s].', peer.id, peer.sendTransport.id, producer_id);
+
         // console.log(consumerMap);
-        console.log(consumerMap);
         const promises = Object.entries(consumerMap).map(([key, value]: [key: string, value: any]): Promise<any> => {
           return new Promise<void>(async (resolve, reject) => {
             const remoteServerSocket = this._sfuConnectionManager.getServerSocket(`${key}:${this._id}`);
@@ -559,7 +527,6 @@ export class Room {
         });
       }
     });
-    console.log('producerMap: ', producerMap);
 
     // 如果 producerMap is null，代表沒有需要連到其他不同台 sfu server 去建立連線資訊的動作
     if (Object.keys(producerMap).length === 0) {
@@ -589,9 +556,8 @@ export class Room {
           },
         })
         .then(async ({ data }) => {
-          console.log(data);
           const { consumerMap } = data;
-          console.log(consumerMap);
+          // console.log(consumerMap);
           const promises = Object.entries(consumerMap).map(([key, value]: [key: string, value: any]): Promise<any> => {
             return new Promise<void>(async (resolve, reject) => {
               const remoteServerSocket = await this._sfuConnectionManager.connectToSFUServer(key, this._id);
@@ -688,8 +654,6 @@ export class Room {
     /**
      * { serverId : [peer, peer, peer] }
      */
-    console.log('peerOfServerMap: ', peerOfServerMap);
-
     // key = "ip:port", value = a map
     Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
       const serverSocket = this._sfuConnectionManager.getServerSocket(`${key}:${this._id}`)!;

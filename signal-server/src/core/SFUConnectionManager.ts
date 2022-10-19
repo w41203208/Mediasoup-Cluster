@@ -1,7 +1,7 @@
 import { SFUServerSocket } from '../connect/SFUServerSocket';
 import { SFUServerController } from '../redis/controller';
-import { ServerEngine } from 'src/engine';
-import { ControllerFactory } from 'src/redis/ControllerFactory';
+import { ServerEngine } from '../engine';
+import { ControllerFactory } from '../redis/ControllerFactory';
 
 // require('dotenv').config();
 
@@ -17,7 +17,7 @@ export class SFUConnectionManager {
     if (Number(process.env.PORT) === 9998 || Number(process.env.PORT) === 9997) {
       this.peopleLimit = 10000;
     } else {
-      this.peopleLimit = 100;
+      this.peopleLimit = 2;
     }
     this.SFUServerSockets = new Map();
 

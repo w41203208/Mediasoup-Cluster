@@ -1,7 +1,8 @@
-import { Router, Transport, Consumer, Producer, PipeTransport, Worker } from 'mediasoup/node/lib/types';
+import { Router, Transport, Consumer, Producer, PipeTransport } from 'mediasoup/node/lib/types';
 import { ServerEngine } from './engine';
-import { WebSocket } from 'ws';
 import { WSTransport } from './websocket/wstransport';
+import { Log } from './util/Log';
+import { ErrorHandler, ErrorHandlerFunc } from './util/Error';
 
 const EVENT_FROM_SIGNAL = {
   CREATE_ROUTER: 'createRouter',
@@ -16,9 +17,6 @@ const EVENT_FROM_SIGNAL = {
   CREATE_PIPETRANSPORT_CONSUME: 'createPipeTransportConsume',
   CREATE_PLAINTRANSPORT: 'createPlainTransport',
   CLOSE_TRANSPORT: 'closeTransport',
-};
-const EVENT_FOR_SIGNAL_REQUEST = {
-  CONNECT_PIPETRANSPORT: 'connectPipetransport',
 };
 
 interface WebSocketHandler {
@@ -41,7 +39,7 @@ interface RoomConstructorInterface {
   pipeTransportSettings: Record<string, any>;
 }
 
-export class Room {
+export class Room implements ErrorHandler {
   private _id: string;
   private _listener: ServerEngine;
   private _routers: Map<string, Router>;
@@ -65,6 +63,8 @@ export class Room {
    * 儲存這個 producer 紀錄已經 pipeToRouter 過
    */
   private _alreadyPipeToRouterProudcer: Map<string, string>;
+
+  private log: Log = Log.GetInstance();
 
   constructor({ id, listener, webRTCTransportSettings, pipeTransportSettings }: RoomConstructorInterface) {
     this._id = id;
@@ -136,42 +136,51 @@ export class Room {
   }
 
   private async createRouterHandler({ ws, data, response }: Handler) {
-    const { mediaCodecs } = data;
-
     let ok_router = null;
-    /* 找符合的 router */ /* 目前還沒加 router 限制條件 */
-    this._routers.forEach((router) => {
-      ok_router = router;
-    });
-    if (!ok_router) {
-      const worker = this._listener._getMediasoupWorkers();
-      ok_router = await worker.createRouter({ mediaCodecs });
-    }
 
-    this._routers.set(ok_router.id, ok_router);
-    response({
-      data: {
-        router_id: ok_router.id,
-      },
-    });
+    try {
+      /* 找符合的 router */ /* 目前還沒加 router 限制條件 */
+      this._routers.forEach((router) => {
+        ok_router = router;
+      });
+      if (!ok_router) {
+        const worker = this._listener._getMediasoupWorkers();
+        ok_router = await worker.createRouter({ mediaCodecs: data.mediaCodecs });
+        this.log.info('Room [%s] create a router [%s]', this._id, ok_router.id);
+      }
+
+      this._routers.set(ok_router.id, ok_router);
+      response({
+        data: {
+          router_id: ok_router.id,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   private getRouterRtpCapabilitiesHandler({ ws, data, response }: Handler) {
-    const { router_id } = data;
-    if (!this._routers.has(router_id)) {
-      return;
-    }
+    try {
+      if (!this._routers.has(data.router_id)) {
+        throw new Error('no this router in room');
+      }
 
-    response({
-      data: {
-        mediaCodecs: this._routers.get(router_id)?.rtpCapabilities,
-      },
-    });
+      response({
+        data: {
+          mediaCodecs: this._routers.get(data.router_id)?.rtpCapabilities,
+        },
+      });
+    } catch (error) {}
   }
 
   private async createWebRTCTransportHandler({ ws, data, response }: Handler) {
     const { router_id, producing, consuming } = data;
 
+    try {
+      if (!data.router_id) {
+      }
+    } catch (e) {}
     if (!this._routers.has(router_id)) {
       return;
     }
@@ -219,19 +228,23 @@ export class Room {
 
   private async connectWebRTCTranportHandler({ ws, data, response }: Handler) {
     try {
-      const { router_id, transport_id, dtlsParameters } = data;
-      const transport = this._transports.get(transport_id);
+      if (!data.transport_id) {
+        throw new Error('no input transport_id parameter');
+      } else if (!data.dtlsParameters) {
+        throw new Error('no input dtlsParameters parameter');
+      }
+      const transport = this._transports.get(data.transport_id);
       await transport?.connect({
-        dtlsParameters: dtlsParameters,
+        dtlsParameters: data.dtlsParameters,
       });
 
       response({
         data: 'Successfully',
       });
-    } catch (error) {
-      new Error('WebRTCTransport connect is failed!!!');
+    } catch (error: any) {
+      console.log(error);
       response({
-        data: 'Failed',
+        data: error.message,
       });
     }
   }
@@ -241,9 +254,14 @@ export class Room {
     const router = this._routers.get(router_id);
     const transport = this._transports.get(transport_id);
     let new_consumerList = [];
+
+    if (producers.length === 0) {
+      return;
+    }
+
     for (let producer_id of producers) {
       if (!router!.canConsume({ producerId: producer_id, rtpCapabilities })) {
-        console.error('can not consume');
+        this.log.error('[CreateConsumer-Event]：Router [%s] cannot use ProudcerId [%s] to create Consumer', router!.id, producer_id);
         return;
       }
       const consumer = await transport!.consume({
@@ -251,10 +269,10 @@ export class Room {
         rtpCapabilities: rtpCapabilities,
         paused: false,
       });
-      console.log('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
+      this.log.info('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
       /* Register Consumer listen event */
       consumer.on('transportclose', () => {
-        console.log('Consumer transport close', { consumer_id: `${consumer.id}` });
+        this.log.info('[CloseConsumer-Event]：Consumer [%s] is closed because transport closed', consumer.id);
         this._consumers.delete(consumer.id);
       });
 
@@ -292,10 +310,10 @@ export class Room {
     this._producers.set(producer.id, producer);
     /* store redis producers */
 
-    console.log('[CreateProducer-Event]：Create Producer [%s] with Router [%s]', producer.id, router_id);
+    this.log.info('[CreateProducer-Event]：Create Producer [%s] with Router [%s]', producer.id, router_id);
     /*  Register producer listen event */
     producer.on('transportclose', () => {
-      console.log('Consumer transport close', { consumer_id: `${producer.id}` });
+      this.log.info('[CloseProducer-Event]：Producer [%s] is closed because transport closed', producer.id);
       this._consumers.delete(producer.id);
     });
     /*  Register producer listen event */
@@ -361,7 +379,7 @@ export class Room {
   }
 
   private async _connectToOtherRouter(router: Router, otherRouter: Router, producerId: string) {
-    console.log('[PipeToRouter-Event]：Router [%s] pipe to Router [%s]', router.id, otherRouter.id);
+    this.log.info('[PipeToRouter-Event]：Router [%s] pipe to Router [%s]', router.id, otherRouter.id);
     await router.pipeToRouter({
       producerId: producerId,
       router: otherRouter,
@@ -375,9 +393,9 @@ export class Room {
     if (this._pipeTransportsRouter === undefined) {
       const worker = this._listener._getMediasoupWorkers();
       this._pipeTransportsRouter = await worker.createRouter({ mediaCodecs });
-      console.log('Craete new PipeTransportRouter [%s]', this._pipeTransportsRouter.id);
+      this.log.info('[CreatePipeTransportRouter-Event]：Craete new PipeTransportRouter [%s]', this._pipeTransportsRouter.id);
     } else {
-      console.log('PipeTransportRouter is already exist!');
+      this.log.warn('[CreatePipeTransportRouter-Event]：PipeTransportRouter is already exist!');
     }
 
     let pipeTransport: PipeTransport | null = null;
@@ -397,9 +415,9 @@ export class Room {
     }
 
     if (state) {
-      console.log('IP [%s] already has pipetransport [%s]', server_id, pipeTransport.id);
+      this.log.warn('[CreatePipeTransport-Event]：IP [%s] already has pipetransport [%s]', server_id, pipeTransport.id);
     } else {
-      console.log('Room [%s] Create Pipetransport [%s] to connect ip [%s]', this._id, pipeTransport.id, server_id);
+      this.log.info('[CreatePipeTransport-Event]：Room [%s] Create Pipetransport [%s] to connect ip [%s]', this._id, pipeTransport.id, server_id);
     }
 
     const {
@@ -431,7 +449,6 @@ export class Room {
           ip: data.ip,
           port: data.port,
         });
-        console.log(await pipeTransport.dump());
         msg = 'Successfully';
       } catch (error) {
         msg = 'Failed';
@@ -577,4 +594,6 @@ export class Room {
       this._transports.delete(id);
     }
   }
+
+  errorHandler(text: string) {}
 }

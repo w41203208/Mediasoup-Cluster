@@ -21,11 +21,11 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT}
       - MEDIASOUP_MAX_PORT=${MAX_PORT}
       - REDIS_HOST=${REDIS_HOST}
-    volumes:
-      - .:/home/mediasoup
+    # volumes:
+    #   - .:/home/mediasoup
     stdin_open: true
     tty: true
-    command: bash -c "npm install && npm run start"
+    command: bash -c "npm run start"
   webrtcsfu2:
     image: sfuserver
     container_name: ${CONTAINER_NAME_2}
@@ -46,11 +46,11 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT_2}
       - MEDIASOUP_MAX_PORT=${MAX_PORT_2}
       - REDIS_HOST=${REDIS_HOST}
-    volumes:
-      - .:/home/mediasoup
+    # volumes:
+    #   - .:/home/mediasoup
     stdin_open: true
     tty: true
-    command: bash -c "npm install && npm run start"
+    command: bash -c "npm run start"
 # networks:
 #   ithelp_application:
 #     driver: bridge
