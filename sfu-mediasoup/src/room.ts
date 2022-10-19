@@ -239,11 +239,16 @@ export class Room {
         paused: false,
       });
 
+
       console.log('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
       /* Register Consumer listen event */
       consumer.on('transportclose', () => {
         console.log('Consumer transport close', { consumer_id: `${consumer.id}` });
         this._consumers.delete(consumer.id);
+      });
+
+      consumer.on('layerschange', (layer) => {
+        console.log('Consumer [%s] layer change to [%s]', consumer.id, layer);
       });
 
       /* Register Consumer listen event */
@@ -467,7 +472,6 @@ export class Room {
   private async createPipeTransportConsumeHandler({ ws, data, response }: Handler) {
     const { producerId, remotePipeTransport_id: pipeTransport_id } = data;
 
-    let consumer = null;
     if (this._pipeTransports.has(pipeTransport_id)) {
       const consumer = await this.createPipeTransportConsume(pipeTransport_id, producerId);
     }
