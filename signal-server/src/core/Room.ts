@@ -1,7 +1,7 @@
 import { SFUServer } from './SFUServer';
 import { Peer } from './Peer';
-import { SFUConnectionManager } from 'src/core/SFUConnectionManager';
-import { ServerEngine } from 'src/engine';
+import { SFUConnectionManager } from '../core/SFUConnectionManager';
+import { ServerEngine } from '../engine';
 import { EVENT_FOR_CLIENT_NOTIFICATION, EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST, EVENT_FROM_SFU } from '../EVENT';
 import { RedisClient } from '../redis/redis';
 import { Subscriber } from '../redis/subscriber';
@@ -10,7 +10,7 @@ import { PlayerController, RoomController, SFUServerController } from '../redis/
 
 /* TEMP */
 import { TimeBomb } from '../util/TimeBomb';
-import { ControllerFactory } from 'src/redis/ControllerFactory';
+import { ControllerFactory } from '../redis/ControllerFactory';
 
 interface PeerRequestHandler {
   peer: Peer;

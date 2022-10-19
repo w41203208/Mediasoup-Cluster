@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'https';
 import { WSTransport } from './WSTransport';
 import { IncomingMessage } from 'http';
-import { CryptoCore } from 'src/util/CryptoCore';
+import { CryptoCore } from '../util/CryptoCore';
 
 const { EventEmitter } = require('../util/emitter');
 

@@ -1,10 +1,10 @@
 const { EventEmitter } = require('../util/emitter');
 import { ServerEngine } from '../engine';
-import { WSTransport } from 'src/connect/WSTransport';
+import { WSTransport } from '../connect/WSTransport';
 
 import { TimeBomb } from '../util/TimeBomb';
 import { EVENT_FROM_CLIENT_REQUEST, EVENT_FOR_TEST } from '../EVENT';
-import { CryptoCore } from 'src/util/CryptoCore';
+import { CryptoCore } from '../util/CryptoCore';
 
 export class Peer extends EventEmitter {
   private _id: string;

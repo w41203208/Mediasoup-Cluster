@@ -1,0 +1,20 @@
+FROM node:16 AS stage-one
+
+WORKDIR /service
+
+COPY package.json .
+RUN npm install
+
+FROM node:16-alpine
+
+WORKDIR /service
+
+COPY index.ts .
+COPY config.ts .
+COPY src src
+COPY ssl ssl
+COPY --from=stage-one /service/node_modules node_modules
+COPY package.json .
+COPY tsconfig.json .
+
+CMD ["npm", "run", "start"]

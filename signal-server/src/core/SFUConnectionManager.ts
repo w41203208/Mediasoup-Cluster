@@ -1,7 +1,7 @@
 import { SFUServerSocket } from '../connect/SFUServerSocket';
 import { SFUServerController } from '../redis/controller';
-import { ServerEngine } from 'src/engine';
-import { ControllerFactory } from 'src/redis/ControllerFactory';
+import { ServerEngine } from '../engine';
+import { ControllerFactory } from '../redis/ControllerFactory';
 
 // require('dotenv').config();
 

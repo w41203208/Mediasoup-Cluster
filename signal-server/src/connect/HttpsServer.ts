@@ -2,12 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import { Application, Request, Response } from 'express';
 import { createServer } from 'https';
-import { ServerEngine } from 'src/engine';
+import { ServerEngine } from '../engine';
 import { HttpsServerOptions, sslOption } from '../type';
 import bodyParser from 'body-parser';
 import { CryptoCore } from '../util/CryptoCore';
 import { IncomingMessage } from 'http';
-import { RoomController } from 'src/redis/controller';
+import { RoomController } from '../redis/controller';
 
 export class HttpsServer {
   private _ip: string;
