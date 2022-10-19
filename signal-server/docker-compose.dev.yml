@@ -15,7 +15,6 @@ services:
       - '${PORT_1}:${PORT_1}/udp'
       - 9229:9229
     environment:
-      - LIMIT=${LIMIT_1}
       - REDIS_HOST=${REDIS_HOST_1}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
       - PORT=${PORT_1}
@@ -36,7 +35,6 @@ services:
       - '${PORT_2}:${PORT_2}/tcp'
       - '${PORT_2}:${PORT_2}/udp'
     environment:
-      - LIMIT=${LIMIT_2}
       - REDIS_HOST=${REDIS_HOST_2}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
       - PORT=${PORT_2}
