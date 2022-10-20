@@ -103,6 +103,7 @@ export default defineComponent({
       router.push({
         path: "/room",
         query: {
+          userName: user.name,
           uid: user.uuId,
           roomId: roomId,
           roomName: roomName,
@@ -114,6 +115,7 @@ export default defineComponent({
       router.push({
         path: "/room",
         query: {
+          userName: user.name,
           uid: user.uuId,
           roomId: "",
           roomName: inputReactive.roomName,

@@ -1,6 +1,8 @@
 <template>
-  <div class="my-2 mx-3 py-1 px-2 text-lg">Room Name:{{ roomInfoReactive.roomName }}</div>
-  <div class="my-2 mx-3 py-1 px-2 text-lg">People:{{ roomInfoReactive.roomName }}</div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">
+    Room Name: {{ roomInfoReactive.roomName }}
+  </div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">My Name: {{ roomInfoReactive.userName }}</div>
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
@@ -44,6 +46,7 @@ export default defineComponent({
       { val: "0", item: "360p" },
     ]);
     const roomInfoReactive = reactive({
+      userName: route.query.userName!.toString(),
       uid: route.query.uid!.toString(),
       roomId: route.query.roomId!.toString(),
       roomName: route.query.roomName!.toString(),
