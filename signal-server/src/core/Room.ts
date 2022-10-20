@@ -68,9 +68,9 @@ export class Room {
     this._subscriber = new Subscriber(redisClient.Client!);
     this._publisher = new Publisher(redisClient.Client!);
     this.listener = listener;
-    this.RoomController = controllerFactory.getControler('Room') as RoomController;
-    this.PlayerController = controllerFactory.getControler('Player') as PlayerController;
-    this.SFUServerController = controllerFactory.getControler('SFU') as SFUServerController;
+    this.RoomController = controllerFactory.getController('Room') as RoomController;
+    this.PlayerController = controllerFactory.getController('Player') as PlayerController;
+    this.SFUServerController = controllerFactory.getController('SFU') as SFUServerController;
 
     this._subscriber.subscribe(this._id);
     this._subscriber.on('handleOnRoom', (message: any) => {
@@ -395,7 +395,7 @@ export class Room {
   produceHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
 
-    console.log(`data.rtpParameters ${data.rtpParameters}`)
+    console.log(`data.rtpParameters ${data.rtpParameters}`);
 
     if (!serverSocket) return;
     serverSocket
@@ -464,18 +464,17 @@ export class Room {
   setPreferredLayers({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
-    const { consumer_id, spatialLayer } = data
+    const { consumer_id, spatialLayer } = data;
 
     response({});
 
-    serverSocket
-      .request({
-        type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
-        data: {
-          consumer_id: consumer_id,
-          spatialLayer: spatialLayer,
-        },
-      });
+    serverSocket.request({
+      type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
+      data: {
+        consumer_id: consumer_id,
+        spatialLayer: spatialLayer,
+      },
+    });
   }
   async getProduceHandler({ peer, data, response }: Handler) {
     peer.rtpCapabilities = data.rtpCapabilities;
@@ -724,7 +723,6 @@ export class Room {
     this._subscriber?.unSubscribe(this._id);
     this._subscriber = undefined;
   }
-
 
   // consume({ consumerPeer, producer }) {
   //   consumerPeer.createConsumer(producer);
