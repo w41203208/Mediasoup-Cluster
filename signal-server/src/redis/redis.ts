@@ -1,4 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
+import { config } from '../../config';
 import { RedisClientOptions } from '../type.engine';
 
 export class RedisClient {
@@ -14,6 +15,7 @@ export class RedisClient {
         },
       });
       await this.client.connect();
+      this.client.select(parseInt(config.ServerSetting.redisDBIndex));
     })();
   }
 

@@ -1,0 +1,27 @@
+FROM node:16 AS stage-one
+
+# Install DEB dependencies and others.
+RUN \
+	set -x \
+	&& apt-get update \
+	&& apt-get install -y net-tools build-essential python3 python3-pip valgrind
+
+WORKDIR /service
+
+COPY package.json .
+RUN npm install ts-node && npm install
+
+
+FROM node:16
+
+WORKDIR /service
+
+COPY index.ts .
+COPY config.ts .
+COPY src src
+COPY ssl ssl
+COPY --from=stage-one /service/node_modules node_modules
+COPY package.json .
+COPY tsconfig.json .
+
+CMD ["npm", "run", "start"]

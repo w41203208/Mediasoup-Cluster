@@ -2,6 +2,7 @@ import { PlayerController } from './controller/PlayerController';
 import { RoomController } from './controller/RoomController';
 import { SFUServerController } from './controller/SFUServerController';
 import { RedisClient } from './redis';
+import { ControllerImp } from './ControllerImp';
 
 enum ControllerType {
   Room = 'Room',
@@ -23,7 +24,7 @@ export class ControllerFactory {
     return this.Instance;
   }
 
-  getControler(type: string) {
+  getController(type: string) {
     let controller;
     switch (type) {
       case ControllerType.Room:

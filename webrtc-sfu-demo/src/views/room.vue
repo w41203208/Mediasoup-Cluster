@@ -1,6 +1,8 @@
 <template>
-  <div class="my-2 mx-3 py-1 px-2 text-lg">Room Name:{{ roomInfoReactive.roomName }}</div>
-  <div class="my-2 mx-3 py-1 px-2 text-lg">People:{{ roomInfoReactive.roomName }}</div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">
+    Room Name: {{ roomInfoReactive.roomName }}
+  </div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">My Name: {{ roomInfoReactive.userName }}</div>
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
@@ -9,13 +11,19 @@
     <button class="m-btn">CloseAudio</button>
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
+    <button class="m-btn" @click="TESTNET">TESTNET</button>
   </div>
   <div class="mx-3 p-5">
     <h1 class="text-lg font-semibold">Local Media</h1>
     <div id="localMeida" ref="localMediaRef"></div>
   </div>
   <div class="mx-3 p-5">
-    <h1 class="text-lg font-semibold">Remote Media</h1>
+    <div class="flex">
+      <h1 class="text-lg font-semibold">Remote Media</h1>
+      <select @change="setPreferredLayers" v-model="selectLayer">
+        <option v-for="layer in layers" :value="layer.val">{{ layer.item }}</option>
+      </select>
+    </div>
     <div id="remoteMeida" ref="remoteMediaRef"></div>
   </div>
 </template>
@@ -30,7 +38,15 @@ export default defineComponent({
   setup() {
     const router = useRouter();
     const route = useRoute();
+    const selectLayer = ref("3");
+    const layers = reactive([
+      { val: "3", item: "Select Resolution" },
+      { val: "2", item: "1080p" },
+      { val: "1", item: "720p" },
+      { val: "0", item: "360p" },
+    ]);
     const roomInfoReactive = reactive({
+      userName: route.query.userName!.toString(),
       uid: route.query.uid!.toString(),
       roomId: route.query.roomId!.toString(),
       roomName: route.query.roomName!.toString(),
@@ -52,6 +68,13 @@ export default defineComponent({
     const handleClickEvtShare = (type: string) => {
       rcRef.value.produce({ type: type, deviceId: null });
     };
+
+    const setPreferredLayers = () => {
+      if (selectLayer.value != "3") {
+        rcRef.value.setPreferredLayers(parseInt(selectLayer.value));
+      }
+    };
+
     const handleClickEvtExit = () => {
       if (roomInfoReactive.role === "host") {
         rcRef.value.closeRoom(roomInfoReactive.roomId);
@@ -66,6 +89,9 @@ export default defineComponent({
     };
     const handleClickEvtTest2 = () => {
       rcRef.value.test2();
+    };
+    const TESTNET = () => {
+      rcRef.value.testNet();
     };
 
     onMounted(() => {
@@ -93,10 +119,14 @@ export default defineComponent({
       localMediaRef,
       roomInfoReactive,
       remoteMediaRef,
+      layers,
+      selectLayer,
       handleClickEvtShare,
       handleClickEvtExit,
       handleClickEvtTest1,
       handleClickEvtTest2,
+      TESTNET,
+      setPreferredLayers,
     };
   },
 });

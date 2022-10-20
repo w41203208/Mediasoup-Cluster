@@ -59,7 +59,7 @@ module.exports = {
           announcedIp: process.env.MEDIASOUP_ANNOUNCED_IP, // replace by public IP address
         },
       ],
-      maxIncomingBitrate: 1500000,
+      maxIncomingBitrate: 5000000,
       initialAvailableOutgoingBitrate: 1000000,
     },
     pipeTransport: {

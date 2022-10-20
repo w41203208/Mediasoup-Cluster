@@ -2,9 +2,9 @@ version: '3.8'
 
 services:
   webrtcsfu1:
-    image: sfuserver
+    image: 34.81.83.64:3100/webrtc/mediasoup-server
     container_name: ${CONTAINER_NAME}
-    working_dir: /home/mediasoup
+    # working_dir: /home/mediasoup
     # networks:
     #   ithelp_application:
     #     ipv4_address: ${IP}
@@ -21,8 +21,11 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT}
       - MEDIASOUP_MAX_PORT=${MAX_PORT}
       - REDIS_HOST=${REDIS_HOST}
-    # volumes:
-    #   - .:/home/mediasoup
+      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
+    volumes:
+      - ./src:/home/mediasoup/src
+      - ./config.ts:/home/mediasoup/config.ts
+      - ./index.ts:/home/mediasoup/index.ts
     stdin_open: true
     tty: true
     command: bash -c "npm run start"
@@ -46,8 +49,11 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT_2}
       - MEDIASOUP_MAX_PORT=${MAX_PORT_2}
       - REDIS_HOST=${REDIS_HOST}
-    # volumes:
-    #   - .:/home/mediasoup
+      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
+    volumes:
+      - ./src:/home/mediasoup/src
+      - ./config.ts:/home/mediasoup/config.ts
+      - ./index.ts:/home/mediasoup/index.ts
     stdin_open: true
     tty: true
     command: bash -c "npm run start"

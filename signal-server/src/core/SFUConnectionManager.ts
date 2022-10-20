@@ -14,14 +14,10 @@ export class SFUConnectionManager {
 
   private listener: ServerEngine;
   constructor(listener: ServerEngine, controllerFactroy: ControllerFactory) {
-    if (Number(process.env.PORT) === 9998 || Number(process.env.PORT) === 9997) {
-      this.peopleLimit = 10000;
-    } else {
-      this.peopleLimit = 2;
-    }
+    this.peopleLimit = 2;
     this.SFUServerSockets = new Map();
 
-    this.SFUServerController = controllerFactroy.getControler('SFU') as SFUServerController;
+    this.SFUServerController = controllerFactroy.getController('SFU') as SFUServerController;
 
     this.listener = listener;
   }
@@ -39,11 +35,7 @@ export class SFUConnectionManager {
           let i = 0;
           while (i < data.length && okServer === undefined) {
             const key = data[i];
-            if (Number(process.env.PORT) === 9998) {
-              okServer = await this.tempSearchSFUServerFunction(key);
-            } else {
-              okServer = await this.searchSFUServer(key);
-            }
+            okServer = await this.searchSFUServer(key);
             i++;
           }
           resolve(okServer);
@@ -58,39 +50,17 @@ export class SFUConnectionManager {
   async searchSFUServer(key: string): Promise<string | undefined> {
     let okServer = undefined;
     const [ip, port] = key.split(':');
-    if (Number(port) < Number(process.env.LIMIT)) {
-      const count = await this.SFUServerController.getSFUServerCount(key);
-      console.log('get count: ', count);
-      if (count < this.peopleLimit && okServer === undefined) {
-        okServer = key;
-        const new_count = await this.SFUServerController.addSFUServerCount(key);
-        console.log('get new_count: ', new_count);
-        if (new_count >= this.peopleLimit + 1) {
-          ++num;
-          console.log('Num is: ', num);
-          await this.SFUServerController.reduceSFUServerCount(key); // 在裡面印看看
-          okServer = undefined;
-        }
-      }
-    }
-    return okServer;
-  }
-
-  async tempSearchSFUServerFunction(key: string): Promise<string | undefined> {
-    let okServer = undefined;
-    const [ip, port] = key.split(':');
-    if (Number(port) > Number(process.env.LIMIT)) {
-      const count = await this.SFUServerController.getSFUServerCount(key);
-      let new_count: number | void;
-      if (count < this.peopleLimit && okServer === undefined) {
-        okServer = key;
-        new_count = await this.SFUServerController.addSFUServerCount(key);
-        if (new_count) {
-          if (new_count >= this.peopleLimit + 1) {
-            await this.SFUServerController.reduceSFUServerCount(key);
-            okServer = undefined;
-          }
-        }
+    const count = await this.SFUServerController.getSFUServerCount(key);
+    console.log('get count: ', count);
+    if (count < this.peopleLimit && okServer === undefined) {
+      okServer = key;
+      const new_count = await this.SFUServerController.addSFUServerCount(key);
+      console.log('get new_count: ', new_count);
+      if (new_count >= this.peopleLimit + 1) {
+        ++num;
+        console.log('Num is: ', num);
+        await this.SFUServerController.reduceSFUServerCount(key);
+        okServer = undefined;
       }
     }
     return okServer;

@@ -1,21 +1,28 @@
+//package
+import { v4 } from 'uuid';
+
+// config
+import { config } from '../config';
+
+// other
+import { EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST } from './EVENT';
+import { EngineOptions, HttpsServerOptions, RedisClientOptions, RoomOptions } from './type.engine';
+
+// object
 import { HttpsServer } from './connect/HttpsServer';
 import { WSServer } from './connect/WSServer';
 import { Peer } from './core/Peer';
 import { Room } from './core/Room';
 import { RedisClient } from './redis/redis';
-import { EngineOptions, HttpsServerOptions, RedisClientOptions, RoomOptions } from './type.engine';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
-import { config } from '../config';
-import { SFUServer } from './core/SFUServer';
-import { EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST } from './EVENT';
 import { ControllerFactory } from './redis/ControllerFactory';
 import { PlayerController, RoomController } from './redis/controller';
-import { v4 } from 'uuid';
-import { CryptoCore } from './util/CryptoCore';
+import { Log } from './util/Log';
 
 // temp
-import { Log } from './util/Log';
+import { CryptoCore } from './util/CryptoCore';
 import { ErrorHandler } from './util/Error';
+import { SFUServer } from './core/SFUServer';
 
 export class ServerEngine implements ErrorHandler {
   /* settings */
@@ -94,7 +101,7 @@ export class ServerEngine implements ErrorHandler {
       } else if (!data.room_name) {
         throw new Error('no input room_name parameters');
       }
-      const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
+      const RoomController = this._controllerFactory?.getController('Room') as RoomController;
 
       this.log.info('User [%s] create room [%s].', data.peer_id, data.room_name);
       const room_id = data.room_name + '-' + Date.now() + '-' + v4();
@@ -126,8 +133,8 @@ export class ServerEngine implements ErrorHandler {
   }
 
   async handleJoinRoom(data: any, response: Function) {
-    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
-    const PlayerController = this._controllerFactory?.getControler('Player') as PlayerController;
+    const RoomController = this._controllerFactory?.getController('Room') as RoomController;
+    const PlayerController = this._controllerFactory?.getController('Player') as PlayerController;
     const { room_id, peer } = data;
     console.log('User [%s] join room [%s].', peer.id, room_id);
 
@@ -297,7 +304,7 @@ export class ServerEngine implements ErrorHandler {
   }
 
   async getAllRoom() {
-    const RoomController = this._controllerFactory?.getControler('Room') as RoomController;
+    const RoomController = this._controllerFactory?.getController('Room') as RoomController;
     const temp_list = await RoomController.getAllRoom();
     const roomList: { roomId: string; roomName: string; roomUserSize: number }[] = [];
     temp_list.forEach((values: { playerList: Array<string>; id: string; name: string }) => {
