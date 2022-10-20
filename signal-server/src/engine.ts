@@ -172,6 +172,7 @@ export class ServerEngine implements ErrorHandler {
       const localServerId = ip_port;
       const localServerSocket = await this.sfuServerConnection!.connectToSFUServer(localServerId, room_id);
 
+
       // new SFUServer，SFUServer 添加到 room
       const sfuServer = new SFUServer(localServerId);
       room.addSFUServer(sfuServer);

@@ -16,6 +16,7 @@ const EVENT_FROM_SIGNAL = {
   CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
   CREATE_PIPETRANSPORT_CONSUME: 'createPipeTransportConsume',
   CREATE_PLAINTRANSPORT: 'createPlainTransport',
+  SET_PREFERRED_LAYERS: "setPreferredLayers",
   CLOSE_TRANSPORT: 'closeTransport',
 };
 
@@ -128,6 +129,8 @@ export class Room implements ErrorHandler {
         break;
       case EVENT_FROM_SIGNAL.CREATE_PIPETRANSPORT_CONSUME:
         this.createPipeTransportConsumeHandler({ ws, data, response });
+      case EVENT_FROM_SIGNAL.SET_PREFERRED_LAYERS:
+        this.setPreferredLayers({ ws, data, response });
         break;
       case EVENT_FROM_SIGNAL.CLOSE_TRANSPORT:
         this.closeTransportHandler({ ws, data, response });
@@ -171,7 +174,7 @@ export class Room implements ErrorHandler {
           mediaCodecs: this._routers.get(data.router_id)?.rtpCapabilities,
         },
       });
-    } catch (error) {}
+    } catch (error) { }
   }
 
   private async createWebRTCTransportHandler({ ws, data, response }: Handler) {
@@ -180,7 +183,7 @@ export class Room implements ErrorHandler {
     try {
       if (!data.router_id) {
       }
-    } catch (e) {}
+    } catch (e) { }
     if (!this._routers.has(router_id)) {
       return;
     }
@@ -208,8 +211,8 @@ export class Room implements ErrorHandler {
     }
 
     /* Register transport listen event */
-    transport.on('@close', () => {});
-    transport.on('dtlsstatechange', () => {});
+    transport.on('@close', () => { });
+    transport.on('dtlsstatechange', () => { });
 
     /* Register transport listen event */
 
@@ -274,6 +277,10 @@ export class Room implements ErrorHandler {
       consumer.on('transportclose', () => {
         this.log.info('[CloseConsumer-Event]：Consumer [%s] is closed because transport closed', consumer.id);
         this._consumers.delete(consumer.id);
+      });
+
+      consumer.on('layerschange', (layer) => {
+        console.log('Consumer [%s] layer change to [%s]', consumer.id, layer);
       });
 
       /* Register Consumer listen event */
@@ -579,6 +586,13 @@ export class Room implements ErrorHandler {
     return consumer;
   }
 
+  private async setPreferredLayers({ ws, data, response }: Handler) {
+    const { consumer_id, spatialLayer } = data;
+    console.log(`client trans consumer_id ${consumer_id}`);
+    const consumer = this._consumers.get(consumer_id);
+    await consumer!.setPreferredLayers(
+      { spatialLayer: spatialLayer })
+  }
   private async closeTransportHandler({ ws, data, response }: Handler) {
     const { sendTransport_id, recvTransport_id } = data;
     this.closeTransport(sendTransport_id);
@@ -595,5 +609,5 @@ export class Room implements ErrorHandler {
     }
   }
 
-  errorHandler(text: string) {}
+  errorHandler(text: string) { }
 }

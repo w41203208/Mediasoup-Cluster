@@ -14,6 +14,7 @@ export class RedisClient {
         },
       });
       await this.client.connect();
+      this.client.select(parseInt(process.env.REDIS_DB_INDEX!));
     })();
   }
 
