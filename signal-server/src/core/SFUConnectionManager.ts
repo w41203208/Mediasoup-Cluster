@@ -14,7 +14,7 @@ export class SFUConnectionManager {
 
   private listener: ServerEngine;
   constructor(listener: ServerEngine, controllerFactroy: ControllerFactory) {
-    this.peopleLimit = 2;
+    this.peopleLimit = 100;
     this.SFUServerSockets = new Map();
 
     this.SFUServerController = controllerFactroy.getController('SFU') as SFUServerController;
