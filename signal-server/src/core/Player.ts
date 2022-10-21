@@ -7,17 +7,36 @@ import { TimeBomb } from '../util/TimeBomb';
 // import { CryptoCore } from '../util/CryptoCore';
 import { RoomService } from '../service';
 
-export class Peer extends EventEmitter {
+export class Player extends EventEmitter {
   private _id: string;
+  private _name: string;
+  private _serverId?: string;
+  private _routerId?: string;
+  private _sendTransport?: any;
+  private _recvTransport?: any;
+  private _producers: Map<string, Record<string, any>>;
+  private _consumers: Map<string, Record<string, any>>;
+  private _rtpCapabilities?: any;
   private _ws: WSTransport | null;
   private _roomService: RoomService;
+
   private _bomb?: TimeBomb | null;
   private _timeoutFunction: any;
 
-  constructor(id: string, websocket: WSTransport, roomService: RoomService) {
+  constructor(peer_id: string, peer_name: string = '', websocket: WSTransport, roomService: RoomService) {
     super();
+    /* base info */
+    this._id = peer_id;
+    this._name = peer_name;
+    this._serverId;
+    this._routerId;
 
-    this._id = id;
+    /* mediasoup info */
+    this._sendTransport = null;
+    this._recvTransport = null;
+    this._producers = new Map();
+    this._consumers = new Map();
+    this._rtpCapabilities = null;
 
     /* websocket */
     this._ws = websocket;
@@ -110,6 +129,68 @@ export class Peer extends EventEmitter {
 
   get id() {
     return this._id;
+  }
+
+  set serverId(id) {
+    this._serverId = id;
+  }
+
+  set routerId(id) {
+    this._routerId = id;
+  }
+
+  set rtpCapabilities(cp) {
+    this._rtpCapabilities = cp;
+  }
+
+  get serverId() {
+    return this._serverId;
+  }
+  get routerId() {
+    return this._routerId;
+  }
+
+  get sendTransport() {
+    return this._sendTransport;
+  }
+
+  get recvTransport() {
+    return this._recvTransport;
+  }
+
+  get producers() {
+    return this._producers;
+  }
+
+  get consumers() {
+    return this._consumers;
+  }
+
+  get rtpCapabilities() {
+    return this._rtpCapabilities;
+  }
+
+  addTransport(id: string, transportType: string) {
+    if (transportType === 'consuming') {
+      this._recvTransport = {
+        id: id,
+      };
+    } else {
+      this._sendTransport = {
+        id: id,
+      };
+    }
+  }
+
+  addProducer(id: string) {
+    this._producers.set(id, {
+      id: id,
+    });
+  }
+  addConsumer(id: string) {
+    this._consumers.set(id, {
+      id: id,
+    });
   }
 
   setTimeBomb(bomb: TimeBomb) {

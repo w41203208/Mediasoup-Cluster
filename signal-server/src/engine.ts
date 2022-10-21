@@ -16,9 +16,12 @@ import { ControllerFactory } from './redis/ControllerFactory';
 import { PlayerController, RoomController } from './redis/controller';
 import { Log } from './util/Log';
 import { CommonService, AuthService, RoomService } from './service';
+import { ClientConnectionManager } from './core/ClientConnectionManager';
 // temp
 import { CryptoCore } from './util/CryptoCore';
 import { SFUServer } from './core/SFUServer';
+import { RoomCreator } from './core/RoomCreator';
+import { RoomManager } from './core/RoomManager';
 
 export class ServerEngine {
   /* settings */
@@ -52,28 +55,22 @@ export class ServerEngine {
     this.redisClient = RedisClient.GetInstance(this._redisClientOption);
     this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
     this.sfuServerConnection = new SFUConnectionManager(this, this._controllerFactory!);
-
+    const clientConnectionMgr = new ClientConnectionManager();
     const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
     const commonService = new CommonService(this._controllerFactory, cryptoCore);
     const authService = new AuthService(cryptoCore);
     const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
+    const roomCreator = new RoomCreator(this._controllerFactory);
+    const roomMgr = new RoomManager(this._controllerFactory);
+    const roomService = new RoomService(cryptoCore, roomCreator, this.sfuServerConnection, roomMgr);
     const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore);
-    const roomService = new RoomService(cryptoCore);
-    websocketServer.on('connection', (getTransport: Function) => {
-      const peerTransport = getTransport();
-      new Peer('', '', peerTransport, roomService);
-    });
-  }
 
-  handlePeerRequest(type: string, data: any, response: Function) {
-    switch (type) {
-      case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-        this.handleCreateRoom(data, response);
-        break;
-      case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-        this.handleJoinRoom(data, response);
-        break;
-    }
+    websocketServer.on('connection', (id: string, getTransport: Function) => {
+      const peerTransport = getTransport();
+      const peer = new Peer(id, peerTransport, roomService);
+
+      clientConnectionMgr.setPeer(peer);
+    });
   }
 
   handleServerSocketRequest(type: string, data: any, response: Function) {
@@ -85,45 +82,6 @@ export class ServerEngine {
 
     room.handleServerSocketRequest(type, data, response);
   }
-
-  async handleCreateRoom(data: any, response: Function) {
-    try {
-      if (!data.peer_id) {
-        throw new Error('no input peer_id parameters');
-      } else if (!data.room_name) {
-        throw new Error('no input room_name parameters');
-      }
-      const RoomController = this._controllerFactory?.getController('Room') as RoomController;
-
-      this.log.info('User [%s] create room [%s].', data.peer_id, data.room_name);
-      const room_id = data.room_name + '-' + Date.now() + '-' + v4();
-      const rRoom = await RoomController.setRoom(room_id, data.room_name);
-
-      let responseData;
-      if (rRoom) {
-        rRoom.host = {
-          id: data.peer_id,
-          producerIdList: [],
-        };
-        await RoomController.updateRoom(rRoom);
-        responseData = {
-          msg: 'Successfully create!',
-          room_id: room_id,
-          state: true,
-        };
-      } else {
-        throw new Error('room has already exists');
-      }
-
-      response({
-        type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
-        data: responseData,
-      });
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
   async handleJoinRoom(data: any, response: Function) {
     const RoomController = this._controllerFactory?.getController('Room') as RoomController;
     const PlayerController = this._controllerFactory?.getController('Player') as PlayerController;

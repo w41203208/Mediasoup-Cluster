@@ -3,7 +3,7 @@ import { RoomController } from '../redis/controller';
 
 import { Room } from './Room';
 
-class RoomManager {
+export class RoomManager {
   private RoomController: RoomController;
 
   private _roomMap: Map<string, Room>;
@@ -16,5 +16,9 @@ class RoomManager {
 
   getOrCreateRoom(id: string) {
     return this._roomMap.get(id);
+  }
+
+  deleteRoom(id: string) {
+    this._roomMap.delete(id);
   }
 }

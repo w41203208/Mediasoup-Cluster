@@ -8,16 +8,13 @@ import { EventEmitter } from '../util/emitter';
 import { urlParse } from '../util/tool';
 import { Log } from '../util/Log';
 
-import { Peer } from '../core/Peer';
-
 export class WSServer extends EventEmitter {
-  private _wsServer?: WebSocketServer;
   private cryptoCore: CryptoCore;
 
   private log: Log = Log.GetInstance();
   constructor(httpsServer: Server, cryptoCore: CryptoCore) {
     super();
-    const socket = (this._wsServer = new ws.Server({ server: httpsServer }));
+    const socket = new ws.Server({ server: httpsServer });
     this.cryptoCore = cryptoCore;
     socket.on('open', () => {
       console.log('Websocket is connected');
@@ -35,8 +32,7 @@ export class WSServer extends EventEmitter {
         }
 
         this.cryptoCore.decipherIv(parameter);
-
-        this.emit('connection', () => {
+        this.emit('connection', parameter, () => {
           const transport = new WSTransport(ws);
           return transport;
         });
