@@ -11,3 +11,13 @@ function stringToArray8(str: string): Uint8Array {
 
   return view;
 }
+
+export const urlParse = (url: string, match: string) => {
+  const pattern = new RegExp(match);
+  const matchAns = url.match(pattern); //  /\/?room_id=(\w*)/
+  if (!matchAns) {
+    return;
+  }
+  const newUrl = matchAns[1];
+  return newUrl;
+};

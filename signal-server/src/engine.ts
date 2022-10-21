@@ -1,13 +1,10 @@
 //package
 import { v4 } from 'uuid';
-
 // config
 import { config } from '../config';
-
 // other
 import { EVENT_FOR_SFU, EVENT_FROM_CLIENT_REQUEST } from './EVENT';
 import { EngineOptions, HttpsServerOptions, RedisClientOptions, RoomOptions } from './type.engine';
-
 // object
 import { HttpsServer } from './connect/HttpsServer';
 import { WSServer } from './connect/WSServer';
@@ -18,7 +15,7 @@ import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { ControllerFactory } from './redis/ControllerFactory';
 import { PlayerController, RoomController } from './redis/controller';
 import { Log } from './util/Log';
-
+import { CommonService, AuthService } from './service';
 // temp
 import { CryptoCore } from './util/CryptoCore';
 import { ErrorHandler } from './util/Error';
@@ -29,19 +26,15 @@ export class ServerEngine implements ErrorHandler {
   private _httpsServerOption: HttpsServerOptions;
   private _redisClientOption: RedisClientOptions;
   private _roomOption: RoomOptions;
-
   /* roomlist */
   private _roomList: Map<string, Room>;
-
   /* redis */
   private _controllerFactory?: ControllerFactory;
-
   /* sfuConnectionManager */
   private sfuServerConnection?: SFUConnectionManager;
-
   /* redisClient */
   private redisClient?: RedisClient;
-
+  /* log */
   private log: Log = Log.GetInstance();
 
   constructor({ httpsServerOption, redisClientOption, roomOption }: EngineOptions) {
@@ -62,9 +55,9 @@ export class ServerEngine implements ErrorHandler {
     this.sfuServerConnection = new SFUConnectionManager(this, this._controllerFactory!);
 
     const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
-
-    const httpsServer = new HttpsServer(this._httpsServerOption, this, cryptoCore);
-
+    const commonService = new CommonService(this._controllerFactory, cryptoCore);
+    const authService = new AuthService(cryptoCore);
+    const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
     const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore);
 
     websocketServer.on('connection', (getTransport: Function) => {
