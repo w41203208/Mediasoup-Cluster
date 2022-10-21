@@ -6,7 +6,7 @@
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
-    <button class="m-btn">OpenAudio</button>
+    <button class="m-btn" @click="handleClickEvtShare('audio')">OpenAudio</button>
     <button class="m-btn">CloseVideo</button>
     <button class="m-btn">CloseAudio</button>
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
@@ -41,9 +41,9 @@ export default defineComponent({
     const selectLayer = ref("3");
     const layers = reactive([
       { val: "3", item: "Select Resolution" },
-      { val: "2", item: "1080p" },
-      { val: "1", item: "720p" },
-      { val: "0", item: "360p" },
+      { val: "2", item: "720p" },
+      { val: "1", item: "360p" },
+      { val: "0", item: "180p" },
     ]);
     const roomInfoReactive = reactive({
       userName: route.query.userName!.toString(),

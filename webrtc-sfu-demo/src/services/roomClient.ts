@@ -275,8 +275,7 @@ export class RoomClient {
               },
               type: EVENT_FOR_CLIENT.PRODUCE,
             });
-
-            callback(data.id);
+            callback({ id: data.id });
           } catch (error) {
             errback(error as Error);
           }
@@ -337,11 +336,14 @@ export class RoomClient {
       case mediaType.video:
         /*抓取相機解析度*/
         const constraints = {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           frameRate: { ideal: 30 },
         };
         this.enableWebCam({ deviceId, constraints: constraints });
+        break;
+      case mediaType.audio:
+        this.enableMic({ deviceId });
         break;
     }
   }
@@ -360,7 +362,9 @@ export class RoomClient {
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia(
-        deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true }
+        deviceId ? {
+          video: { deviceId: { exact: deviceId } },
+        } : { video: true }
       );
       track = stream.getTracks()[0];
       if (constraints) {
@@ -371,19 +375,19 @@ export class RoomClient {
         encodings: [
           {
             rid: "r0",
-            maxBitrate: 300000,
-            scaleResolutionDownBy: 3,
+            // maxBitrate: 300000,
+            scaleResolutionDownBy: 4,
             scalabilityMode: "S1T3",
           },
           {
             rid: "r1",
-            maxBitrate: 1000000,
-            scaleResolutionDownBy: 1.5,
+            // maxBitrate: 1000000,
+            scaleResolutionDownBy: 2,
             scalabilityMode: "S1T3",
           },
           {
             rid: "r2",
-            maxBitrate: 5000000,
+            // maxBitrate: 5000000,
             scaleResolutionDownBy: 1,
             scalabilityMode: "S1T3",
           },
@@ -395,10 +399,10 @@ export class RoomClient {
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on("@close", () => { });
+      // producer.on("@close", () => { });
 
-      console.log(producer);
       this._producers.set(producer.id, producer);
+
       /* 之後會區分開開啟與添加畫面的方法 */
       const elem = document.createElement("video");
       elem.srcObject = stream;
@@ -406,6 +410,43 @@ export class RoomClient {
       elem.width = 1280;
       elem.height = 720;
       this._localMediaContainer?.appendChild(elem);
+    } catch (error: any) {
+      console.log(error);
+    }
+  }
+
+  async enableMic({
+    deviceId = null,
+  }: {
+    deviceId: string | null;
+  }) {
+    let stream;
+    let track;
+    if (!this._sendTransport) {
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(
+        deviceId ? {
+          audio: { deviceId: { exact: deviceId } },
+        } : { audio: true }
+      );
+      track = stream.getTracks()[0];
+      const params = {
+        track,
+        codecOptions: {
+          opusStereo: true,
+          opusDtx: true,
+        },
+      };
+      // //可以添將一些屬性 codecOptions、encodings
+      const producer = await this._sendTransport.produce(params);
+
+      producer.on("@close", () => { });
+
+      console.log(producer);
+      this._producers.set(producer.id, producer);
+      // /* 之後會區分開開啟與添加畫面的方法 */
     } catch (error: any) {
       console.log(error);
     }
