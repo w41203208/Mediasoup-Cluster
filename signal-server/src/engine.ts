@@ -15,13 +15,12 @@ import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { ControllerFactory } from './redis/ControllerFactory';
 import { PlayerController, RoomController } from './redis/controller';
 import { Log } from './util/Log';
-import { CommonService, AuthService } from './service';
+import { CommonService, AuthService, RoomService } from './service';
 // temp
 import { CryptoCore } from './util/CryptoCore';
-import { ErrorHandler } from './util/Error';
 import { SFUServer } from './core/SFUServer';
 
-export class ServerEngine implements ErrorHandler {
+export class ServerEngine {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
   private _redisClientOption: RedisClientOptions;
@@ -59,10 +58,10 @@ export class ServerEngine implements ErrorHandler {
     const authService = new AuthService(cryptoCore);
     const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
     const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore);
-
+    const roomService = new RoomService(cryptoCore);
     websocketServer.on('connection', (getTransport: Function) => {
       const peerTransport = getTransport();
-      new Peer('', '', peerTransport, this, cryptoCore);
+      new Peer('', '', peerTransport, roomService);
     });
   }
 
@@ -296,25 +295,9 @@ export class ServerEngine implements ErrorHandler {
     }
   }
 
-  async getAllRoom() {
-    const RoomController = this._controllerFactory?.getController('Room') as RoomController;
-    const temp_list = await RoomController.getAllRoom();
-    const roomList: { roomId: string; roomName: string; roomUserSize: number }[] = [];
-    temp_list.forEach((values: { playerList: Array<string>; id: string; name: string }) => {
-      roomList.push({
-        roomId: values.id,
-        roomName: values.name,
-        roomUserSize: values.playerList.length,
-      });
-    });
-    return roomList;
-  }
-
   deleteRoom(id: string) {
     this.roomList.delete(id);
   }
-
-  errorHandler(text: string): void {}
 }
 
 // import { TEST } from './worker/workerTest';

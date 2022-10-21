@@ -21,7 +21,7 @@ export class WSTransport extends EventEmitter {
   }
 
   _handleSocketConnection() {
-    this._socket!.on('close', (code: number, reason: Buffer) => {
+    this._socket!.on('close', () => {
       console.log('socket is closed');
     });
     this._socket!.on('message', (message: any) => {

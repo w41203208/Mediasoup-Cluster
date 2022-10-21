@@ -8,6 +8,8 @@ import { EventEmitter } from '../util/emitter';
 import { urlParse } from '../util/tool';
 import { Log } from '../util/Log';
 
+import { Peer } from '../core/Peer';
+
 export class WSServer extends EventEmitter {
   private _wsServer?: WebSocketServer;
   private cryptoCore: CryptoCore;
@@ -26,7 +28,7 @@ export class WSServer extends EventEmitter {
         if (!incomingMessage.url) {
           throw new Error('not get url');
         }
-        const parameter = urlParse(incomingMessage.url, '/?token=([\\w\\s\\d%]*)');
+        const parameter = urlParse(incomingMessage.url, '/?token=([+/*<>=!#$%&"*+/=?^_~\'-\\w\\s\\d%]*)');
 
         if (!parameter) {
           throw new Error('not get token');

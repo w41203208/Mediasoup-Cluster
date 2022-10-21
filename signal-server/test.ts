@@ -159,10 +159,3 @@
 //     return enObj;
 //   }
 // }
-import { Log } from './src/util/Log';
-
-const log = Log.GetInstance();
-log.debug('HIHI %s %d %d', 'test', 1, 2);
-log.error('test');
-log.warn('test');
-log.info('test');
