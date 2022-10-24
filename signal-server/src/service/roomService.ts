@@ -6,6 +6,7 @@ import { CryptoCore } from '../util/CryptoCore';
 import { Log } from '../util/Log';
 import { SFUConnectionManager } from '../core/SFUConnectionManager';
 import { RoomManager } from '../core/RoomManager';
+import { Peer } from '../core/Peer';
 
 export class RoomService {
   private _cryptoCore: CryptoCore;
@@ -27,23 +28,24 @@ export class RoomService {
     this._roomCreater = roomCreator;
   }
 
-  handleMessage(message: { type: string; data: any }, response: Function) {
+  handleMessage(message: { type: string; data: any }, response: Function, peer: Peer) {
     const { type, data } = message;
     switch (type) {
       case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-        this.handleCreateRoom(data, response);
+        this.handleCreateRoom(data, response, peer);
         break;
       case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-        this.handleJoinRoom(data, response);
+        this.handleJoinRoom(data, response, peer);
         break;
     }
   }
 
-  async handleCreateRoom(data: any, response: Function) {
+  async handleCreateRoom(data: any, response: Function, peer: Peer) {
     try {
       if (!data.peer_id) {
         throw new Error('no input peer_id parameters');
-      } else if (!data.room_name) {
+      }
+      if (!data.room_name) {
         throw new Error('no input room_name parameters');
       }
       const dePeerId = this._cryptoCore.decipherIv(data.peer_id);
@@ -69,6 +71,7 @@ export class RoomService {
         data: responseData,
       });
     } catch (e: any) {
+      this.log.error(`${e.message}`);
       response({
         type: EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM,
         data: {
@@ -78,5 +81,14 @@ export class RoomService {
     }
   }
 
-  async handleJoinRoom(data: any, response: Function) {}
+  async handleJoinRoom(data: any, response: Function, peer: Peer) {
+    try {
+      if (!data.room_id) {
+        throw new Error('no input room_id parameters');
+      }
+
+      const roomId = data.room_id;
+      this.log.info('User [%s] join room [%s].', peer.id, roomId);
+    } catch (e: any) {}
+  }
 }

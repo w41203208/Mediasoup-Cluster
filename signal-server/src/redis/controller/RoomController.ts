@@ -25,10 +25,11 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  setRoomProducer(id: string, pid: string): Promise<null> {
+  setRoomProducerList(id: string, pid: string): Promise<null> {
     return new Promise(async (resolve, reject) => {
       try {
         const key = `${id}.producerList`;
+
         await this._rc.lPush(key, pid);
         resolve(null);
       } catch (error) {
@@ -38,7 +39,7 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  getRoomProducer(id: string): Promise<Array<string>> {
+  getRoomProducerList(id: string): Promise<Array<string>> {
     return new Promise(async (resolve, reject) => {
       try {
         const key = `${id}.producerList`;

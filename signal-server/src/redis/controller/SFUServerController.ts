@@ -19,12 +19,8 @@ export class SFUServerController extends ControllerImp {
   getAllSFUServer() {
     return new Promise(async (resolve, reject) => {
       try {
-        let temp_list: Array<string> = [];
-        const servers = await this._rc.hGetAll('SFUServer');
-        Object.entries(servers).forEach(([key, value]) => {
-          temp_list.push(key);
-        });
-        resolve(temp_list);
+        const data = await this._rc.lRange('SFUServerList', 0, -1);
+        resolve(data);
       } catch (error) {
         console.log(error);
         reject(error);
@@ -86,5 +82,5 @@ export class SFUServerController extends ControllerImp {
     });
   }
 
-  set() { }
+  set() {}
 }

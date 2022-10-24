@@ -17,57 +17,15 @@ export class SFUServerController extends ControllerImp {
     return this.Instance;
   }
 
-  getSFUServer(id: string) {
+  setSFUServer(id: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        if (await this.isSFUServerExist(id)) {
-          const data = await this._rc.hGet('SFUServer', id);
-          resolve(this.transformToJS(data));
-        } else {
-          resolve(false);
-        }
+        await this._rc.SET(id, 0);
+        await this._rc.lPush('SFUServerList', id);
+        resolve();
       } catch (error) {
         reject(error);
         console.log(error);
-      }
-    });
-  }
-
-  setSFUServer(id: string) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        if (!(await this.isSFUServerExist(id))) {
-          await this._rc.SET(id, 0);
-          const data = await this._rc
-            .multi()
-            .hSet(
-              'SFUServer',
-              id,
-              this.transformToJSON({
-                id: id,
-                count: 0,
-              })
-            )
-            .hGet('SFUServer', id)
-            .exec();
-          resolve(this.transformToJS(data[1]));
-        } else {
-          resolve(false);
-        }
-      } catch (error) {
-        reject(error);
-        console.log(error);
-      }
-    });
-  }
-
-  isSFUServerExist(id: string): Promise<boolean> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const exist = await this._rc.hExists('SFUServer', id);
-        resolve(exist);
-      } catch (error) {
-        reject(error);
       }
     });
   }

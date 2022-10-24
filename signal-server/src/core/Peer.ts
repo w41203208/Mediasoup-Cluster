@@ -37,7 +37,7 @@ export class Peer extends EventEmitter {
 
   _handleTransportMessage() {
     this._ws!.on('request', (message: { type: string; data: any }, response: Function) => {
-      this._roomService.handleMessage(message, response);
+      this._roomService.handleMessage(message, response, this);
     });
     // this._ws!.on('request', (message: { type: string; data: any }, response: Function) => {
     //   const { type, data } = message;
