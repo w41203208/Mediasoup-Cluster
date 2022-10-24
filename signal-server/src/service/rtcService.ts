@@ -8,7 +8,7 @@ import { SFUConnectionManager } from '../core/SFUConnectionManager';
 import { RoomManager } from '../core/RoomManager';
 import { Peer } from '../core/Peer';
 
-export class RoomService {
+export class RTCService {
   private _cryptoCore: CryptoCore;
 
   private _roomCreater: RoomCreator;
@@ -40,6 +40,7 @@ export class RoomService {
     }
   }
 
+  // 之後放到 RoomService
   async handleCreateRoom(data: any, response: Function, peer: Peer) {
     try {
       if (!data.peer_id) {

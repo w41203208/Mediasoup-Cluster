@@ -15,7 +15,7 @@ import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { ControllerFactory } from './redis/ControllerFactory';
 import { PlayerController, RoomController } from './redis/controller';
 import { Log } from './util/Log';
-import { CommonService, AuthService, RoomService } from './service';
+import { CommonService, AuthService, RTCService } from './service';
 import { ClientConnectionManager } from './core/ClientConnectionManager';
 // temp
 import { CryptoCore } from './util/CryptoCore';
@@ -62,12 +62,12 @@ export class ServerEngine {
     const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
     const roomCreator = new RoomCreator(this._controllerFactory);
     const roomMgr = new RoomManager(this._controllerFactory);
-    const roomService = new RoomService(cryptoCore, roomCreator, this.sfuServerConnection, roomMgr);
+    const rtcService = new RTCService(cryptoCore, roomCreator, this.sfuServerConnection, roomMgr);
     const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore);
 
     websocketServer.on('connection', (id: string, getTransport: Function) => {
       const peerTransport = getTransport();
-      const peer = new Peer(id, peerTransport, roomService);
+      const peer = new Peer(id, peerTransport, rtcService);
 
       clientConnectionMgr.setPeer(peer);
     });

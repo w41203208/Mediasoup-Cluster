@@ -5,16 +5,16 @@ import { WSTransport } from '../connect/WSTransport';
 import { TimeBomb } from '../util/TimeBomb';
 // import { EVENT_FROM_CLIENT_REQUEST, EVENT_FOR_TEST } from '../EVENT';
 // import { CryptoCore } from '../util/CryptoCore';
-import { RoomService } from '../service';
+import { RTCService } from '../service';
 
 export class Peer extends EventEmitter {
   private _id: string;
   private _ws: WSTransport | null;
-  private _roomService: RoomService;
+  private _rtcService: RTCService;
   private _bomb?: TimeBomb | null;
   private _timeoutFunction: any;
 
-  constructor(id: string, websocket: WSTransport, roomService: RoomService) {
+  constructor(id: string, websocket: WSTransport, rtcService: RTCService) {
     super();
 
     this._id = id;
@@ -22,7 +22,7 @@ export class Peer extends EventEmitter {
     /* websocket */
     this._ws = websocket;
 
-    this._roomService = roomService;
+    this._rtcService = rtcService;
 
     this._handleTransportMessage();
   }
@@ -37,7 +37,7 @@ export class Peer extends EventEmitter {
 
   _handleTransportMessage() {
     this._ws!.on('request', (message: { type: string; data: any }, response: Function) => {
-      this._roomService.handleMessage(message, response, this);
+      this._rtcService.handleMessage(message, response, this);
     });
     // this._ws!.on('request', (message: { type: string; data: any }, response: Function) => {
     //   const { type, data } = message;
