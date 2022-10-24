@@ -283,8 +283,8 @@ export class Room {
 
     serverSocket.request({
       data: {
-        sendTransport_id: peer.sendTransport.id,
-        recvTransport_id: peer.recvTransport.id,
+        sendTransport_id: peer.sendTransport.id || null,
+        recvTransport_id: peer.recvTransport.id || null,
       },
       type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
     });
@@ -480,7 +480,7 @@ export class Room {
     peer.rtpCapabilities = data.rtpCapabilities;
 
     // 取得訂閱頻道的人數，作為要回傳任務完成的依據
-    
+
     const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(this._id);
     this.log.debug('Get currentOtherSignalCount %d', currentOtherSignalCount);
     const mapId = v4();

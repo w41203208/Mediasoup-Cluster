@@ -26,9 +26,9 @@ export class WSTransport extends EventEmitter {
     });
     this._socket!.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
-      if (Number(process.env.PORT) === 9998) {
-        console.log(jsonMessage);
-      }
+      // if (Number(process.env.PORT) === 9998) {
+      //   console.log(jsonMessage);
+      // }
 
       const { messageType, ...rest } = jsonMessage;
       switch (messageType) {
