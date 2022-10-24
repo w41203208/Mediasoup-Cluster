@@ -264,8 +264,8 @@ export class Room {
         this.SFUServerController.reduceSFUServerCount(peer.serverId!),
         serverSocket.request({
           data: {
-            sendTransport_id: peer.sendTransport.id || null,
-            recvTransport_id: peer.recvTransport.id || null,
+            sendTransport_id: peer.sendTransport === null ? null : peer.sendTransport.id,
+            recvTransport_id: peer.recvTransport === null ? null : peer.recvTransport.id,
           },
           type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
         }),
@@ -283,8 +283,8 @@ export class Room {
 
     serverSocket.request({
       data: {
-        sendTransport_id: peer.sendTransport.id || null,
-        recvTransport_id: peer.recvTransport.id || null,
+        sendTransport_id: peer.sendTransport === null ? null : peer.sendTransport.id,
+        recvTransport_id: peer.recvTransport === null ? null : peer.recvTransport.id,
       },
       type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
     });
