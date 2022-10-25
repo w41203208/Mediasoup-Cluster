@@ -8,19 +8,7 @@ export class RoomCreator {
   }
 
   async createRoom(peerId: string, roomId: string, roomName: string) {
-    try {
-      const rRoom = await this._roomController.setRoom(roomId, roomName);
-      if (rRoom) {
-        rRoom.host = {
-          id: peerId,
-          producerIdList: [],
-        };
-        await this._roomController.updateRoom(rRoom);
-
-        return true;
-      } else {
-        return false;
-      }
-    } catch (e: any) {}
+    const isExist = await this._roomController.setRoom(roomId, roomName);
+    return isExist;
   }
 }

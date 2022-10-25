@@ -1,3 +1,5 @@
+import { Log } from '../util/Log';
+
 const WebSocket = require('ws');
 const { v4 } = require('uuid');
 const { EventEmitter } = require('../util/emitter');
@@ -9,12 +11,15 @@ interface SendData {
 
 export class SFUServerSocket extends EventEmitter {
   private _id: string;
-  private roomId?: string;
-  constructor(ip: string, port: string) {
+  private roomId: string;
+
+  private log: Log = Log.GetInstance();
+  constructor(ip: string, port: string, roomId: string) {
     super();
     this._id = `${ip}:${port}`;
     this.ip = ip;
     this.port = port;
+    this.roomId = roomId;
     this._disconnected = true;
     this._socket;
     this._in_flight_send = new Map();
@@ -24,20 +29,23 @@ export class SFUServerSocket extends EventEmitter {
     return this._id;
   }
 
-  start(roomId: string) {
-    if (!!this._socket || !this._disconnected) {
-      return;
-    }
-    return new Promise((resolve: any, reject: any) => {
-      this.roomId = roomId;
-      this._socket = new WebSocket(`wss://${this.ip}:${this.port}/?room_id=${roomId}`);
-      this._disconnected = false;
+  start() {
+    try {
+      if (!!this._socket || !this._disconnected) {
+        return;
+      }
+      return new Promise((resolve: any, reject: any) => {
+        this._socket = new WebSocket(`wss://${this.ip}:${this.port}/?room_id=${this.roomId}`);
+        this._disconnected = false;
 
-      this._socketHandler();
-      this.on('open', () => {
-        resolve();
+        this._socketHandler();
+        this.on('open', () => {
+          resolve();
+        });
       });
-    });
+    } catch (e: any) {
+      this.log.error(e.message);
+    }
   }
   sendData(sendData: any) {
     this._socket?.send(JSON.stringify({ ...sendData }));

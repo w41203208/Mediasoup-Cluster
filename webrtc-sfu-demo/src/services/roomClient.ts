@@ -129,10 +129,10 @@ export class RoomClient {
       })
       .then(({ data }) => {
         logger({ text: 'Create Room', data: data.msg });
-        // if (data.state) {
-        //   this.joinRoom(uid, data.room_id);
-        //   this._roomId = data.room_id;
-        // }
+        if (data.state) {
+          this.joinRoom(uid, data.room_id);
+          this._roomId = data.room_id;
+        }
       });
   }
   closeRoom(roomId: string) {
@@ -172,18 +172,20 @@ export class RoomClient {
     });
     logger({ text: `User ${this._clientUID} join room ${room_id}`, data: room_id });
     // get router RtpCapabilities
-    const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
-    console.log(mediaCodecs);
-    // load Device
-    this._device = new mc.Device();
-    await this._device.load({ routerRtpCapabilities: mediaCodecs });
-    // init transport ( consumer and produce )
-    await this.initTransports(this._device);
-    console.log(this._device.rtpCapabilities);
-    await this._socket.request({
-      data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
-      type: EVENT_FOR_CLIENT.GET_PRODUCERS,
-    });
+
+    // const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
+    // console.log(mediaCodecs);
+    // // load Device
+    // this._device = new mc.Device();
+    // await this._device.load({ routerRtpCapabilities: mediaCodecs });
+    // // init transport ( consumer and produce )
+    // await this.initTransports(this._device);
+    // console.log(this._device.rtpCapabilities);
+    // await this._socket.request({
+    //   data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
+    //   type: EVENT_FOR_CLIENT.GET_PRODUCERS,
+    // });
+
     // test
     // const start = Date.now();
     // let promises = [];

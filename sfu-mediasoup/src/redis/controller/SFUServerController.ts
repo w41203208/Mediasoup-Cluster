@@ -21,7 +21,7 @@ export class SFUServerController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         await this._rc.SET(id, 0);
-        await this._rc.lPush('SFUServerList', id);
+        await this._rc.hSet('SFUServerList', id, id);
         resolve();
       } catch (error) {
         reject(error);

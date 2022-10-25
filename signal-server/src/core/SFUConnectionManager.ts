@@ -70,9 +70,9 @@ export class SFUConnectionManager {
     const [ip, port] = ip_port.split(':');
     let serverSocket: SFUServerSocket;
     if (!this.SFUServerSockets.has(`${ip_port}:${room_id}`)) {
-      serverSocket = new SFUServerSocket(ip, port);
-      this.handleServerSocketAction(serverSocket);
-      await serverSocket.start(room_id);
+      serverSocket = new SFUServerSocket(ip, port, room_id);
+      // this.handleServerSocketAction(serverSocket);
+      await serverSocket.start();
       this.SFUServerSockets.set(`${ip_port}:${room_id}`, serverSocket);
     } else {
       serverSocket = this.SFUServerSockets.get(`${ip_port}:${room_id}`)!;
@@ -81,17 +81,17 @@ export class SFUConnectionManager {
     return serverSocket;
   }
 
-  handleServerSocketAction(serverSocket: SFUServerSocket) {
-    serverSocket.on('request', (message: { type: string; data: any }, response: Function) => {
-      const { type, data } = message;
-      data.serverId = serverSocket.id;
-      this.listener.handleServerSocketRequest(type, data, response);
-    });
+  // handleServerSocketAction(serverSocket: SFUServerSocket) {
+  // serverSocket.on('request', (message: { type: string; data: any }, response: Function) => {
+  //     const { type, data } = message;
+  //     data.serverId = serverSocket.id;
+  //     this.listener.handleServerSocketRequest(type, data, response);
+  //   });
 
-    serverSocket.on('close', (id: string) => {
-      this.SFUServerSockets.delete(id);
-    });
-  }
+  //   serverSocket.on('close', (id: string) => {
+  //     this.SFUServerSockets.delete(id);
+  //   });
+  // }
 
   // async;
 }

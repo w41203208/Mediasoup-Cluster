@@ -12,17 +12,23 @@ interface Handler {
 }
 
 interface RoomConstructor {
-  roomOption: RoomOptions;
   roomId: string;
   roomName: string;
   roomOwner: string;
-  mediaCodecs: Record<string, any>;
-  sfuConnectionManager: SFUConnectionManager;
-  redisClient: RedisClient;
-  controllerFactory: ControllerFactory;
-
-  listener: ServerEngine;
 }
+
+// interface RoomConstructor {
+//   roomOption: RoomOptions;
+//   roomId: string;
+//   roomName: string;
+//   roomOwner: string;
+//   mediaCodecs: Record<string, any>;
+//   sfuConnectionManager: SFUConnectionManager;
+//   redisClient: RedisClient;
+//   controllerFactory: ControllerFactory;
+
+//   listener: ServerEngine;
+// }
 
 interface PubHandlerMapData {
   count: number;

@@ -26,7 +26,6 @@ export class CommonService {
     this._router.use((req: Request, res: Response, next: any) => {
       try {
         const parameter = urlParse(req.url, '/?id=([+/*<>=!#$%&"*+/=?^_~\'-\\w\\s\\d%]*)');
-        console.log('common', parameter);
         const encrypted = this._cryptoCore.decipherIv(parameter);
         next();
       } catch (error: any) {

@@ -19,8 +19,12 @@ export class SFUServerController extends ControllerImp {
   getAllSFUServer() {
     return new Promise(async (resolve, reject) => {
       try {
-        const data = await this._rc.lRange('SFUServerList', 0, -1);
-        resolve(data);
+        let temp_list: Array<string> = [];
+        const data = await this._rc.hGetAll('SFUServerList');
+        Object.entries(data).forEach(([key, value]) => {
+          temp_list.push(key);
+        });
+        resolve(temp_list);
       } catch (error) {
         console.log(error);
         reject(error);
@@ -74,7 +78,7 @@ export class SFUServerController extends ControllerImp {
   isSFUServerIdExist(id: string) {
     return new Promise(async (resolve, reject) => {
       try {
-        const exist = await this._rc.exists(id);
+        const exist = await this._rc.hExists('SFUServerList', id);
         resolve(exist);
       } catch (error) {
         reject(error);

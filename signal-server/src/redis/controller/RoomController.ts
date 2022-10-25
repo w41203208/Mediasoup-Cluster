@@ -25,26 +25,28 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  setRoomProducerList(id: string, pid: string): Promise<null> {
+  setRoomProducerList(id: string, producerId: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
         const key = `${id}.producerList`;
-
-        await this._rc.lPush(key, pid);
-        resolve(null);
+        await this._rc.hSet(key, producerId, producerId);
+        resolve();
       } catch (error) {
         console.log(error);
         reject(error);
       }
     });
   }
-
   getRoomProducerList(id: string): Promise<Array<string>> {
     return new Promise(async (resolve, reject) => {
       try {
         const key = `${id}.producerList`;
-        const data = await this._rc.lRange(key, 0, -1);
-        resolve(data);
+        let temp_list: Array<string> = [];
+        const data = await this._rc.hGetAll(key);
+        Object.entries(data).forEach(([key, value]) => {
+          temp_list.push(value);
+        });
+        resolve(temp_list);
       } catch (error) {
         console.log(error);
         reject(error);
@@ -52,30 +54,65 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  setRoom(id: string, name: string): Promise<false | Record<string, any>> {
+  setRoomServerList(id: string, serverId: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.serverList`;
+        await this._rc.hSet(key, serverId, serverId);
+        resolve();
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  getRoomServerList(id: string): Promise<Array<string>> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.serverList`;
+        let temp_list: Array<string> = [];
+        const data = await this._rc.hGetAll(key);
+        Object.entries(data).forEach(([key, value]) => {
+          temp_list.push(value);
+        });
+        resolve(temp_list);
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  setRoomPlayerList(id: string, playerId: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.playerList`;
+        await this._rc.hSet(key, playerId, playerId);
+        resolve();
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  setRoom(id: string, name: string): Promise<boolean> {
     // console.log(await client.exists('SFUServer', 'test'));
     return new Promise(async (resolve, reject) => {
       try {
         if (!(await this.isRoomExist(id))) {
-          const data = await this._rc
-            .multi()
-            .hSet(
-              'Room',
-              id,
-              this.transformToJSON({
-                id: id,
-                name: name,
-                playerList: [],
-                serverList: [],
-                liveHoster: {},
-                state: 'init',
-              })
-            )
-            .hGet('Room', id)
-            .exec();
-          resolve(this.transformToJS(data[1]));
-        } else {
+          await this._rc.hSet(
+            'Room',
+            id,
+            this.transformToJSON({
+              id: id,
+              name: name,
+            })
+          );
           resolve(false);
+        } else {
+          resolve(true);
         }
       } catch (error) {
         console.log(error);
@@ -89,7 +126,7 @@ export class RoomController extends ControllerImp {
       try {
         if (await this.isRoomExist(id)) {
           const data = await this._rc.hGet('Room', id);
-          resolve(this.transformToJS(data));
+          resolve(data);
         } else {
           resolve(false);
         }
@@ -103,7 +140,6 @@ export class RoomController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         const data = await this._rc.hGetAll('Room');
-        data;
         const temp_list: Array<string> = [];
         Object.entries(data).forEach(([key, value]) => {
           temp_list.push(this.transformToJS(value));
