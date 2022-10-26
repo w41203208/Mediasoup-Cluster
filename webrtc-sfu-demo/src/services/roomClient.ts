@@ -59,7 +59,8 @@ export class RoomClient {
 
   private _sendTransport: null | Transport;
   private _recvTransport: null | Transport;
-  private _producers: Map<string, Producer>;
+  private _webcamProducers: Map<string, Producer>;
+  private _micProducers: Map<string, Producer>;
   private _consumers: Map<string, Consumer>;
 
   constructor({
@@ -84,7 +85,8 @@ export class RoomClient {
 
     this._sendTransport = null;
     this._recvTransport = null;
-    this._producers = new Map();
+    this._webcamProducers = new Map();
+    this._micProducers = new Map();
     this._consumers = new Map();
 
     this._initSocketNotification();
@@ -348,6 +350,17 @@ export class RoomClient {
     }
   }
 
+  disableProduce({ type }: { type: string }) {
+    switch (type) {
+      case mediaType.video:
+        this.disableWebCam();
+        break;
+      case mediaType.audio:
+        this.disableMic();
+        break;
+    }
+  }
+
   async enableWebCam({
     deviceId = null,
     constraints = null,
@@ -362,9 +375,11 @@ export class RoomClient {
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia(
-        deviceId ? {
-          video: { deviceId: { exact: deviceId } },
-        } : { video: true }
+        deviceId
+          ? {
+            video: { deviceId: { exact: deviceId } },
+          }
+          : { video: true }
       );
       track = stream.getTracks()[0];
       if (constraints) {
@@ -399,9 +414,9 @@ export class RoomClient {
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      // producer.on("@close", () => { });
+      producer.on("@close", () => { });
 
-      this._producers.set(producer.id, producer);
+      this._webcamProducers.set(producer.id, producer);
 
       /* 之後會區分開開啟與添加畫面的方法 */
       const elem = document.createElement("video");
@@ -415,11 +430,7 @@ export class RoomClient {
     }
   }
 
-  async enableMic({
-    deviceId = null,
-  }: {
-    deviceId: string | null;
-  }) {
+  async enableMic({ deviceId = null }: { deviceId: string | null }) {
     let stream;
     let track;
     if (!this._sendTransport) {
@@ -427,9 +438,11 @@ export class RoomClient {
     }
     try {
       stream = await navigator.mediaDevices.getUserMedia(
-        deviceId ? {
-          audio: { deviceId: { exact: deviceId } },
-        } : { audio: true }
+        deviceId
+          ? {
+            audio: { deviceId: { exact: deviceId } },
+          }
+          : { audio: true }
       );
       track = stream.getTracks()[0];
       const params = {
@@ -444,18 +457,36 @@ export class RoomClient {
 
       producer.on("@close", () => { });
 
-      console.log(producer);
-      this._producers.set(producer.id, producer);
+      this._micProducers.set(producer.id, producer);
       // /* 之後會區分開開啟與添加畫面的方法 */
     } catch (error: any) {
       console.log(error);
     }
   }
 
+  async disableWebCam() {
+    this._webcamProducers.forEach(producer => {
+      producer.close();
+      producer.track?.stop();
+    })
+
+    this._localMediaContainer?.childNodes.forEach(node => {
+      node.remove();
+    });
+  }
+
+  async disableMic() { }
+
   async consume(consumerParams: any) {
     const { id, producer_id, kind, rtpParameters } = consumerParams;
+    let repeatProducer: boolean = false;
+    this._consumers.forEach(consumer => {
+      if (consumer.producerId == producer_id) {
+        repeatProducer = true;
+      }
+    });
 
-    if (!this._recvTransport) {
+    if (!this._recvTransport || repeatProducer) {
       return;
     }
 
@@ -468,9 +499,7 @@ export class RoomClient {
 
     this._consumers.set(consumer.id, consumer);
     const stream = new MediaStream();
-    console.log(consumer.track);
     stream.addTrack(consumer.track);
-    console.log(kind);
     let elem;
     if (kind === "video") {
       elem = document.createElement("video");
@@ -502,14 +531,25 @@ export class RoomClient {
   }
 
   async testNet() {
-    console.log(`發送時間 ${Date.now()}`)
+    console.log(`發送時間 ${Date.now()}`);
     this._consumers.forEach((consumer) => {
-      consumer.getStats().then(res => {
-        console.log(`接收時間 ${Date.now()}`)
-        res.forEach(element => {
-          console.log(element)
+      consumer.getStats().then((res) => {
+        console.log(`接收時間 ${Date.now()}`);
+        res.forEach((element) => {
+          console.log(element);
         });
-      })
+      });
     });
+    setTimeout(() => {
+      console.log(`五分鐘後發送時間 ${Date.now()}`);
+      this._consumers.forEach((consumer) => {
+        consumer.getStats().then((res) => {
+          console.log(`五分鐘後接收時間 ${Date.now()}`);
+          res.forEach((element) => {
+            console.log(element);
+          });
+        });
+      });
+    }, 300000);
   }
 }

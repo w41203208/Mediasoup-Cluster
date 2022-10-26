@@ -273,14 +273,17 @@ export class Room implements ErrorHandler {
         paused: false,
       });
       this.log.info('[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]', consumer.id, producer_id, router_id);
+
       /* Register Consumer listen event */
       consumer.on('transportclose', () => {
         this.log.info('[CloseConsumer-Event]：Consumer [%s] is closed because transport closed', consumer.id);
         this._consumers.delete(consumer.id);
       });
-
+      consumer.on('producerclose', () => {
+        this.log.info('[CloseConsumer-Event]：Consumer [%s] is closed because producer closed', consumer.id);
+      });
       consumer.on('layerschange', (layer) => {
-        console.log('Consumer [%s] layer change to [%s]', consumer.id, layer);
+        this.log.info('[Consumer-Event]：Consumer [%s] layer change to [%s]', consumer.id, layer);
       });
 
       /* Register Consumer listen event */
@@ -588,7 +591,6 @@ export class Room implements ErrorHandler {
 
   private async setPreferredLayers({ ws, data, response }: Handler) {
     const { consumer_id, spatialLayer } = data;
-    console.log(`client trans consumer_id ${consumer_id}`);
     const consumer = this._consumers.get(consumer_id);
     await consumer!.setPreferredLayers(
       { spatialLayer: spatialLayer })

@@ -7,8 +7,9 @@
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
     <button class="m-btn" @click="handleClickEvtShare('audio')">OpenAudio</button>
-    <button class="m-btn">CloseVideo</button>
+    <button class="m-btn" @click="handleClickEvtClose('video')">CloseVideo</button>
     <button class="m-btn">CloseAudio</button>
+    <button class="m-btn" @click="closeConsumer">CloseConsumer</button>
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
     <button class="m-btn" @click="TESTNET">TESTNET</button>
@@ -69,6 +70,13 @@ export default defineComponent({
       rcRef.value.produce({ type: type, deviceId: null });
     };
 
+    const handleClickEvtClose = (type: string) => {
+      rcRef.value.disableProduce({ type: type });
+    };
+    const closeConsumer = () => {
+      rcRef.value.closeConsumer();
+    };
+
     const setPreferredLayers = () => {
       if (selectLayer.value != "3") {
         rcRef.value.setPreferredLayers(parseInt(selectLayer.value));
@@ -123,10 +131,12 @@ export default defineComponent({
       selectLayer,
       handleClickEvtShare,
       handleClickEvtExit,
+      handleClickEvtClose,
       handleClickEvtTest1,
       handleClickEvtTest2,
       TESTNET,
       setPreferredLayers,
+      closeConsumer,
     };
   },
 });
