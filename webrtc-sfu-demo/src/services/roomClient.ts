@@ -1,5 +1,5 @@
 import * as mc from "mediasoup-client";
-import { Consumer, Device, Producer, Transport } from "mediasoup-client/lib/types";
+import { Consumer, Device, MediaKind, Producer, Transport } from "mediasoup-client/lib/types";
 import { Socket } from "@/services/websocket";
 import { logger } from "@/util/logger";
 
@@ -370,6 +370,8 @@ export class RoomClient {
   }) {
     let stream;
     let track;
+    //codec mediaKind
+    // const mediaKind: MediaKind = 'video';
     if (!this._sendTransport) {
       return;
     }
@@ -385,6 +387,7 @@ export class RoomClient {
       if (constraints) {
         await track.applyConstraints(constraints);
       }
+
       const params = {
         track,
         encodings: [
@@ -410,6 +413,18 @@ export class RoomClient {
         codecOptions: {
           videoGoogleStartBitrate: 1000,
         },
+        //選擇codec
+        // codec: {
+        //   kind: mediaKind,
+        //   mimeType: 'video/h264',
+        //   clockRate: 90000,
+        //   parameters: {
+        //     'packetization-mode': 1,
+        //     'profile-level-id': '42e01f',
+        //     'level-asymmetry-allowed': 1,
+        //     'x-google-start-bitrate': 1000,
+        //   },
+        // },
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
