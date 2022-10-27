@@ -592,8 +592,10 @@ export class Room implements ErrorHandler {
   private async setPreferredLayers({ ws, data, response }: Handler) {
     const { consumer_id, spatialLayer } = data;
     const consumer = this._consumers.get(consumer_id);
-    await consumer!.setPreferredLayers(
-      { spatialLayer: spatialLayer })
+    if (consumer) {
+      await consumer.setPreferredLayers(
+        { spatialLayer: spatialLayer })
+    }
   }
   private async closeTransportHandler({ ws, data, response }: Handler) {
     const { sendTransport_id, recvTransport_id } = data;
