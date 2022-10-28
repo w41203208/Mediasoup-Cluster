@@ -97,17 +97,31 @@ export class RoomController extends ControllerImp {
     });
   }
 
-  setRoom(id: string, name: string): Promise<boolean> {
+  delRoomPlayerList(id: string, playerId: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.playerList`;
+        await this._rc.hDel(key, playerId);
+        resolve();
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
+  setRoom(peerId: string, roomId: string, roomName: string): Promise<boolean> {
     // console.log(await client.exists('SFUServer', 'test'));
     return new Promise(async (resolve, reject) => {
       try {
-        if (!(await this.isRoomExist(id))) {
+        if (!(await this.isRoomExist(roomId))) {
           await this._rc.hSet(
             'Room',
-            id,
+            roomId,
             this.transformToJSON({
-              id: id,
-              name: name,
+              id: roomId,
+              name: roomName,
+              owner: peerId,
             })
           );
           resolve(false);
@@ -126,7 +140,7 @@ export class RoomController extends ControllerImp {
       try {
         if (await this.isRoomExist(id)) {
           const data = await this._rc.hGet('Room', id);
-          resolve(data);
+          resolve(this.transformToJS(data));
         } else {
           resolve(false);
         }

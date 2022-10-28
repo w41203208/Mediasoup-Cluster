@@ -35,7 +35,7 @@ export class SFUServerController extends ControllerImp {
   getSFUServerCount(id: string): Promise<number | void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const count = await this._rc.get(id);
+        const count = await this._rc.hGet('SFUServerList', id);
         if (count) {
           resolve(Number(count));
         } else {
@@ -51,7 +51,7 @@ export class SFUServerController extends ControllerImp {
   addSFUServerCount(id: string): Promise<number | void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const count = await this._rc.INCRBY(id, 1);
+        const count = await this._rc.hIncrBy('SFUServerList', id, 1);
         if (count) {
           resolve(Number(count));
         } else {
@@ -66,7 +66,7 @@ export class SFUServerController extends ControllerImp {
   reduceSFUServerCount(id: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        await this._rc.INCRBY(id, -1);
+        const count = await this._rc.hIncrBy('SFUServerList', id, -1);
         resolve();
       } catch (error) {
         console.log(error);
@@ -85,6 +85,4 @@ export class SFUServerController extends ControllerImp {
       }
     });
   }
-
-  set() {}
 }

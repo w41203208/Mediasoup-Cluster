@@ -37,12 +37,14 @@ export class CommonService {
     this._router.get('/getRoomList', async (req: Request, res: Response) => {
       try {
         const temp_list = await this._roomController.getAllRoom();
-        const roomList: { roomId: string; roomName: string; roomUserSize: number }[] = [];
-        temp_list.forEach((values: { playerList: Array<string>; id: string; name: string }) => {
-          roomList.push({
-            roomId: values.id,
-            roomName: values.name,
-            roomUserSize: values.playerList.length,
+        const roomList: Array<{ roomId: string; roomName: string; roomUserSize: number }> = [];
+        temp_list.forEach((values: { id: string; name: string }) => {
+          return new Promise(async (resolve, reject) => {
+            roomList.push({
+              roomId: values.id,
+              roomName: values.name,
+              roomUserSize: 0,
+            });
           });
         });
 

@@ -235,6 +235,8 @@ export class Room {
         break;
     }
   }
+
+  // need {room_id, peer_id}
   async closeRoomHandler({ peer, data, response }: Handler) {
     this.log.info('User [%s] close room [%s].', peer.id, this._id);
 
@@ -275,6 +277,7 @@ export class Room {
     });
   }
 
+  // need { room_id, peer_id }
   async leaveRoomHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;

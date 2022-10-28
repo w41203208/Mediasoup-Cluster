@@ -20,8 +20,7 @@ export class SFUServerController extends ControllerImp {
   setSFUServer(id: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        await this._rc.SET(id, 0);
-        await this._rc.hSet('SFUServerList', id, id);
+        await this._rc.hSet('SFUServerList', id, 0);
         resolve();
       } catch (error) {
         reject(error);

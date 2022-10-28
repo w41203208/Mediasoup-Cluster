@@ -137,7 +137,7 @@ export class RoomClient {
   }
   closeRoom(roomId: string) {
     this._socket.request({
-      data: { room_id: roomId },
+      data: { room_id: this._roomId },
       type: EVENT_FOR_CLIENT.CLOSE_ROOM,
     });
     this._socket.close();
@@ -146,7 +146,7 @@ export class RoomClient {
   }
   leaveRoom(roomId: string) {
     this._socket.request({
-      data: { room_id: roomId },
+      data: { room_id: this._roomId },
       type: EVENT_FOR_CLIENT.LEAVE_ROOM,
     });
     this._socket.close();
@@ -173,14 +173,14 @@ export class RoomClient {
     logger({ text: `User ${this._clientUID} join room ${room_id}`, data: room_id });
     // get router RtpCapabilities
 
-    // const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
-    // console.log(mediaCodecs);
-    // // load Device
-    // this._device = new mc.Device();
-    // await this._device.load({ routerRtpCapabilities: mediaCodecs });
-    // // init transport ( consumer and produce )
-    // await this.initTransports(this._device);
-    // console.log(this._device.rtpCapabilities);
+    const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
+    console.log(mediaCodecs);
+    // load Device
+    this._device = new mc.Device();
+    await this._device.load({ routerRtpCapabilities: mediaCodecs });
+    // init transport ( consumer and produce )
+    await this.initTransports(this._device);
+    console.log(this._device.rtpCapabilities);
     // await this._socket.request({
     //   data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
     //   type: EVENT_FOR_CLIENT.GET_PRODUCERS,
@@ -206,7 +206,7 @@ export class RoomClient {
     return new Promise((resolve, reject) => {
       this._socket
         .request({
-          data: { room_id: roomId },
+          data: { room_id: this._roomId },
           type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES,
         })
         .then(({ data }) => {

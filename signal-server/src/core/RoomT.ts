@@ -1,4 +1,3 @@
-import { SFUServer } from './SFUServer';
 import { TimeBomb } from '../util/TimeBomb';
 import { Log } from '../util/Log';
 import { Player } from './Player';
@@ -9,23 +8,32 @@ export class Room {
   private _id: string;
   private _name: string;
   private _owner: string;
-  private _sfuServers: Map<string, SFUServer>;
   private _routers: Map<string, any>;
   private _players: Map<string, Player>;
   private _bomb?: TimeBomb;
 
   private log: Log = Log.GetInstance();
+
+  private onClose: Function = () => {};
+  private onPublishTrack: Function = () => {};
   constructor({ roomId, roomName, roomOwner }: RoomConstructor) {
     this._id = roomId;
     this._name = roomName;
     this._owner = roomOwner;
-    this._sfuServers = new Map();
     this._routers = new Map();
     this._players = new Map();
     // this._bomb = new TimeBomb(1000 * 60 * 5, () => {
     //   this.kickAllPeer();
     //   this.died();
     // });
+  }
+
+  OnClose(func: Function) {
+    this.onClose = func;
+  }
+
+  OnPublishTrack(func: Function) {
+    this.onPublishTrack = func;
   }
 
   get id() {
@@ -37,26 +45,22 @@ export class Room {
   }
 
   /************* Peer *************/
-  getPeer(id: string) {
-    return this._players.get(id);
+  getPlayer(id: string) {
+    return this._players.get(id)!;
   }
 
-  getAllPlayers() {
-    return this._players;
-  }
-
-  getJoinedPlayers({ excludePeer = {} as Player }: { excludePeer: Player | string }): Array<Player> {
+  getJoinedPlayerList({ excludePlayer = {} as Player }: { excludePlayer: Player | string }): Array<Player> {
     let producerList: Array<Player> = [];
-    if (typeof excludePeer === 'object') {
-      this._players.forEach((peer: any) => {
-        if (peer.id !== excludePeer.id) {
-          producerList.push(peer);
+    if (typeof excludePlayer === 'object') {
+      this._players.forEach((player: any) => {
+        if (player.id !== excludePlayer.id) {
+          producerList.push(player);
         }
       });
-    } else if (typeof excludePeer === 'string') {
-      this._players.forEach((peer: any) => {
-        if (peer.id !== excludePeer) {
-          producerList.push(peer);
+    } else if (typeof excludePlayer === 'string') {
+      this._players.forEach((player: any) => {
+        if (player.id !== excludePlayer) {
+          producerList.push(player);
         }
       });
     }
@@ -78,28 +82,32 @@ export class Room {
   // }
 
   removePlayer(id: string) {
-    return this._players.delete(id);
+    const p = this._players.get(id)!;
+
+    p.close();
+    p.OnClose(() => {});
+    this._players.delete(id);
   }
 
-  getOtherPeerProducers(id: string) {
-    let producerList: Array<Record<string, string>> = [];
-    this._players.forEach((player: Player) => {
-      if (player.id !== id) {
-        player.producers.forEach((producer: any) => {
-          producerList.push({
-            producer_id: producer.id,
-          });
-        });
-      }
-    });
-    return producerList;
-  }
+  // getOtherPeerProducers(id: string) {
+  //   let producerList: Array<Record<string, string>> = [];
+  //   this._players.forEach((player: Player) => {
+  //     if (player.id !== id) {
+  //       player.producers.forEach((producer: any) => {
+  //         producerList.push({
+  //           producer_id: producer.id,
+  //         });
+  //       });
+  //     }
+  //   });
+  //   return producerList;
+  // }
 
-  addRouter(id: string) {
-    this._routers.set(id, {
-      id: id,
-    });
-  }
+  // addRouter(id: string) {
+  //   this._routers.set(id, {
+  //     id: id,
+  //   });
+  // }
 
   /************* Router *************/
   // getRouters(): Array<string> {
@@ -110,16 +118,25 @@ export class Room {
   //   return routerList;
   // }
 
-  /************* SFUServer *************/
-  getSFUServer(id: string) {
-    return this._sfuServers.get(id);
+  join(player: Player) {
+    player.OnPublishProduce(() => {
+      this.onPublishTrack(player.id);
+    });
+    this._players.set(player.id, player);
   }
 
-  addSFUServer(id: string) {
-    const sfuServer = new SFUServer(id);
-    this._sfuServers.set(sfuServer.id, sfuServer);
-  }
-  addPlayer(player: Player) {
-    this._players.set(player.id, player);
+  // cleanUpPlayer() {
+  //   this._players.clear();
+  // }
+
+  close() {
+    const playerList = this.getJoinedPlayerList({ excludePlayer: {} as Player });
+    playerList.forEach(async (player: Player) => {
+      player.close();
+    });
+    const onclose = this.onClose;
+    if (onclose !== null) {
+      this.onClose();
+    }
   }
 }

@@ -9,12 +9,18 @@ export class Player {
   private _consumers: Map<string, Record<string, any>>;
   private _rtpCapabilities?: any;
 
+  private onClose: Function = () => {};
+  private onPublishProduce: Function = () => {};
+
+  // no use
+  private onGetRouterRtpCapabilities: Function = () => {};
+
   constructor(peer_id: string, peer_name: string = '', serverId: string, routerId: string) {
     /* base info */
     this._id = peer_id;
     this._name = peer_name;
     this._serverId = serverId;
-    this._routerId = serverId;
+    this._routerId = routerId;
 
     /* mediasoup info */
     this._sendTransport = null;
@@ -23,6 +29,19 @@ export class Player {
     this._consumers = new Map();
     this._rtpCapabilities = null;
   }
+
+  OnClose(func: Function) {
+    this.onClose = func;
+  }
+
+  OnPublishProduce(func: Function) {
+    this.onPublishProduce = func;
+  }
+
+  // no use
+  // OnGetRouterRtpCapabilities(func: Function) {
+  //   this.onGetRouterRtpCapabilities = func;
+  // }
 
   get id() {
     return this._id;
@@ -67,6 +86,14 @@ export class Player {
     return this._rtpCapabilities;
   }
 
+  close() {
+    this.onClose();
+  }
+
+  // getRouterRtpCapabilities() {
+  //   this.onGetRouterRtpCapabilities();
+  // }
+
   addTransport(id: string, transportType: string) {
     if (transportType === 'consuming') {
       this._recvTransport = {
@@ -77,6 +104,9 @@ export class Player {
         id: id,
       };
     }
+  }
+  produce() {
+    this.onPublishProduce();
   }
 
   addProducer(id: string) {

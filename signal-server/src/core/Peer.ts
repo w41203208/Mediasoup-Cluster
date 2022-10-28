@@ -1,11 +1,7 @@
-const { EventEmitter } = require('../util/emitter');
-import { ServerEngine } from '../engine';
+import { EventEmitter } from '../util/emitter';
 import { WSTransport } from '../connect/WSTransport';
-
-import { TimeBomb } from '../util/TimeBomb';
-// import { EVENT_FROM_CLIENT_REQUEST, EVENT_FOR_TEST } from '../EVENT';
-// import { CryptoCore } from '../util/CryptoCore';
 import { RoomService } from '../service';
+import { TimeBomb } from '../util/TimeBomb';
 
 interface PeerRequestMessage {
   id: string;
@@ -43,7 +39,7 @@ export class Peer extends EventEmitter {
 
   _handleTransportMessage() {
     this._ws!.on('request', (message: PeerRequestMessage) => {
-      this._roomService.handleMessage(message, this);
+      this._roomService.handleMessage(message, this._id);
     });
     this._ws!.on('notification', (message: { type: string; data: any }) => {
       const { type, data } = message;
@@ -58,10 +54,6 @@ export class Peer extends EventEmitter {
         //   break;
       }
     });
-  }
-
-  get socket() {
-    return this._ws!;
   }
 
   get id() {

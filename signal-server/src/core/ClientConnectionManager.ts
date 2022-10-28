@@ -8,4 +8,12 @@ export class ClientConnectionManager {
   setPeer(peer: Peer) {
     this._peerMap.set(peer.id, peer);
   }
+
+  getPeer(id: string) {
+    return this._peerMap.get(id);
+  }
+
+  delPeer(id: string) {
+    return this._peerMap.delete(id);
+  }
 }

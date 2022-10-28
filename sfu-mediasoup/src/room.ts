@@ -168,7 +168,6 @@ export class Room implements ErrorHandler {
       if (!this._routers.has(data.router_id)) {
         throw new Error('no this router in room');
       }
-
       response({
         data: {
           mediaCodecs: this._routers.get(data.router_id)?.rtpCapabilities,

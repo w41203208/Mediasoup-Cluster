@@ -8,7 +8,7 @@ export class RoomCreator {
   }
 
   async createRoom(peerId: string, roomId: string, roomName: string) {
-    const isExist = await this._roomController.setRoom(roomId, roomName);
+    const isExist = await this._roomController.setRoom(peerId, roomId, roomName);
     return isExist;
   }
 }

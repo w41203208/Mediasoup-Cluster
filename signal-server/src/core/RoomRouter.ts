@@ -1,10 +1,11 @@
-import { RedisClientType, createClient, SocketClosedUnexpectedlyError, WatchError } from 'redis';
+import { RedisClientType, WatchError } from 'redis';
 import { v4 } from 'uuid';
 import { EventEmitter } from '../util/emitter';
 
-export class Subscriber extends EventEmitter {
+export class RoomRouter extends EventEmitter {
   private _id?: string;
   private _subscriber?: RedisClientType;
+  private _publisher?: RedisClientType;
   constructor(reidsClient: RedisClientType) {
     super();
     (async () => {
@@ -16,10 +17,19 @@ export class Subscriber extends EventEmitter {
       // });
       // await this._subscriber.connect();
     })();
+    (async () => {
+      this._id = v4();
+      this._publisher = reidsClient.duplicate();
+      await this._publisher.connect();
+    })();
   }
   get id() {
     return this._id;
   }
+  publish(channelName: string, message: any) {
+    this._publisher?.publish(channelName, JSON.stringify(message));
+  }
+
   subscribe(channelName: string) {
     try {
       this._subscriber!.executeIsolated(async (isolatedClient: any) => {
@@ -44,5 +54,10 @@ export class Subscriber extends EventEmitter {
         console.log(error);
       }
     }
+  }
+
+  register(channelName: string) {
+    this.unSubscribe(channelName);
+    this.subscribe(channelName);
   }
 }
