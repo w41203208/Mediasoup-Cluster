@@ -280,6 +280,8 @@ export class ServerEngine implements ErrorHandler {
           responseData = {
             room_id: room.id,
             room_user_size: room.getAllPeers().size,
+            //demo 時需要sfuServer ip port資訊
+            sfu_ip_port: localServerId,
           };
           response({
             type: EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM,
@@ -315,7 +317,7 @@ export class ServerEngine implements ErrorHandler {
     this.roomList.delete(id);
   }
 
-  errorHandler(text: string): void {}
+  errorHandler(text: string): void { }
 }
 
 // import { TEST } from './worker/workerTest';

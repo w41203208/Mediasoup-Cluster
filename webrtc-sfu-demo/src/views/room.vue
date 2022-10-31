@@ -3,13 +3,26 @@
     Room Name: {{ roomInfoReactive.roomName }}
   </div>
   <div class="my-2 mx-3 py-1 px-2 text-lg">My Name: {{ roomInfoReactive.userName }}</div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">SFU Server: {{ sfuServer }}</div>
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
-    <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
-    <button class="m-btn" @click="handleClickEvtShare('audio')">OpenAudio</button>
-    <button class="m-btn" @click="handleClickEvtClose('video')">CloseVideo</button>
-    <button class="m-btn">CloseAudio</button>
-    <button class="m-btn" @click="closeConsumer">CloseConsumer</button>
+    <button class="m-btn" @click="handleClickEvtShare('video')">Open Camera Video</button>
+    <button
+      v-if="mediaSending.cameraState"
+      class="m-btn"
+      @click="handleClickEvtToggleMediaSending('video')"
+    >
+      {{ mediaSending.camera }}
+    </button>
+    <button class="m-btn" @click="handleClickEvtShare('audio')">Open Camera Audio</button>
+    <button
+      v-if="mediaSending.audioState"
+      class="m-btn"
+      @click="handleClickEvtToggleMediaSending('audio')"
+    >
+      {{ mediaSending.audio }}
+    </button>
+    <!-- <button class="m-btn" @click="closeConsumer">CloseConsumer</button> -->
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
     <button class="m-btn" @click="TESTNET">TESTNET</button>
@@ -40,6 +53,13 @@ export default defineComponent({
     const router = useRouter();
     const route = useRoute();
     const selectLayer = ref("3");
+    const sfuServer = ref("");
+    const mediaSending = ref({
+      cameraState: false,
+      camera: "camera play",
+      audioState: false,
+      audio: "audio play",
+    });
     const layers = reactive([
       { val: "3", item: "Select Resolution" },
       { val: "2", item: "720p" },
@@ -68,14 +88,34 @@ export default defineComponent({
 
     const handleClickEvtShare = (type: string) => {
       rcRef.value.produce({ type: type, deviceId: null });
+
+      if (type == "video") {
+        mediaSending.value.cameraState = true;
+      } else if (type == "audio") {
+        mediaSending.value.audioState = true;
+      }
     };
 
-    const handleClickEvtClose = (type: string) => {
-      rcRef.value.disableProduce({ type: type });
+    const handleClickEvtToggleMediaSending = (type: string) => {
+      rcRef.value.toggleMediaSending({ type: type }).then((res) => {
+        if (type == "video") {
+          if (res == true) {
+            mediaSending.value.camera = "camera pause";
+          } else if (res == false) {
+            mediaSending.value.camera = "camera play";
+          }
+        } else if (type == "audio") {
+          if (res == true) {
+            mediaSending.value.audio = "audio pause";
+          } else if (res == false) {
+            mediaSending.value.audio = "audio play";
+          }
+        }
+      });
     };
-    const closeConsumer = () => {
-      rcRef.value.closeConsumer();
-    };
+    // const closeConsumer = () => {
+    //   rcRef.value.closeConsumer();
+    // };
 
     const setPreferredLayers = () => {
       if (selectLayer.value != "3") {
@@ -108,9 +148,16 @@ export default defineComponent({
       rc.remoteMediaContainer = remoteMediaRef.value;
       rc.socket.on("connecting", () => {
         if (roomInfoReactive.role === "host") {
-          rc.createRoom(roomInfoReactive.uid, roomInfoReactive.roomName);
+          rc.createRoom(roomInfoReactive.uid, roomInfoReactive.roomName).then((res) => {
+            sfuServer.value = res;
+          });
         } else {
-          rc.joinRoom(roomInfoReactive.uid, roomInfoReactive.roomId);
+          rc.joinRoom(roomInfoReactive.uid, roomInfoReactive.roomId).then((res) => {
+            sfuServer.value = res;
+            // setTimeout(() => {
+            //   rc.socket.close();
+            // }, 10000);
+          });
         }
       });
     });
@@ -129,14 +176,15 @@ export default defineComponent({
       remoteMediaRef,
       layers,
       selectLayer,
+      sfuServer,
+      mediaSending,
       handleClickEvtShare,
       handleClickEvtExit,
-      handleClickEvtClose,
+      handleClickEvtToggleMediaSending,
       handleClickEvtTest1,
       handleClickEvtTest2,
       TESTNET,
       setPreferredLayers,
-      closeConsumer,
     };
   },
 });
