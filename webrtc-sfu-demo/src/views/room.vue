@@ -7,28 +7,28 @@
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">Open Camera Video</button>
-    <button
-      v-if="mediaSending.cameraState"
-      class="m-btn"
-      @click="handleClickEvtToggleMediaSending('video')"
-    >
-      {{ mediaSending.camera }}
-    </button>
     <button class="m-btn" @click="handleClickEvtShare('audio')">Open Camera Audio</button>
-    <button
-      v-if="mediaSending.audioState"
-      class="m-btn"
-      @click="handleClickEvtToggleMediaSending('audio')"
-    >
-      {{ mediaSending.audio }}
-    </button>
     <!-- <button class="m-btn" @click="closeConsumer">CloseConsumer</button> -->
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
     <button class="m-btn" @click="TESTNET">TESTNET</button>
   </div>
   <div class="mx-3 p-5">
-    <h1 class="text-lg font-semibold">Local Media</h1>
+    <div class="flex items-center">
+      <h1 class="text-lg font-semibold">Local Media</h1>
+      <img
+        v-if="mediaSending.cameraState"
+        class="w-10 p-2 mx-1 cursor-pointer"
+        @click="handleClickEvtToggleMediaSending('video')"
+        :src="mediaSending.camera"
+      />
+      <img
+        v-if="mediaSending.audioState"
+        class="w-10 p-2 mx-1 cursor-pointer"
+        @click="handleClickEvtToggleMediaSending('audio')"
+        :src="mediaSending.audio"
+      />
+    </div>
     <div id="localMeida" ref="localMediaRef"></div>
   </div>
   <div class="mx-3 p-5">
@@ -46,6 +46,10 @@
 import { RoomClient } from "@/services/roomClient";
 import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import videoPlayImg from "../assets/play-button.png";
+import videoPauseImg from "../assets/pause.png";
+import audioPlayImg from "../assets/audio-play.png";
+import audioPauseImg from "../assets/audio-mute.png";
 
 export default defineComponent({
   name: "room",
@@ -56,9 +60,9 @@ export default defineComponent({
     const sfuServer = ref("");
     const mediaSending = ref({
       cameraState: false,
-      camera: "camera play",
+      camera: videoPlayImg,
       audioState: false,
-      audio: "audio play",
+      audio: audioPlayImg,
     });
     const layers = reactive([
       { val: "3", item: "Select Resolution" },
@@ -100,15 +104,15 @@ export default defineComponent({
       rcRef.value.toggleMediaSending({ type: type }).then((res) => {
         if (type == "video") {
           if (res == true) {
-            mediaSending.value.camera = "camera pause";
+            mediaSending.value.camera = videoPauseImg;
           } else if (res == false) {
-            mediaSending.value.camera = "camera play";
+            mediaSending.value.camera = videoPlayImg;
           }
         } else if (type == "audio") {
           if (res == true) {
-            mediaSending.value.audio = "audio pause";
+            mediaSending.value.audio = audioPauseImg;
           } else if (res == false) {
-            mediaSending.value.audio = "audio play";
+            mediaSending.value.audio = audioPlayImg;
           }
         }
       });

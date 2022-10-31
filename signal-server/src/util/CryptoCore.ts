@@ -25,8 +25,9 @@ export class CryptoCore {
     decipher.setAuthTag(tag);
     const decrypted = Buffer.concat([decipher.update(toDecrypt), decipher.final()]);
     const ans = decrypted.toString('utf8').split(':');
+    //Token過期時間
     if (Date.now() - parseInt(ans[0]) >= 3600000) {
-      throw new Error("token was expired");
+      throw new Error("Token was expired");
     } else {
       return decrypted.toString('utf8');
     }
