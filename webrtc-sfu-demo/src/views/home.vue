@@ -1,6 +1,6 @@
 <template>
   <div class="flex items-center">
-    <h1 class="py-2 px-3 text-4xl">Home page</h1>
+    <h1 class="py-2 px-3 text-2xl">Home page</h1>
     <div class="">
       <h2>Name: {{ user.name }}</h2>
       <h2>Uuid: {{ user.uuId }}</h2>

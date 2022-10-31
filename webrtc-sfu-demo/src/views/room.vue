@@ -3,18 +3,32 @@
     Room Name: {{ roomInfoReactive.roomName }}
   </div>
   <div class="my-2 mx-3 py-1 px-2 text-lg">My Name: {{ roomInfoReactive.userName }}</div>
+  <div class="my-2 mx-3 py-1 px-2 text-lg">SFU Server: {{ sfuServer }}</div>
   <div class="my-2 mx-3 py-1 px-2">
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
-    <button class="m-btn" @click="handleClickEvtShare('video')">OpenVideo</button>
-    <button class="m-btn">OpenAudio</button>
-    <button class="m-btn">CloseVideo</button>
-    <button class="m-btn">CloseAudio</button>
+    <button class="m-btn" @click="handleClickEvtShare('video')">Open Camera Video</button>
+    <button class="m-btn" @click="handleClickEvtShare('audio')">Open Camera Audio</button>
+    <!-- <button class="m-btn" @click="closeConsumer">CloseConsumer</button> -->
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
     <button class="m-btn" @click="TESTNET">TESTNET</button>
   </div>
   <div class="mx-3 p-5">
-    <h1 class="text-lg font-semibold">Local Media</h1>
+    <div class="flex items-center">
+      <h1 class="text-lg font-semibold">Local Media</h1>
+      <img
+        v-if="mediaSending.cameraState"
+        class="w-10 p-2 mx-1 cursor-pointer"
+        @click="handleClickEvtToggleMediaSending('video')"
+        :src="mediaSending.camera"
+      />
+      <img
+        v-if="mediaSending.audioState"
+        class="w-10 p-2 mx-1 cursor-pointer"
+        @click="handleClickEvtToggleMediaSending('audio')"
+        :src="mediaSending.audio"
+      />
+    </div>
     <div id="localMeida" ref="localMediaRef"></div>
   </div>
   <div class="mx-3 p-5">
@@ -32,6 +46,10 @@
 import { RoomClient } from "@/services/roomClient";
 import { defineComponent, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import videoPlayImg from "../assets/play-button.png";
+import videoPauseImg from "../assets/pause.png";
+import audioPlayImg from "../assets/audio-play.png";
+import audioPauseImg from "../assets/audio-mute.png";
 
 export default defineComponent({
   name: "room",
@@ -39,11 +57,18 @@ export default defineComponent({
     const router = useRouter();
     const route = useRoute();
     const selectLayer = ref("3");
+    const sfuServer = ref("");
+    const mediaSending = ref({
+      cameraState: false,
+      camera: videoPlayImg,
+      audioState: false,
+      audio: audioPlayImg,
+    });
     const layers = reactive([
       { val: "3", item: "Select Resolution" },
-      { val: "2", item: "1080p" },
-      { val: "1", item: "720p" },
-      { val: "0", item: "360p" },
+      { val: "2", item: "720p" },
+      { val: "1", item: "360p" },
+      { val: "0", item: "180p" },
     ]);
     const roomInfoReactive = reactive({
       userName: route.query.userName!.toString(),
@@ -67,7 +92,34 @@ export default defineComponent({
 
     const handleClickEvtShare = (type: string) => {
       rcRef.value.produce({ type: type, deviceId: null });
+
+      if (type == "video") {
+        mediaSending.value.cameraState = true;
+      } else if (type == "audio") {
+        mediaSending.value.audioState = true;
+      }
     };
+
+    const handleClickEvtToggleMediaSending = (type: string) => {
+      rcRef.value.toggleMediaSending({ type: type }).then((res) => {
+        if (type == "video") {
+          if (res == true) {
+            mediaSending.value.camera = videoPauseImg;
+          } else if (res == false) {
+            mediaSending.value.camera = videoPlayImg;
+          }
+        } else if (type == "audio") {
+          if (res == true) {
+            mediaSending.value.audio = audioPauseImg;
+          } else if (res == false) {
+            mediaSending.value.audio = audioPlayImg;
+          }
+        }
+      });
+    };
+    // const closeConsumer = () => {
+    //   rcRef.value.closeConsumer();
+    // };
 
     const setPreferredLayers = () => {
       if (selectLayer.value != "3") {
@@ -100,9 +152,16 @@ export default defineComponent({
       rc.remoteMediaContainer = remoteMediaRef.value;
       rc.socket.on("connecting", () => {
         if (roomInfoReactive.role === "host") {
-          rc.createRoom(roomInfoReactive.uid, roomInfoReactive.roomName);
+          rc.createRoom(roomInfoReactive.uid, roomInfoReactive.roomName).then((res) => {
+            sfuServer.value = res;
+          });
         } else {
-          rc.joinRoom(roomInfoReactive.uid, roomInfoReactive.roomId);
+          rc.joinRoom(roomInfoReactive.uid, roomInfoReactive.roomId).then((res) => {
+            sfuServer.value = res;
+            // setTimeout(() => {
+            //   rc.socket.close();
+            // }, 10000);
+          });
         }
       });
     });
@@ -121,8 +180,11 @@ export default defineComponent({
       remoteMediaRef,
       layers,
       selectLayer,
+      sfuServer,
+      mediaSending,
       handleClickEvtShare,
       handleClickEvtExit,
+      handleClickEvtToggleMediaSending,
       handleClickEvtTest1,
       handleClickEvtTest2,
       TESTNET,

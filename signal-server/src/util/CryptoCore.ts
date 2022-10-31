@@ -24,7 +24,13 @@ export class CryptoCore {
     const decipher = Crypto.createDecipheriv('aes-128-gcm', this.keyToBufferHex(this.key), iv);
     decipher.setAuthTag(tag);
     const decrypted = Buffer.concat([decipher.update(toDecrypt), decipher.final()]);
-    return decrypted.toString('utf8');
+    const ans = decrypted.toString('utf8').split(':');
+    //Token過期時間
+    if (Date.now() - parseInt(ans[0]) >= 3600000) {
+      throw new Error("Token was expired");
+    } else {
+      return decrypted.toString('utf8');
+    }
   }
 
   keyToBufferHex(key: string): Buffer {
