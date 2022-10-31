@@ -21,21 +21,18 @@ import { TimeBomb } from './util/TimeBomb';
 import { SFUService } from './service/sfuService';
 import { SFUAllocator } from './core/SFUAllocator';
 
-import { getLocalIp } from './util/tool';
-
 export class ServerEngine {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
   private _redisClientOption: RedisClientOptions;
   /* roomlist */
   private _roomList: Map<string, Room>;
-  /* log */
-  private log: Log = Log.GetInstance();
 
   constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
     this._redisClientOption = redisClientOption;
 
+    Log.setLogLevel('DEBUG');
     this._roomList = new Map();
   }
 
@@ -56,7 +53,6 @@ export class ServerEngine {
     const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
     const roomCreator = new RoomCreator(controllerFactory);
     const roomRouter = new RoomRouter(rcClient.Client!);
-    roomRouter.register('SignalChannel');
 
     const roomMgr = new RoomManager(controllerFactory, roomRouter);
     const roomService = new RoomService(

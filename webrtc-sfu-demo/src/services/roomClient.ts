@@ -181,10 +181,10 @@ export class RoomClient {
     // init transport ( consumer and produce )
     await this.initTransports(this._device);
     console.log(this._device.rtpCapabilities);
-    // await this._socket.request({
-    //   data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
-    //   type: EVENT_FOR_CLIENT.GET_PRODUCERS,
-    // });
+    await this._socket.request({
+      data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
+      type: EVENT_FOR_CLIENT.GET_PRODUCERS,
+    });
 
     // test
     // const start = Date.now();
@@ -264,7 +264,7 @@ export class RoomClient {
             type: EVENT_FOR_CLIENT.PRODUCE,
           });
 
-          callback(data.id);
+          callback({ id: data.producer_id });
         } catch (error) {
           errback(error as Error);
         }

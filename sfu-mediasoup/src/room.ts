@@ -129,6 +129,7 @@ export class Room implements ErrorHandler {
         break;
       case EVENT_FROM_SIGNAL.CREATE_PIPETRANSPORT_CONSUME:
         this.createPipeTransportConsumeHandler({ ws, data, response });
+        break;
       case EVENT_FROM_SIGNAL.SET_PREFERRED_LAYERS:
         this.setPreferredLayers({ ws, data, response });
         break;
@@ -342,6 +343,7 @@ export class Room implements ErrorHandler {
     let consumerMap = {} as any;
     /* 連線到PipeTransportRouter */
     if (this._pipeTransportsRouter !== undefined) {
+      this._alreadyPipeToRouterProudcer.set(producer.id, producer.id);
       await this._connectToOtherRouter(router!, this._pipeTransportsRouter, producer.id);
       for (let [key, value] of this._serverAndPipeTransport) {
         if (consumerMap[key] === undefined) {
@@ -509,7 +511,6 @@ export class Room implements ErrorHandler {
         console.log('testoutestinerter');
       }
     }
-    console.log('testouter');
     response({
       data: {},
     });
@@ -527,7 +528,6 @@ export class Room implements ErrorHandler {
      *    ]
      *  }
      */
-
     let pipeTransport = null;
     const pipeTransportId = this._serverAndPipeTransport.get(server_id)!;
     let consumerMap = {} as any;
@@ -540,6 +540,7 @@ export class Room implements ErrorHandler {
         const router = this._routers.get(routerId)!;
         for (let { producerId, rtpCapabilities } of producerInfoArray as Array<any>) {
           if (this._pipeTransportsRouter !== undefined) {
+            console.log(this._alreadyPipeToRouterProudcer);
             if (this._alreadyPipeToRouterProudcer.has(producerId)) {
               continue;
             } else {

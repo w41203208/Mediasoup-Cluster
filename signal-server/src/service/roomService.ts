@@ -13,6 +13,7 @@ import { SFUService } from './sfuService';
 import { SFUAllocator } from '../core/SFUAllocator';
 import { Player } from '../core/Player';
 import { RoomRouter } from '../core/RoomRouter';
+import { stringify } from 'querystring';
 
 interface PeerRequestMessage {
   id: string;
@@ -93,56 +94,133 @@ export class RoomService {
     const { type, data, identifyIp } = msg;
     switch (type) {
       case EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME:
-        this.handlePubCreatePipeTransportConsumer(data);
+        this.handlePubCreatePipeTransportConsumer(data, identifyIp);
         break;
       case EVENT_PUBLISH.CREATE_CONSUME:
-        this.handlePubCreateConsumer(data);
+        this.handlePubCreateConsumer(data, identifyIp);
         break;
       case EVENT_PUBLISH.EVENT_EXECUTE_COMPLETE:
         if (identifyIp === this._ip) {
-          // this.executeCompletePubHandler(data);
+          this.handlePubExecuteComplete(data);
         }
         break;
     }
   }
 
-  async handlePubCreateConsumer(data: any) {
+  async handlePubCreateConsumer(data: any, identifyIp: string) {
     const peerOfServerMap = await this._roomManager.createPlayerConsumer_Pub(data.pubRoomId, data.pubPlayerId);
+    console.log('peerOfServerMap: ', peerOfServerMap);
     Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
-      value.foreach((player: Player) => {
-        this._sfuService
-          .createConsume({
-            serverId: key,
-            roomId: data.pubRoomId,
-            data: {
-              routerId: player.routerId,
-              transportId: player.recvTransport.id,
-              rtpCapabilities: player.rtpCapabilities,
-              producers: value.producerList,
-            },
-          })
-          .then(({ data }) => {
-            const { new_consumerList } = data;
-            this.log.debug(`return new_consumerList: ${new_consumerList.toString()}`);
-            const peer = this._clientConnectionMgr.getPeer(player.id)!;
-            peer?.notify({
-              type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,
-              data: {
-                consumerList: new_consumerList,
-              },
-            });
-          });
+      value.forEach(async (v: any) => {
+        const rData = await this._sfuService.createConsume({
+          connectionServerId: key,
+          roomId: data.pubRoomId,
+          data: {
+            routerId: v.player.routerId,
+            transportId: v.player.recvTransport.id,
+            rtpCapabilities: v.player.rtpCapabilities,
+            producers: v.producerList,
+          },
+        });
+        const { new_consumerList } = rData;
+        this.log.debug(`return new_consumerList: `, new_consumerList);
+        const peer = this._clientConnectionMgr.getPeer(v.player.id)!;
+        peer?.notify({
+          type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,
+          data: {
+            consumerList: new_consumerList,
+          },
+        });
       });
     });
   }
 
-  async handlePubCreatePipeTransportConsumer(data: any) {}
+  async handlePubCreatePipeTransportConsumer(data: any, identifyIp: string) {
+    const producerMaps = this._roomManager.createPlayerPipeTransportConsumer_Pub(
+      data.pubRoomId,
+      data.pubPlayerId,
+      data.ignoreServerId,
+      data.pubHandlerMapId,
+      identifyIp
+    );
+    if (Object.keys(producerMaps).length === 0) {
+      return;
+    }
+    // if (producerMaps === 0) {
+    //   return;
+    // }
+
+    const promises = Object.entries(producerMaps).map(([key, value]: [key: string, value: any]) => {
+      const kkey = key;
+      return new Promise<void>(async (resolve, reject) => {
+        const rData = await this._sfuService.createPipeTransportConsume({
+          connectionServerId: key, // 要輸入欲創建的 sfu server 要對應創建的 sfu server 的 serverID
+          roomId: data.pubRoomId,
+          data: {
+            serverId: data.ignoreServerId,
+            producerMap: value,
+          },
+        });
+        const { consumerMap } = rData;
+        Object.entries(consumerMap).map(async ([key, value]) => {
+          await this._sfuService.createPipeTransportProduce({
+            connectionServerId: key,
+            roomId: data.pubRoomId,
+            data: {
+              serverId: kkey,
+              consumerMap: value,
+            },
+          });
+          resolve();
+        });
+      });
+    });
+    await Promise.all(promises);
+
+    this._roomManager.executeComplete_Pub(data.pubRoomId, data.pubHandlerMapId, identifyIp);
+  }
+
+  async handlePubExecuteComplete(data: any) {
+    const handler = this._roomManager.getPubHandlerMap(data.pubHandlerMapId);
+    if (handler === undefined) {
+      return;
+    }
+    switch (handler.type) {
+      case PubHandlerType.GETPRODUCER_COMPLETE:
+        this.handleGetProducerComplete(handler.data);
+        break;
+      default:
+        break;
+    }
+  }
+
+  async handleGetProducerComplete(data: any) {
+    const player = this._roomManager.getRoomPlayer(data.handlerRoomId, data.handlerPlayerId);
+    const producerList = await this.RoomController.getRoomProducerList(data.handlerRoomId);
+    const rData = await this._sfuService.createConsume({
+      connectionServerId: player.serverId,
+      roomId: data.handlerRoomId,
+      data: {
+        routerId: player.routerId,
+        transportId: player.recvTransport.id,
+        rtpCapabilities: player.rtpCapabilities,
+        producers: producerList,
+      },
+    });
+
+    const peer = this._clientConnectionMgr.getPeer(player.id)!;
+    peer.notify({
+      type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER,
+      data: {
+        consumerList: rData.new_consumerList,
+      },
+    });
+  }
 
   handleMessage(message: PeerRequestMessage, peerId: string) {
     const handleMsg: HandleMessage = {
       ...message,
     };
-    console.log(handleMsg);
     switch (message.type) {
       case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
         this.handleCreateRoom(handleMsg, peerId);
@@ -167,6 +245,9 @@ export class RoomService {
         break;
       case EVENT_FROM_CLIENT_REQUEST.PRODUCE:
         this.handleProduce(handleMsg, peerId);
+        break;
+      case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
+        this.handleGetProduce(handleMsg, peerId);
         break;
     }
   }
@@ -238,7 +319,7 @@ export class RoomService {
       await this.RoomController.setRoomServerList(msg.data.room_id, ip_port);
 
       const data = await this._sfuService.createRouter({
-        serverId: ip_port,
+        connectionServerId: ip_port,
         roomId: msg.data.room_id,
         data: {},
       });
@@ -262,9 +343,10 @@ export class RoomService {
       if (remoteServerSocketIdList.length !== 0) {
         remoteServerSocketIdList.forEach((serverId: string) => {
           this._sfuService.connectTwoSFUServer({
-            serverId: localServerSocketId,
+            connectionServerId: localServerSocketId,
             roomId: msg.data.room_id,
             data: {
+              localServerId: localServerSocketId,
               remoteServerId: serverId,
             },
           });
@@ -340,7 +422,7 @@ export class RoomService {
       }
 
       const data = await this._sfuService.getRouterRtpCapabilities({
-        serverId: player.serverId,
+        connectionServerId: player.serverId,
         roomId: msg.data.room_id,
         data: {
           routerId: player.routerId,
@@ -372,7 +454,7 @@ export class RoomService {
       }
 
       const data = await this._sfuService.createWebRTCTransport({
-        serverId: player.serverId,
+        connectionServerId: player.serverId,
         roomId: msg.data.room_id,
         data: {
           routerId: player.routerId,
@@ -380,6 +462,8 @@ export class RoomService {
           producing: msg.data.producing,
         },
       });
+
+      player.addTransport(data.transport_id, data.transportType);
       this.log.info('Player [%s] createWebRTCTransport [%s] type is [%s]', peerId, data.transport_id, data.transportType);
 
       peer.response({
@@ -405,7 +489,7 @@ export class RoomService {
       }
 
       const data = await this._sfuService.connectWebRTCTransport({
-        serverId: player.serverId,
+        connectionServerId: player.serverId,
         roomId: msg.data.room_id,
         data: {
           routerId: player.routerId,
@@ -432,13 +516,12 @@ export class RoomService {
         throw new Error('no input room_id');
       }
       const player = this._roomManager.getRoomPlayer(msg.data.room_id, peerId);
-
       if (!player) {
         throw new Error('no this player in room');
       }
 
       const data = await this._sfuService.createProduce({
-        serverId: player.serverId,
+        connectionServerId: player.serverId,
         roomId: msg.data.room_id,
         data: {
           routerId: player.routerId,
@@ -449,19 +532,26 @@ export class RoomService {
         },
       });
       const { producer_id, consumerMap } = data;
-      player.addProducer(producer_id);
+
       this.log.info('User [%s] use webrtcTransport [%s] produce [%s].', player.id, player.sendTransport.id, producer_id);
 
       // 這裡是不是可以不一定要等
-      await this._sfuService.createPipeTransportProduce({
-        serverId: player.serverId,
-        roomId: msg.data.room_id,
-        data: {
-          consumerMap: consumerMap,
-        },
+      const promises = Object.entries(consumerMap).map(([key, value]: [key: string, value: any]): Promise<any> => {
+        return new Promise<void>(async (resolve, reject) => {
+          await this._sfuService.createPipeTransportProduce({
+            connectionServerId: key,
+            roomId: msg.data.room_id,
+            data: {
+              serverId: player.serverId,
+              consumerMap: value,
+            },
+          });
+          resolve();
+        });
       });
+      await Promise.all(promises);
 
-      player.produce();
+      player.produce(producer_id);
 
       peer.response({
         id: msg.id,
@@ -471,7 +561,7 @@ export class RoomService {
         },
       });
     } catch (e: any) {
-      this.log.error(`${e.message}`);
+      this.log.error(`${e}`);
     }
   }
 
@@ -494,7 +584,7 @@ export class RoomService {
     const peer = this._clientConnectionMgr.getPeer(player.id);
 
     await this._sfuService.closeWebRTCTransport({
-      serverId: player.serverId,
+      connectionServerId: player.serverId,
       roomId: roomId,
       data: { sendTransport: player.sendTransport, recvTransport: player.recvTransport },
     });

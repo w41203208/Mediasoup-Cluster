@@ -10,8 +10,26 @@ import { RoomRouter } from './RoomRouter';
 import { getLocalIp } from '../util/tool';
 import { EVENT_PUBLISH } from '../EVENT';
 
-import { PubHandlerMapData, DataJoinRoom, PubHandlerType } from './type.RoomManager';
+// import { PubHandlerMapData, DataJoinRoom, PubHandlerType } from './type.roommanager';
 import { v4 } from 'uuid';
+
+interface DataJoinRoom {
+  roomId: string;
+  playerId: string;
+  playerServerId: string;
+  playerRouterId: string;
+}
+
+interface PubHandlerMapData {
+  // add pubRoomID and pubPlayerID
+  count: number;
+  type: string;
+  data: Record<string, any>;
+}
+
+enum PubHandlerType {
+  GETPRODUCER_COMPLETE = 'getProducerComplete',
+}
 
 export class RoomManager {
   private RoomController: RoomController;
@@ -60,6 +78,7 @@ export class RoomManager {
           roomName: rRoom.name,
           roomOwner: rRoom.owner,
         });
+        this._roomRouter.register(roomId);
 
         newRoom.OnClose(() => {
           this.log.debug('Room [%s] is closing', newRoom.id);
@@ -67,9 +86,10 @@ export class RoomManager {
           this._roomMap.delete(newRoom.id);
         });
 
-        newRoom.OnPublishTrack((playerId: string) => {
-          this.log.debug('Has PlayerId to pass [%s]', playerId);
-          this._roomRouter.publish('SignalChannel', {
+        newRoom.OnPublishTrack((playerId: string, producerId: string) => {
+          this.log.debug('Has PlayerId publish track! ', playerId);
+          this.RoomController.setRoomProducerList(roomId, producerId);
+          this._roomRouter.publish(roomId, {
             identifyIp: getLocalIp(),
             type: EVENT_PUBLISH.CREATE_CONSUME,
             data: {
@@ -135,6 +155,90 @@ export class RoomManager {
     return player;
   }
 
+  async getProduce(roomId: string, peerId: string, rtpCapabilities: any) {
+    const room = this._roomMap.get(roomId)!;
+    const player = room.getPlayer(peerId);
+
+    player.rtpCapabilities = rtpCapabilities;
+
+    // 取得訂閱頻道的人數，作為要回傳任務完成的依據
+    const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(roomId);
+    const mapId = v4();
+    this._pubHandlerMap.set(mapId, {
+      count: currentOtherSignalCount,
+      type: PubHandlerType.GETPRODUCER_COMPLETE,
+      data: {
+        handlerPlayerId: player.id,
+        handlerRoomId: room.id,
+      },
+    });
+
+    this._roomRouter.publish(roomId, {
+      identifyIp: getLocalIp(),
+      type: EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME,
+      data: {
+        pubPlayerId: player.id,
+        pubRoomId: room.id,
+        ignoreServerId: player.serverId,
+        pubHandlerMapId: mapId,
+      },
+    });
+  }
+
+  createPlayerPipeTransportConsumer_Pub(roomId: string, peerId: string, ignoreServerId: string, pubHandlerMapId: string, identifyIp: string) {
+    const room = this._roomMap.get(roomId)!;
+    const localPlayerList = room.getJoinedPlayerList({ excludePlayer: {} as Player });
+    let producerMaps: Record<string, any> = {};
+    localPlayerList.forEach((player: Player) => {
+      if (player.serverId !== ignoreServerId) {
+        const sid = player.serverId!;
+        if (producerMaps[sid] === undefined) {
+          producerMaps[sid] = {};
+        }
+        const rid = player.routerId!;
+        if (producerMaps[sid][rid] === undefined) {
+          producerMaps[sid][rid] = [];
+        }
+        player.producers.forEach((producer: any) => {
+          producerMaps[sid][rid].push({ producerId: producer.id, rtpCapabilities: player.rtpCapabilities });
+        });
+      }
+    });
+
+    // 如果 producerMap is null，代表沒有需要連到其他不同台 sfu server 去建立連線資訊的動作
+    if (Object.keys(producerMaps).length === 0) {
+      this.executeComplete_Pub(roomId, pubHandlerMapId, identifyIp);
+    }
+    return producerMaps;
+    // const room = this._roomMap.get(roomId)!;
+    // const localPlayerList = room.getJoinedPlayerList({ excludePlayer: {} as Player });
+    // let producerMaps: Record<string, any> = {};
+    // let num = 0;
+    // localPlayerList.forEach((player: Player) => {
+    //   if (player.serverId !== ignoreServerId) {
+    //     const sid = player.serverId!;
+    //     if (producerMaps[sid] === undefined) {
+    //       producerMaps[sid] = {};
+    //     }
+    //     const rid = player.routerId!;
+    //     if (producerMaps[sid][rid] === undefined) {
+    //       producerMaps[sid][rid] = [];
+    //     }
+    //     player.producers.forEach((producer: any) => {
+    //       num++;
+    //       producerMaps[sid][rid].push({ producerId: producer.id, rtpCapabilities: player.rtpCapabilities });
+    //     });
+    //   }
+    // });
+
+    // // 如果 producerMap is null，代表沒有需要連到其他不同台 sfu server 去建立連線資訊的動作
+    // if (num === 0) {
+    //   this.executeComplete_Pub(roomId, pubHandlerMapId, identifyIp);
+    //   return num;
+    // }
+    // return producerMaps;
+  }
+
   // `tag` maybe like livekit room.onTrackPublished method, can to 參考
   async createPlayerConsumer_Pub(roomId: string, peerId: string) {
     const room = this._roomMap.get(roomId)!;
@@ -153,35 +257,24 @@ export class RoomManager {
     return playerOfServerMap;
   }
 
-  async getProduce(roomId: string, peerId: string, rtpCapabilities: any) {
-    const room = this._roomMap.get(roomId)!;
-    const player = room.getPlayer(peerId);
-
-    player.rtpCapabilities = rtpCapabilities;
-
-    // 取得訂閱頻道的人數，作為要回傳任務完成的依據
-    const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum('SignalChannel');
-    const mapId = v4();
-    this._pubHandlerMap.set(mapId, {
-      count: currentOtherSignalCount,
-      type: PubHandlerType.GETPRODUCER_COMPLETE,
+  executeComplete_Pub(roomId: string, pubHandlerMapId: string, identifyIp: string) {
+    this._roomRouter.publish(roomId, {
+      identifyIp: identifyIp,
+      type: EVENT_PUBLISH.EVENT_EXECUTE_COMPLETE,
       data: {
-        handlerPlayerId: player.id,
-        handlerRoomId: room.id,
-      },
-    });
-
-    this._roomRouter.publish('SignalChannel', {
-      identifyIp: getLocalIp(),
-      type: EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME,
-      data: {
-        pubPlayerId: player.id,
-        pubRoomId: room.id,
-        ignoreServerId: player.serverId,
-        pubHandlerMapId: mapId,
+        pubHandlerMapId: pubHandlerMapId,
       },
     });
   }
 
-  async createPlayerPipeTransportConsumer_Pub(roomId: string, peerId: string) {}
+  getPubHandlerMap(pubHandlerMapId: string) {
+    const handler = this._pubHandlerMap.get(pubHandlerMapId)!;
+    if (handler.count > 0) {
+      handler.count--;
+    }
+    if (handler.count === 0) {
+      this._pubHandlerMap.delete(pubHandlerMapId);
+      return handler;
+    }
+  }
 }

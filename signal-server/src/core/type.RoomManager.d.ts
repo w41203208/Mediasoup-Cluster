@@ -6,6 +6,7 @@ interface DataJoinRoom {
 }
 
 interface PubHandlerMapData {
+  // add pubRoomID and pubPlayerID
   count: number;
   type: string;
   data: Record<string, any>;

@@ -105,8 +105,9 @@ export class Player {
       };
     }
   }
-  produce() {
-    this.onPublishProduce();
+  produce(id: string) {
+    this.addProducer(id);
+    this.onPublishProduce(id);
   }
 
   addProducer(id: string) {

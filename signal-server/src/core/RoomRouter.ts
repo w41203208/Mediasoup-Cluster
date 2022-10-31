@@ -46,9 +46,7 @@ export class RoomRouter extends EventEmitter {
   }
   unSubscribe(channelName: string) {
     try {
-      this._subscriber!.executeIsolated(async (isolatedClient: any) => {
-        isolatedClient.unsubscribe(channelName);
-      });
+      this._subscriber!.unsubscribe(channelName);
     } catch (error) {
       if (error instanceof WatchError) {
         console.log(error);

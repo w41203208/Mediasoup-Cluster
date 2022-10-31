@@ -6,7 +6,7 @@ import { EVENT_FOR_SFU } from '../EVENT';
 import { config } from '../../config';
 
 interface SFUMessage {
-  serverId: string;
+  connectionServerId: string;
   roomId: string;
   data: Record<string, any>;
 }
@@ -20,7 +20,7 @@ export class SFUService {
 
   createRouter(msg: SFUMessage): Promise<any> {
     return new Promise(async (resolve, reject) => {
-      const serverSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+      const serverSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
       const { data } = await serverSocket.request({
         data: {
           room_id: msg.roomId,
@@ -35,7 +35,7 @@ export class SFUService {
 
   getRouterRtpCapabilities(msg: SFUMessage): Promise<any> {
     return new Promise(async (resolve, reject) => {
-      const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+      const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
       const { data } = await serversocket.request({
         data: {
           router_id: msg.data.routerId,
@@ -49,7 +49,7 @@ export class SFUService {
   createWebRTCTransport(msg: SFUMessage): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
-        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
         const { data } = await serversocket.request({
           data: {
             router_id: msg.data.routerId,
@@ -69,7 +69,7 @@ export class SFUService {
   connectWebRTCTransport(msg: SFUMessage): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
-        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
         const { data } = await serversocket.request({
           type: EVENT_FOR_SFU.CONNECT_WEBRTCTRANPORT,
           data: {
@@ -89,7 +89,7 @@ export class SFUService {
   createProduce(msg: SFUMessage): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
-        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
         const { data } = await serversocket.request({
           type: EVENT_FOR_SFU.CREATE_PRODUCE,
           data: {
@@ -111,14 +111,14 @@ export class SFUService {
   createConsume(msg: SFUMessage): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
-        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
         const { data } = await serversocket.request({
           type: EVENT_FOR_SFU.CREATE_CONSUME,
           data: {
             router_id: msg.data.routerId,
             transport_id: msg.data.transportId,
             rtpCapabilities: msg.data.rtpCapabilities,
-            producers: msg.data.producerList,
+            producers: msg.data.producers,
           },
         });
         resolve(data);
@@ -131,7 +131,7 @@ export class SFUService {
 
   closeWebRTCTransport(msg: SFUMessage): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      const serverSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+      const serverSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
       await serverSocket.request({
         data: {
           sendTransport_id: msg.data.sendTransport === null ? null : msg.data.sendTransport.id,
@@ -147,12 +147,12 @@ export class SFUService {
   // maybe can seperate two function
   connectTwoSFUServer(msg: SFUMessage): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      const localServerSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.serverId, msg.roomId);
+      const localServerSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
       const remoteServerSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.data.remoteServerId, msg.roomId);
       const [remoteConnectionData, localConnectionData] = await Promise.all([
         remoteServerSocket.request({
           data: {
-            server_id: msg.serverId,
+            server_id: msg.data.localServerId,
             mediaCodecs: config.MediasoupSetting.router.mediaCodecs,
           },
           type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT,
@@ -172,7 +172,7 @@ export class SFUService {
         promiseList.push(
           remoteServerSocket.request({
             data: {
-              server_id: msg.serverId,
+              server_id: msg.data.localServerId,
               ...localRest,
             },
             type: EVENT_FOR_SFU.CONNECT_PIPETRANSPORT,
@@ -199,21 +199,34 @@ export class SFUService {
   createPipeTransportProduce(msg: SFUMessage): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const promises = Object.entries(msg.data.consumerMap).map(([key, value]: [key: string, value: any]): Promise<any> => {
-          return new Promise<void>(async (resolve, reject) => {
-            const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(key, msg.roomId);
-            await serversocket.request({
-              type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT_PRODUCE,
-              data: {
-                server_id: msg.serverId,
-                consumerMap: value,
-              },
-            });
-            resolve();
-          });
+        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
+        await serversocket.request({
+          type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT_PRODUCE,
+          data: {
+            server_id: msg.data.serverId,
+            consumerMap: msg.data.consumerMap,
+          },
         });
-        await Promise.all(promises);
         resolve();
+      } catch (e: any) {
+        this.log.error(`${e.message}`);
+        reject(e);
+      }
+    });
+  }
+
+  createPipeTransportConsume(msg: SFUMessage): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
+        const { data } = await serversocket.request({
+          type: EVENT_FOR_SFU.CREATE_PIPETRANSPORT_CONSUME,
+          data: {
+            server_id: msg.data.serverId,
+            producerMap: msg.data.producerMap,
+          },
+        });
+        resolve(data);
       } catch (e: any) {
         this.log.error(`${e.message}`);
         reject(e);

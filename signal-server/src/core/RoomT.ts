@@ -67,20 +67,6 @@ export class Room {
     return producerList;
   }
 
-  // addPeer(peer: Peer) {
-  //   this._peers.set(peer.id, peer);
-  //   const bomb = new TimeBomb(10 * 1000, () => {
-  //     this.leaveRoom(peer);
-  //   });
-  //   peer.setTimeBomb(bomb);
-  //   peer.on('handleOnRoomRequest', (peer: Peer, type: string, data: any, response: Function) => {
-  //     this._handlePeerRequest({ peer, type, data, response });
-  //   });
-  //   peer.on('handleOnRoomNotification', (peer: Peer, type: string, data: any, notify: Function) => {
-  //     this._handleOnNotification(peer, type, data, notify);
-  //   });
-  // }
-
   removePlayer(id: string) {
     const p = this._players.get(id)!;
 
@@ -88,20 +74,6 @@ export class Room {
     p.OnClose(() => {});
     this._players.delete(id);
   }
-
-  // getOtherPeerProducers(id: string) {
-  //   let producerList: Array<Record<string, string>> = [];
-  //   this._players.forEach((player: Player) => {
-  //     if (player.id !== id) {
-  //       player.producers.forEach((producer: any) => {
-  //         producerList.push({
-  //           producer_id: producer.id,
-  //         });
-  //       });
-  //     }
-  //   });
-  //   return producerList;
-  // }
 
   // addRouter(id: string) {
   //   this._routers.set(id, {
@@ -119,15 +91,11 @@ export class Room {
   // }
 
   join(player: Player) {
-    player.OnPublishProduce(() => {
-      this.onPublishTrack(player.id);
+    player.OnPublishProduce((producerId: string) => {
+      this.onPublishTrack(player.id, producerId);
     });
     this._players.set(player.id, player);
   }
-
-  // cleanUpPlayer() {
-  //   this._players.clear();
-  // }
 
   close() {
     const playerList = this.getJoinedPlayerList({ excludePlayer: {} as Player });
