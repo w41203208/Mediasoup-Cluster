@@ -51,10 +51,10 @@ export class Peer extends EventEmitter {
 
   died() {
     if (this._timeoutFunction) clearTimeout(this._timeoutFunction);
-    this._ws?.close();
-    this._ws = null;
     this._bomb?.countDownReset();
     this._bomb = null;
+    this._ws?.close();
+    this._ws = null;
   }
 
   _handleTransportMessage() {
