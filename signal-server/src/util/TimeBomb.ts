@@ -2,11 +2,14 @@ import { clearTimeout } from 'timers';
 
 export class TimeBomb {
   private _time: number;
-  private _bombFunction: Function;
+  private _bombFunction?: Function;
   private _timeOutFunction: any;
 
-  constructor(time: number, bombFunction: Function) {
+  constructor(time: number) {
     this._time = time;
+  }
+
+  setBombFunction(bombFunction: Function) {
     this._bombFunction = bombFunction;
   }
 
@@ -21,6 +24,8 @@ export class TimeBomb {
   }
 
   bomb() {
-    this._bombFunction();
+    if (this._bombFunction) {
+      this._bombFunction();
+    }
   }
 }

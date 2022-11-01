@@ -68,9 +68,9 @@ export class Room {
     this._subscriber = new Subscriber(redisClient.Client!);
     this._publisher = new Publisher(redisClient.Client!);
     this.listener = listener;
-    this.RoomController = controllerFactory.getControler('Room') as RoomController;
-    this.PlayerController = controllerFactory.getControler('Player') as PlayerController;
-    this.SFUServerController = controllerFactory.getControler('SFU') as SFUServerController;
+    this.RoomController = controllerFactory.getController('Room') as RoomController;
+    this.PlayerController = controllerFactory.getController('Player') as PlayerController;
+    this.SFUServerController = controllerFactory.getController('SFU') as SFUServerController;
 
     this._subscriber.subscribe(this._id);
     this._subscriber.on('handleOnRoom', (message: any) => {
@@ -235,6 +235,8 @@ export class Room {
         break;
     }
   }
+
+  // need {room_id, peer_id}
   async closeRoomHandler({ peer, data, response }: Handler) {
     this.log.info('User [%s] close room [%s].', peer.id, this._id);
 
@@ -264,8 +266,8 @@ export class Room {
         this.SFUServerController.reduceSFUServerCount(peer.serverId!),
         serverSocket.request({
           data: {
-            sendTransport_id: peer.sendTransport.id,
-            recvTransport_id: peer.recvTransport.id,
+            sendTransport_id: peer.sendTransport === null ? null : peer.sendTransport.id,
+            recvTransport_id: peer.recvTransport === null ? null : peer.recvTransport.id,
           },
           type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
         }),
@@ -275,6 +277,7 @@ export class Room {
     });
   }
 
+  // need { room_id, peer_id }
   async leaveRoomHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
@@ -283,8 +286,8 @@ export class Room {
 
     serverSocket.request({
       data: {
-        sendTransport_id: peer.sendTransport.id,
-        recvTransport_id: peer.recvTransport.id,
+        sendTransport_id: peer.sendTransport === null ? null : peer.sendTransport.id,
+        recvTransport_id: peer.recvTransport === null ? null : peer.recvTransport.id,
       },
       type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
     });
@@ -395,7 +398,7 @@ export class Room {
   produceHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
 
-    console.log(`data.rtpParameters ${data.rtpParameters}`)
+    console.log(`data.rtpParameters ${data.rtpParameters}`);
 
     if (!serverSocket) return;
     serverSocket
@@ -422,7 +425,7 @@ export class Room {
 
         const { producer_id, consumerMap } = data;
         // 添加進 redis room producerlist 裡面
-        this.RoomController.setRoomProducer(this._id, producer_id); // 應該也不用等待
+        this.RoomController.setRoomProducerList(this._id, producer_id); // 應該也不用等待
 
         peer.addProducer(producer_id);
         this.log.info('User [%s] use webrtcTransport [%s] produce [%s].', peer.id, peer.sendTransport.id, producer_id);
@@ -464,25 +467,25 @@ export class Room {
   setPreferredLayers({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
-    const { consumer_id, spatialLayer } = data
+    const { consumer_id, spatialLayer } = data;
 
     response({});
 
-    serverSocket
-      .request({
-        type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
-        data: {
-          consumer_id: consumer_id,
-          spatialLayer: spatialLayer,
-        },
-      });
+    serverSocket.request({
+      type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
+      data: {
+        consumer_id: consumer_id,
+        spatialLayer: spatialLayer,
+      },
+    });
   }
   async getProduceHandler({ peer, data, response }: Handler) {
     peer.rtpCapabilities = data.rtpCapabilities;
 
     // 取得訂閱頻道的人數，作為要回傳任務完成的依據
-    const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(this._id);
 
+    const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(this._id);
+    this.log.debug('Get currentOtherSignalCount %d', currentOtherSignalCount);
     const mapId = v4();
     this.pubHandlerMap.set(mapId, {
       count: currentOtherSignalCount,
@@ -530,7 +533,7 @@ export class Room {
   async createPipeTransportConsumerPubHandler(data: any) {
     const { serverId, handlerMapId, returnSqlServerIp } = data;
     /* take all redis room producer */
-    // const rProducerList = await this.RoomController.getRoomProducer(this._id);
+    // const rProducerList = await this.RoomController.getRoomProducerList(this._id);
 
     let producerMap: Record<string, any> = {};
     this._peers.forEach((peer: Peer) => {
@@ -631,7 +634,7 @@ export class Room {
     if (!serverSocket) return;
 
     // 取得目前所有的 producers
-    const producerList = await this.RoomController.getRoomProducer(this._id);
+    const producerList = await this.RoomController.getRoomProducerList(this._id);
     console.log('get ProducerList: ', producerList);
 
     serverSocket
@@ -660,7 +663,7 @@ export class Room {
    * @param data
    */
   async createConsumerPubHandler(data: any) {
-    const producerList = await this.RoomController.getRoomProducer(this._id);
+    const producerList = await this.RoomController.getRoomProducerList(this._id);
 
     // 將 [peer, peer, peer] => { serverId : [peer, peer, peer] }
     const localPeerList = this.getJoinedPeers({ excludePeer: data.pubPeerId });
@@ -724,7 +727,6 @@ export class Room {
     this._subscriber?.unSubscribe(this._id);
     this._subscriber = undefined;
   }
-
 
   // consume({ consumerPeer, producer }) {
   //   consumerPeer.createConsumer(producer);

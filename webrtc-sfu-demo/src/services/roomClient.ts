@@ -1,7 +1,7 @@
-import * as mc from "mediasoup-client";
-import { Consumer, Device, MediaKind, Producer, Transport } from "mediasoup-client/lib/types";
-import { Socket } from "@/services/websocket";
-import { logger } from "@/util/logger";
+import * as mc from 'mediasoup-client';
+import { Consumer, Device, Producer, Transport } from 'mediasoup-client/lib/types';
+import { Socket } from '@/services/websocket';
+import { logger } from '@/util/logger';
 
 interface RoomClientOptions {
   clientUID: string;
@@ -13,33 +13,33 @@ interface RoomClientOptions {
 }
 
 const mediaType = {
-  audio: "audio",
-  video: "video",
-  screen: "screen",
+  audio: 'audio',
+  video: 'video',
+  screen: 'screen',
 };
 
 const EVENT_FOR_CLIENT = {
-  CREATE_ROOM: "createRoom",
-  JOIN_ROOM: "joinRoom",
-  GET_PRODUCERS: "getProducers",
-  GET_ROUTER_RTPCAPABILITIES: "getRouterRtpCapabilities",
-  CREATE_WEBRTCTRANSPORT: "createWebRTCTransport",
-  CONNECT_WEBRTCTRANPORT: "connectWebRTCTransport",
-  PRODUCE: "produce",
-  CONSUME: "consume",
-  SET_PREFERRED_LAYERS: "setPreferredLayers",
-  GET_ROOM_INFO: "getRoomInfo",
-  LEAVE_ROOM: "leaveRoom",
-  CLOSE_ROOM: "closeRoom",
+  CREATE_ROOM: 'createRoom',
+  JOIN_ROOM: 'joinRoom',
+  GET_PRODUCERS: 'getProducers',
+  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
+  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
+  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
+  PRODUCE: 'produce',
+  CONSUME: 'consume',
+  SET_PREFERRED_LAYERS: 'setPreferredLayers',
+  GET_ROOM_INFO: 'getRoomInfo',
+  LEAVE_ROOM: 'leaveRoom',
+  CLOSE_ROOM: 'closeRoom',
 };
 
 const EVENT_SERVER_TO_CLIENT = {
-  NEW_CONSUMER: "newConsumer",
+  NEW_CONSUMER: 'newConsumer',
 };
 
 const EVENT_FOR_TEST = {
-  TEST1: "test1",
-  TEST2: "test2",
+  TEST1: 'test1',
+  TEST2: 'test2',
 };
 
 export class RoomClient {
@@ -63,14 +63,7 @@ export class RoomClient {
   private _micProducers: Map<string, Producer>;
   private _consumers: Map<string, Consumer>;
 
-  constructor({
-    clientUID,
-    roomId,
-    roomName,
-    clientRole,
-    isProduce = true,
-    isConsume = true,
-  }: RoomClientOptions) {
+  constructor({ clientUID, roomId, roomName, clientRole, isProduce = true, isConsume = true }: RoomClientOptions) {
     this._clientUID = clientUID;
     this._clientRole = clientRole;
     this._roomId = roomId;
@@ -115,7 +108,7 @@ export class RoomClient {
   }
 
   private _initSocketNotification() {
-    this._socket.on("notification", (message: any) => {
+    this._socket.on('notification', (message: any) => {
       const { type, data } = message;
       console.log(data);
       switch (type) {
@@ -136,7 +129,7 @@ export class RoomClient {
         type: EVENT_FOR_CLIENT.CREATE_ROOM,
       })
       .then(({ data }) => {
-        logger({ text: "Create Room", data: data.msg });
+        logger({ text: 'Create Room', data: data.msg });
         if (data.state) {
           const res = this.joinRoom(uid, data.room_id).then(res => {
             return res;
@@ -148,7 +141,7 @@ export class RoomClient {
   }
   closeRoom(roomId: string) {
     this._socket.request({
-      data: { room_id: roomId },
+      data: { room_id: this._roomId },
       type: EVENT_FOR_CLIENT.CLOSE_ROOM,
     });
     this._socket.close();
@@ -157,7 +150,7 @@ export class RoomClient {
   }
   leaveRoom(roomId: string) {
     this._socket.request({
-      data: { room_id: roomId },
+      data: { room_id: this._roomId },
       type: EVENT_FOR_CLIENT.LEAVE_ROOM,
     });
     this._socket.close();
@@ -183,6 +176,7 @@ export class RoomClient {
     });
     logger({ text: `User ${this._clientUID} join room ${room_id}`, data: room_id });
     // get router RtpCapabilities
+
     const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
     console.log(mediaCodecs);
     // load Device
@@ -216,7 +210,7 @@ export class RoomClient {
     return new Promise((resolve, reject) => {
       this._socket
         .request({
-          data: { room_id: roomId },
+          data: { room_id: this._roomId },
           type: EVENT_FOR_CLIENT.GET_ROUTER_RTPCAPABILITIES,
         })
         .then(({ data }) => {
@@ -236,12 +230,7 @@ export class RoomClient {
         },
         type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
       });
-      const {
-        transport_id,
-        iceParameters,
-        iceCandidates,
-        dtlsParameters,
-      } = transportInfo;
+      const { transport_id, iceParameters, iceCandidates, dtlsParameters } = transportInfo;
       this._sendTransport = device.createSendTransport({
         id: transport_id,
         iceParameters,
@@ -249,7 +238,7 @@ export class RoomClient {
         dtlsParameters,
       });
       /* Register sendTransport listen event */
-      this._sendTransport.on("connect", async ({ dtlsParameters }, callback, errback) => {
+      this._sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
           const { data } = await this._socket.request({
             data: {
@@ -265,27 +254,25 @@ export class RoomClient {
           errback(error as Error);
         }
       });
-      this._sendTransport.on(
-        "produce",
-        async ({ kind, rtpParameters, appData }, callback, errback) => {
-          try {
-            console.log(rtpParameters);
-            const { data } = await this._socket.request({
-              data: {
-                room_id: this._roomId,
-                transport_id: this._sendTransport?.id,
-                kind,
-                rtpParameters,
-                appData,
-              },
-              type: EVENT_FOR_CLIENT.PRODUCE,
-            });
-            callback({ id: data.id });
-          } catch (error) {
-            errback(error as Error);
-          }
+      this._sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
+        try {
+          console.log(rtpParameters);
+          const { data } = await this._socket.request({
+            data: {
+              room_id: this._roomId,
+              transport_id: this._sendTransport?.id,
+              kind,
+              rtpParameters,
+              appData,
+            },
+            type: EVENT_FOR_CLIENT.PRODUCE,
+          });
+
+          callback({ id: data.producer_id });
+        } catch (error) {
+          errback(error as Error);
         }
-      );
+      });
     }
 
     // init recvTransport
@@ -298,12 +285,7 @@ export class RoomClient {
         },
         type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
       });
-      const {
-        transport_id,
-        iceParameters,
-        iceCandidates,
-        dtlsParameters,
-      } = transportInfo;
+      const { transport_id, iceParameters, iceCandidates, dtlsParameters } = transportInfo;
       this._recvTransport = device.createRecvTransport({
         id: transport_id,
         iceParameters,
@@ -311,7 +293,7 @@ export class RoomClient {
         dtlsParameters,
       });
       /* Register sendTransport listen event */
-      this._recvTransport.on("connect", async ({ dtlsParameters }, callback, errback) => {
+      this._recvTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
         try {
           const { data } = await this._socket.request({
             data: {
@@ -386,13 +368,7 @@ export class RoomClient {
       return;
     }
     try {
-      stream = await navigator.mediaDevices.getUserMedia(
-        deviceId
-          ? {
-            video: { deviceId: { exact: deviceId } },
-          }
-          : { video: true }
-      );
+      stream = await navigator.mediaDevices.getUserMedia(deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true });
       track = stream.getTracks()[0];
       if (constraints) {
         await track.applyConstraints(constraints);
@@ -427,7 +403,7 @@ export class RoomClient {
             rid: "r2",
             // maxBitrate: 5000000,
             scaleResolutionDownBy: 1,
-            scalabilityMode: "S1T3",
+            scalabilityMode: 'S1T3',
           },
         ],
         codecOptions: {
@@ -449,12 +425,12 @@ export class RoomClient {
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on("@close", () => { });
+      producer.on('@close', () => {});
 
       this._webcamProducers.set(producer.id, producer);
 
       /* 之後會區分開開啟與添加畫面的方法 */
-      const elem = document.createElement("video");
+      const elem = document.createElement('video');
       elem.srcObject = stream;
       elem.autoplay = true;
       elem.width = 1280;
@@ -561,8 +537,8 @@ export class RoomClient {
     const stream = new MediaStream();
     stream.addTrack(consumer.track);
     let elem;
-    if (kind === "video") {
-      elem = document.createElement("video");
+    if (kind === 'video') {
+      elem = document.createElement('video');
       elem.srcObject = stream;
       elem.id = consumer.id;
       elem.width = 1280;
@@ -570,7 +546,7 @@ export class RoomClient {
       elem.autoplay = true;
       this._remoteMediaContainer?.appendChild(elem);
     } else {
-      elem = document.createElement("audio");
+      elem = document.createElement('audio');
       elem.srcObject = stream;
       elem.autoplay = true;
     }
