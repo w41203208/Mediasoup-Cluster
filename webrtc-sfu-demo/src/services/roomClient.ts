@@ -381,7 +381,7 @@ export class RoomClient {
     let track: MediaStreamTrack;
     let duplicate: boolean = false;
     //codec mediaKind
-    // const mediaKind: MediaKind = 'video';
+    const mediaKind: MediaKind = 'video';
     if (!this._sendTransport) {
       return;
     }
@@ -434,17 +434,17 @@ export class RoomClient {
           videoGoogleStartBitrate: 1000,
         },
         //選擇codec
-        // codec: {
-        //   kind: mediaKind,
-        //   mimeType: 'video/h264',
-        //   clockRate: 90000,
-        //   parameters: {
-        //     'packetization-mode': 1,
-        //     'profile-level-id': '42e01f',
-        //     'level-asymmetry-allowed': 1,
-        //     'x-google-start-bitrate': 1000,
-        //   },
-        // },
+        codec: {
+          kind: mediaKind,
+          mimeType: 'video/h264',
+          clockRate: 90000,
+          parameters: {
+            'packetization-mode': 1,
+            'profile-level-id': '42e01f',
+            'level-asymmetry-allowed': 1,
+            'x-google-start-bitrate': 1000,
+          },
+        },
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
