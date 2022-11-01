@@ -159,10 +159,23 @@
 //     return enObj;
 //   }
 // }
-import { Log } from './src/util/Log';
+function testerr() {
+  throw new Error('testerr');
+}
+function testtest(err: number) {
+  if (err === 1) {
+    testerr();
+  } else {
+    throw new Error('testtest');
+  }
+}
 
-const log = Log.GetInstance();
-log.debug('HIHI %s %d %d', 'test', 1, 2);
-log.error('test');
-log.warn('test');
-log.info('test');
+function test() {
+  try {
+    testtest(2);
+  } catch (e: any) {
+    console.log(e.message);
+  }
+}
+
+test();

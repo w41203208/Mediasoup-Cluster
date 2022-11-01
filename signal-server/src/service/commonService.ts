@@ -1,18 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { IncomingMessage } from 'http';
+import { urlParse } from '../util/tool';
 import { RoomController } from '../redis/controller';
 import { ControllerFactory } from '../redis/ControllerFactory';
+import { CryptoCore } from '../util/CryptoCore';
+const express = require('express');
 
 export class CommonService {
   private _roomController: RoomController;
   private _router: Router;
-  constructor(cf: ControllerFactory) {
+  private _cryptoCore: CryptoCore;
+  constructor(cf: ControllerFactory, cryptoCore: CryptoCore) {
     this._roomController = cf.getController('Room') as RoomController;
-
-    const express = require('express');
+    this._cryptoCore = cryptoCore;
 
     this._router = express.Router();
-
     this._registerRouterHandler();
   }
 
@@ -21,21 +23,32 @@ export class CommonService {
   }
 
   private _registerRouterHandler() {
-    this._router.use((incomingMessage: IncomingMessage, req: Request, res: Response, next: any) => {
-      // const parameter = this.urlParse(incomingMessage.url);
-      // this.cryptoCore.decipherIv(parameter);
-      next();
-    });
-    this._router.get('/getRoomList', (incomingMessage: IncomingMessage, res: Response) => {
+    this._router.use((req: Request, res: Response, next: any) => {
       try {
-        // this._listener
-        //   .getAllRoom()
-        //   .then((response) => {
-        //     return res.send(JSON.stringify(response));
-        //   })
-        //   .catch((err) => {
-        //     console.log(err);
-        //   });
+        const parameter = urlParse(req.url, '/?id=([+/*<>=!#$%&"*+/=?^_~\'-\\w\\s\\d%]*)');
+        const encrypted = this._cryptoCore.decipherIv(parameter);
+        next();
+      } catch (error: any) {
+        res.status(403).json({
+          msg: error.message,
+        });
+      }
+    });
+    this._router.get('/getRoomList', async (req: Request, res: Response) => {
+      try {
+        const temp_list = await this._roomController.getAllRoom();
+        const roomList: Array<{ roomId: string; roomName: string; roomUserSize: number }> = [];
+        temp_list.forEach((values: { id: string; name: string }) => {
+          return new Promise(async (resolve, reject) => {
+            roomList.push({
+              roomId: values.id,
+              roomName: values.name,
+              roomUserSize: 0,
+            });
+          });
+        });
+
+        res.send(JSON.stringify(roomList));
       } catch (e) {
         console.log(e);
         res.status(403).json({ e });

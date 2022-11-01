@@ -419,7 +419,7 @@ esbuild-linux-32@0.15.7:
 
 esbuild-linux-64@0.15.7:
   version "0.15.7"
-  resolved "https://registry.yarnpkg.com/esbuild-linux-64/-/esbuild-linux-64-0.15.7.tgz#f89c468453bb3194b14f19dc32e0b99612e81d2b"
+  resolved "https://registry.npmjs.org/esbuild-linux-64/-/esbuild-linux-64-0.15.7.tgz"
   integrity sha512-LxXEfLAKwOVmm1yecpMmWERBshl+Kv5YJ/1KnyAr6HRHFW8cxOEsEfisD3sVl/RvHyW//lhYUVSuy9jGEfIRAQ==
 
 esbuild-linux-arm64@0.15.7:

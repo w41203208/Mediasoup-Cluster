@@ -8,6 +8,13 @@ enum WEEK {
   SUNDAY = '7',
 }
 
+enum Level {
+  info = 'INFO',
+  debug = 'DEBUG',
+  warn = 'WARN',
+  error = 'ERROR',
+}
+
 enum logger {
   debug = 'DEBUG',
   info = 'INFO',
@@ -31,6 +38,7 @@ type LogFunc = (logParams: LogFuncParams, data: any) => void;
 
 export class Log {
   static Instance: Log;
+  static level: number = 0;
 
   static GetInstance() {
     if (this.Instance === undefined) {
@@ -39,6 +47,22 @@ export class Log {
       }
     }
     return this.Instance;
+  }
+  static setLogLevel(l: string) {
+    switch (l) {
+      case Level.info:
+        this.level = 0;
+        break;
+      case Level.debug:
+        this.level = 1;
+        break;
+      case Level.warn:
+        this.level = 2;
+        break;
+      case Level.error:
+        this.level = 3;
+        break;
+    }
   }
   private _logColor: LogColor;
 
@@ -59,21 +83,33 @@ export class Log {
   }
 
   debug(t: string, ...data: any) {
+    if (Log.level < 1) {
+      return;
+    }
     const label = logger.debug;
     const color = '\x1b[33m';
     this._log.call(this, { text: t, color: color, label: label }, data);
   }
   info(t: string, ...data: any) {
+    if (Log.level < 0) {
+      return;
+    }
     const label = logger.info;
     const color = '\x1b[32m';
     this._log({ text: t, color: color, label: label }, data);
   }
   warn(t: string, ...data: any) {
+    if (Log.level < 2) {
+      return;
+    }
     const label = logger.warn;
     const color = '\x1b[35m';
     this._log({ text: t, color: color, label: label }, data);
   }
   error(t: string, ...data: any) {
+    if (Log.level < 3) {
+      return;
+    }
     const label = logger.error;
     const color = '\x1b[31m';
     this._log({ text: t, color: color, label: label }, data);
