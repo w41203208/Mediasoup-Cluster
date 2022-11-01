@@ -1,17 +1,16 @@
 import Crypto from 'crypto';
 
 export class CryptoCore {
-  private iv: Buffer;
   private key: string;
   constructor(cryptoKey: string) {
-    this.iv = Crypto.randomBytes(12);
     this.key = cryptoKey;
   }
 
   cipherIv(params: string) {
-    const cipher = Crypto.createCipheriv('aes-128-gcm', this.keyToBufferHex(this.key), this.iv);
+    const iv = Crypto.randomBytes(12);
+    const cipher = Crypto.createCipheriv('aes-128-gcm', this.keyToBufferHex(this.key), iv);
     var uuId = Date.now() + ':' + params;
-    const encrypted = Buffer.concat([this.iv, cipher.update(uuId), cipher.final(), cipher.getAuthTag()]);
+    const encrypted = Buffer.concat([iv, cipher.update(uuId), cipher.final(), cipher.getAuthTag()]);
     return encrypted.toString('base64');
   }
 
@@ -27,7 +26,7 @@ export class CryptoCore {
     const ans = decrypted.toString('utf8').split(':');
     //Token過期時間
     if (Date.now() - parseInt(ans[0]) >= 3600000) {
-      throw new Error("Token was expired");
+      throw new Error('Token was expired');
     } else {
       return decrypted.toString('utf8');
     }

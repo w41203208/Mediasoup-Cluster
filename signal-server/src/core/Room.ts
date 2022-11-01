@@ -235,6 +235,8 @@ export class Room {
         break;
     }
   }
+
+  // need {room_id, peer_id}
   async closeRoomHandler({ peer, data, response }: Handler) {
     this.log.info('User [%s] close room [%s].', peer.id, this._id);
 
@@ -275,6 +277,7 @@ export class Room {
     });
   }
 
+  // need { room_id, peer_id }
   async leaveRoomHandler({ peer, data, response }: Handler) {
     const serverSocket = this._sfuConnectionManager.getServerSocket(`${peer.serverId!}:${this._id}`);
     if (!serverSocket) return;
@@ -422,7 +425,7 @@ export class Room {
 
         const { producer_id, consumerMap } = data;
         // 添加進 redis room producerlist 裡面
-        this.RoomController.setRoomProducer(this._id, producer_id); // 應該也不用等待
+        this.RoomController.setRoomProducerList(this._id, producer_id); // 應該也不用等待
 
         peer.addProducer(producer_id);
         this.log.info('User [%s] use webrtcTransport [%s] produce [%s].', peer.id, peer.sendTransport.id, producer_id);
@@ -530,7 +533,7 @@ export class Room {
   async createPipeTransportConsumerPubHandler(data: any) {
     const { serverId, handlerMapId, returnSqlServerIp } = data;
     /* take all redis room producer */
-    // const rProducerList = await this.RoomController.getRoomProducer(this._id);
+    // const rProducerList = await this.RoomController.getRoomProducerList(this._id);
 
     let producerMap: Record<string, any> = {};
     this._peers.forEach((peer: Peer) => {
@@ -631,7 +634,7 @@ export class Room {
     if (!serverSocket) return;
 
     // 取得目前所有的 producers
-    const producerList = await this.RoomController.getRoomProducer(this._id);
+    const producerList = await this.RoomController.getRoomProducerList(this._id);
     console.log('get ProducerList: ', producerList);
 
     serverSocket
@@ -660,7 +663,7 @@ export class Room {
    * @param data
    */
   async createConsumerPubHandler(data: any) {
-    const producerList = await this.RoomController.getRoomProducer(this._id);
+    const producerList = await this.RoomController.getRoomProducerList(this._id);
 
     // 將 [peer, peer, peer] => { serverId : [peer, peer, peer] }
     const localPeerList = this.getJoinedPeers({ excludePeer: data.pubPeerId });

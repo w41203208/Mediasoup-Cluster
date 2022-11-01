@@ -20,8 +20,8 @@ export class SFUServerController extends ControllerImp {
     return new Promise(async (resolve, reject) => {
       try {
         let temp_list: Array<string> = [];
-        const servers = await this._rc.hGetAll('SFUServer');
-        Object.entries(servers).forEach(([key, value]) => {
+        const data = await this._rc.hGetAll('SFUServerList');
+        Object.entries(data).forEach(([key, value]) => {
           temp_list.push(key);
         });
         resolve(temp_list);
@@ -35,7 +35,7 @@ export class SFUServerController extends ControllerImp {
   getSFUServerCount(id: string): Promise<number | void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const count = await this._rc.get(id);
+        const count = await this._rc.hGet('SFUServerList', id);
         if (count) {
           resolve(Number(count));
         } else {
@@ -51,7 +51,7 @@ export class SFUServerController extends ControllerImp {
   addSFUServerCount(id: string): Promise<number | void> {
     return new Promise(async (resolve, reject) => {
       try {
-        const count = await this._rc.INCRBY(id, 1);
+        const count = await this._rc.hIncrBy('SFUServerList', id, 1);
         if (count) {
           resolve(Number(count));
         } else {
@@ -66,7 +66,7 @@ export class SFUServerController extends ControllerImp {
   reduceSFUServerCount(id: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {
-        await this._rc.INCRBY(id, -1);
+        const count = await this._rc.hIncrBy('SFUServerList', id, -1);
         resolve();
       } catch (error) {
         console.log(error);
@@ -78,13 +78,11 @@ export class SFUServerController extends ControllerImp {
   isSFUServerIdExist(id: string) {
     return new Promise(async (resolve, reject) => {
       try {
-        const exist = await this._rc.exists(id);
+        const exist = await this._rc.hExists('SFUServerList', id);
         resolve(exist);
       } catch (error) {
         reject(error);
       }
     });
   }
-
-  set() { }
 }

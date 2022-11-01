@@ -1,35 +1,52 @@
+import { stringify } from 'querystring';
 import WebSocket from 'ws';
 import { EventEmitter } from '../util/emitter';
 
 require('dotenv').config();
 
+interface WSTransportRequestMessage {
+  id: string;
+  type: string;
+  data: any;
+}
+
+interface WSTransportResponseMessage {
+  id: string;
+  type: string;
+  data: any;
+}
+
 export class WSTransport extends EventEmitter {
   private _socket: WebSocket | null;
+
+  private _flightSend: Map<string, any>;
 
   constructor(socket: WebSocket) {
     super();
 
     this._socket = socket;
 
+    this._flightSend = new Map();
+
     this._handleSocketConnection();
   }
   sendData(data: any) {
-    if (Number(process.env.PORT) === 9998) {
-      console.log(data);
-    }
     this._socket!.send(JSON.stringify({ ...data }));
   }
 
   _handleSocketConnection() {
-    this._socket!.on('close', (code: number, reason: Buffer) => {
+    this._socket!.on('close', () => {
       console.log('socket is closed');
     });
     this._socket!.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
+<<<<<<< HEAD
       // if (Number(process.env.PORT) === 9998) {
       //   console.log(jsonMessage);
       // }
 
+=======
+>>>>>>> dev_refactor
       const { messageType, ...rest } = jsonMessage;
       switch (messageType) {
         case 'request':
@@ -46,17 +63,36 @@ export class WSTransport extends EventEmitter {
   }
 
   _handlerRequest(request: any) {
-    this.emit('request', request, (sendData: any) => {
+    const stamp = Date.now().toString();
+
+    const response = (sendData: any) => {
       sendData.messageType = 'response';
       sendData.id = request.id;
       this.sendData(sendData);
-    });
+    };
+
+    this._flightSend.set(stamp, response);
+    const peerMsg: WSTransportRequestMessage = {
+      id: stamp,
+      data: request.data,
+      type: request.type,
+    };
+
+    this.emit('request', peerMsg);
   }
   _handlerResponse() {}
   _handlerNotification(notification: any) {
-    this.emit('notification', notification, (sendData: any) => {
-      sendData.messageType = 'notification';
-      this.sendData(sendData);
+    this.emit('notification', notification);
+  }
+
+  response(responseMsg: WSTransportResponseMessage) {
+    const response = this._flightSend.get(responseMsg.id);
+
+    this._flightSend.delete(responseMsg.id);
+
+    response({
+      data: responseMsg.data,
+      type: responseMsg.type,
     });
   }
 

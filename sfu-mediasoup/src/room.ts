@@ -16,7 +16,7 @@ const EVENT_FROM_SIGNAL = {
   CREATE_PIPETRANSPORT_PRODUCE: 'createPipeTransportProduce',
   CREATE_PIPETRANSPORT_CONSUME: 'createPipeTransportConsume',
   CREATE_PLAINTRANSPORT: 'createPlainTransport',
-  SET_PREFERRED_LAYERS: "setPreferredLayers",
+  SET_PREFERRED_LAYERS: 'setPreferredLayers',
   CLOSE_TRANSPORT: 'closeTransport',
 };
 
@@ -169,13 +169,12 @@ export class Room implements ErrorHandler {
       if (!this._routers.has(data.router_id)) {
         throw new Error('no this router in room');
       }
-
       response({
         data: {
           mediaCodecs: this._routers.get(data.router_id)?.rtpCapabilities,
         },
       });
-    } catch (error) { }
+    } catch (error) {}
   }
 
   private async createWebRTCTransportHandler({ ws, data, response }: Handler) {
@@ -184,7 +183,7 @@ export class Room implements ErrorHandler {
     try {
       if (!data.router_id) {
       }
-    } catch (e) { }
+    } catch (e) {}
     if (!this._routers.has(router_id)) {
       return;
     }
@@ -212,8 +211,8 @@ export class Room implements ErrorHandler {
     }
 
     /* Register transport listen event */
-    transport.on('@close', () => { });
-    transport.on('dtlsstatechange', () => { });
+    transport.on('@close', () => {});
+    transport.on('dtlsstatechange', () => {});
 
     /* Register transport listen event */
 
@@ -347,6 +346,7 @@ export class Room implements ErrorHandler {
     let consumerMap = {} as any;
     /* 連線到PipeTransportRouter */
     if (this._pipeTransportsRouter !== undefined) {
+      this._alreadyPipeToRouterProudcer.set(producer.id, producer.id);
       await this._connectToOtherRouter(router!, this._pipeTransportsRouter, producer.id);
       for (let [key, value] of this._serverAndPipeTransport) {
         if (consumerMap[key] === undefined) {
@@ -514,7 +514,6 @@ export class Room implements ErrorHandler {
         console.log('testoutestinerter');
       }
     }
-    console.log('testouter');
     response({
       data: {},
     });
@@ -532,7 +531,6 @@ export class Room implements ErrorHandler {
      *    ]
      *  }
      */
-
     let pipeTransport = null;
     const pipeTransportId = this._serverAndPipeTransport.get(server_id)!;
     let consumerMap = {} as any;
@@ -545,6 +543,7 @@ export class Room implements ErrorHandler {
         const router = this._routers.get(routerId)!;
         for (let { producerId, rtpCapabilities } of producerInfoArray as Array<any>) {
           if (this._pipeTransportsRouter !== undefined) {
+            console.log(this._alreadyPipeToRouterProudcer);
             if (this._alreadyPipeToRouterProudcer.has(producerId)) {
               continue;
             } else {
@@ -593,13 +592,19 @@ export class Room implements ErrorHandler {
   private async setPreferredLayers({ ws, data, response }: Handler) {
     const { consumer_id, spatialLayer } = data;
     const consumer = this._consumers.get(consumer_id);
-    await consumer?.setPreferredLayers(
-      { spatialLayer: spatialLayer })
+    await consumer?.setPreferredLayers({ spatialLayer: spatialLayer });
   }
   private async closeTransportHandler({ ws, data, response }: Handler) {
     const { sendTransport_id, recvTransport_id } = data;
-    this.closeTransport(sendTransport_id);
-    this.closeTransport(recvTransport_id);
+
+    if (sendTransport_id !== null) {
+      this.closeTransport(sendTransport_id);
+    }
+
+    if (recvTransport_id !== null) {
+      this.closeTransport(recvTransport_id);
+    }
+
     response({ data: {} });
   }
 
@@ -612,5 +617,5 @@ export class Room implements ErrorHandler {
     }
   }
 
-  errorHandler(text: string) { }
+  errorHandler(text: string) {}
 }
