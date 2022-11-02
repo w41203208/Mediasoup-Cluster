@@ -159,23 +159,3 @@
 //     return enObj;
 //   }
 // }
-function testerr() {
-  throw new Error('testerr');
-}
-function testtest(err: number) {
-  if (err === 1) {
-    testerr();
-  } else {
-    throw new Error('testtest');
-  }
-}
-
-function test() {
-  try {
-    testtest(2);
-  } catch (e: any) {
-    console.log(e.message);
-  }
-}
-
-test();

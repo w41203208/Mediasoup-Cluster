@@ -95,6 +95,7 @@ export class RoomManager {
             data: {
               pubPlayerId: playerId,
               pubRoomId: newRoom.id,
+              producerId: producerId,
             },
           });
         });
@@ -240,9 +241,8 @@ export class RoomManager {
   }
 
   // `tag` maybe like livekit room.onTrackPublished method, can to 參考
-  async createPlayerConsumer_Pub(roomId: string, peerId: string) {
+  async createPlayerConsumer_Pub(roomId: string, peerId: string, producerId: string) {
     const room = this._roomMap.get(roomId)!;
-    const producerList = await this.RoomController.getRoomProducerList(roomId);
 
     // 將 [peer, peer, peer] => { serverId : [peer, peer, peer] }
     const localPlayerList = room.getJoinedPlayerList({ excludePlayer: peerId });
@@ -251,7 +251,7 @@ export class RoomManager {
       if (!playerOfServerMap[player.serverId!]) {
         playerOfServerMap[player.serverId!] = [];
       }
-      playerOfServerMap[player.serverId!].push({ player: player, producerList: producerList });
+      playerOfServerMap[player.serverId!].push({ player: player, producerList: [producerId] });
     });
 
     return playerOfServerMap;

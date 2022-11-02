@@ -108,7 +108,7 @@ export class RoomService {
   }
 
   async handlePubCreateConsumer(data: any, identifyIp: string) {
-    const peerOfServerMap = await this._roomManager.createPlayerConsumer_Pub(data.pubRoomId, data.pubPlayerId);
+    const peerOfServerMap = await this._roomManager.createPlayerConsumer_Pub(data.pubRoomId, data.pubPlayerId, data.producerId);
     console.log('peerOfServerMap: ', peerOfServerMap);
     Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
       value.forEach(async (v: any) => {
