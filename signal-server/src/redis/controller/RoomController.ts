@@ -155,10 +155,15 @@ export class RoomController extends ControllerImp {
       try {
         const data = await this._rc.hGetAll('Room');
         const temp_list: Array<string> = [];
-        Object.entries(data).forEach(([key, value]) => {
-          temp_list.push(this.transformToJS(value));
+        Object.entries(data).forEach(async ([key, temp_room]) => {
+          const temp_key = `${key}.playerList`;
+          const temp_player_list = await this._rc.hGetAll(temp_key);
+          const object_room = this.transformToJS(temp_room);
+          Object.entries(temp_player_list).length
+          object_room["roomUserSize"] = Object.entries(temp_player_list).length;
+          temp_list.push(object_room);
+          resolve(temp_list);
         });
-        resolve(temp_list);
       } catch (error) {
         reject(error);
       }

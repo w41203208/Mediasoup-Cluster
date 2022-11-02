@@ -364,6 +364,8 @@ export class RoomService {
         type: msg.type,
         data: {
           room_id: msg.data.room_id,
+          //debug sfu_ip_port
+          sfu_ip_port: localServerSocketId,
         },
       });
     } catch (e: any) {
