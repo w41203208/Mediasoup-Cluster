@@ -249,6 +249,9 @@ export class RoomService {
       case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
         this.handleGetProduce(handleMsg, peerId);
         break;
+      case EVENT_FROM_CLIENT_REQUEST.SET_PREFERRED_LAYERS:
+        this.handlePreferredLayers(handleMsg, peerId);
+        break;
     }
   }
 
@@ -575,10 +578,26 @@ export class RoomService {
         type: EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS,
         data: {},
       });
-    } catch (e: any) {}
+    } catch (e: any) { }
   }
 
-  handleDisconnected() {}
+  handlePreferredLayers(msg: HandleMessage, peerId: string) {
+    try {
+      const player = this._roomManager.getRoomPlayer(msg.data.room_id, peerId);
+      this._sfuService.setPreferredLayers({
+        connectionServerId: player.serverId,
+        roomId: msg.data.room_id,
+        data: {
+          consumer_id: msg.data.consumer_id,
+          spatialLayer: msg.data.spatialLayer,
+        },
+      })
+    } catch (e: any) {
+      this.log.error(`${e}`);
+    }
+  }
+
+  handleDisconnected() { }
 
   async closeRoomCallbackFunc(player: Player, roomId: string) {
     const peer = this._clientConnectionMgr.getPeer(player.id);

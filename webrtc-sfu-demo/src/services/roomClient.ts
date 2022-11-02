@@ -1,5 +1,5 @@
 import * as mc from 'mediasoup-client';
-import { Consumer, Device, Producer, Transport } from 'mediasoup-client/lib/types';
+import { Consumer, Device, MediaKind, Producer, Transport } from 'mediasoup-client/lib/types';
 import { Socket } from '@/services/websocket';
 import { logger } from '@/util/logger';
 
@@ -425,7 +425,7 @@ export class RoomClient {
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on('@close', () => {});
+      producer.on('@close', () => { });
 
       this._webcamProducers.set(producer.id, producer);
 
@@ -559,6 +559,7 @@ export class RoomClient {
     });
     await this._socket.request({
       data: {
+        room_id: this._roomId,
         consumer_id: consumer_id,
         spatialLayer: spatialLayer,
       },
