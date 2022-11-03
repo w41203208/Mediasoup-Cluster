@@ -233,4 +233,19 @@ export class SFUService {
       }
     });
   }
+
+  async setPreferredLayers(msg: SFUMessage) {
+    try {
+      const serversocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
+      await serversocket.request({
+        type: EVENT_FOR_SFU.SET_PREFERRED_LAYERS,
+        data: {
+          consumer_id: msg.data.consumer_id,
+          spatialLayer: msg.data.spatialLayer,
+        },
+      });
+    } catch (e: any) {
+      this.log.error(`${e.message}`);
+    }
+  }
 }

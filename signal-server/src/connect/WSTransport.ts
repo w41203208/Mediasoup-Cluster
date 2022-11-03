@@ -40,13 +40,6 @@ export class WSTransport extends EventEmitter {
     });
     this._socket!.on('message', (message: any) => {
       const jsonMessage = JSON.parse(message);
-<<<<<<< HEAD
-      // if (Number(process.env.PORT) === 9998) {
-      //   console.log(jsonMessage);
-      // }
-
-=======
->>>>>>> dev_refactor
       const { messageType, ...rest } = jsonMessage;
       switch (messageType) {
         case 'request':
@@ -80,7 +73,7 @@ export class WSTransport extends EventEmitter {
 
     this.emit('request', peerMsg);
   }
-  _handlerResponse() {}
+  _handlerResponse() { }
   _handlerNotification(notification: any) {
     this.emit('notification', notification);
   }

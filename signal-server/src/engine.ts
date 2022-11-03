@@ -6,7 +6,6 @@ import { EngineOptions, HttpsServerOptions, RedisClientOptions } from './type.en
 import { HttpsServer } from './connect/HttpsServer';
 import { WSServer } from './connect/WSServer';
 import { Peer } from './core/Peer';
-import { Room } from './core/Room';
 import { RedisClient } from './redis/redis';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { ControllerFactory } from './redis/ControllerFactory';
@@ -25,20 +24,14 @@ export class ServerEngine {
   /* settings */
   private _httpsServerOption: HttpsServerOptions;
   private _redisClientOption: RedisClientOptions;
-  /* roomlist */
-  private _roomList: Map<string, Room>;
 
   constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
     this._httpsServerOption = httpsServerOption;
     this._redisClientOption = redisClientOption;
 
     Log.setLogLevel('DEBUG');
-    this._roomList = new Map();
   }
 
-  get roomList() {
-    return this._roomList;
-  }
 
   async run() {
     const rcClient = RedisClient.GetInstance(this._redisClientOption);

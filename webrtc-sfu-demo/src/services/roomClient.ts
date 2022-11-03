@@ -1,5 +1,5 @@
 import * as mc from 'mediasoup-client';
-import { Consumer, Device, Producer, Transport } from 'mediasoup-client/lib/types';
+import { Consumer, Device, MediaKind, Producer, Transport } from 'mediasoup-client/lib/types';
 import { Socket } from '@/services/websocket';
 import { logger } from '@/util/logger';
 
@@ -363,7 +363,7 @@ export class RoomClient {
     let track: MediaStreamTrack;
     let duplicate: boolean = false;
     //codec mediaKind
-    // const mediaKind: MediaKind = 'video';
+    const mediaKind: MediaKind = 'video';
     if (!this._sendTransport) {
       return;
     }
@@ -410,22 +410,22 @@ export class RoomClient {
           videoGoogleStartBitrate: 1000,
         },
         //選擇codec
-        // codec: {
-        //   kind: mediaKind,
-        //   mimeType: 'video/h264',
-        //   clockRate: 90000,
-        //   parameters: {
-        //     'packetization-mode': 1,
-        //     'profile-level-id': '42e01f',
-        //     'level-asymmetry-allowed': 1,
-        //     'x-google-start-bitrate': 1000,
-        //   },
-        // },
+        codec: {
+          kind: mediaKind,
+          mimeType: 'video/h264',
+          clockRate: 90000,
+          parameters: {
+            'packetization-mode': 1,
+            'profile-level-id': '42e01f',
+            'level-asymmetry-allowed': 1,
+            'x-google-start-bitrate': 1000,
+          },
+        },
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on('@close', () => {});
+      producer.on('@close', () => { });
 
       this._webcamProducers.set(producer.id, producer);
 
@@ -559,6 +559,7 @@ export class RoomClient {
     });
     await this._socket.request({
       data: {
+        room_id: this._roomId,
         consumer_id: consumer_id,
         spatialLayer: spatialLayer,
       },
