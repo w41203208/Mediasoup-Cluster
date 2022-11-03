@@ -2,11 +2,13 @@ import { EventEmitter } from '../util/emitter';
 import { WSTransport } from '../connect/WSTransport';
 import { RoomService } from '../service';
 import { TimeBomb } from '../util/TimeBomb';
+import { PeerRouter } from '../router/peerRouter';
+import { MEvent } from '../router/event';
+import { EVENT_FROM_CLIENT_REQUEST } from '../EVENT';
 
-interface PeerRequestMessage {
-  id: string;
-  type: string;
-  data: any;
+interface PeerMessage {
+  identity: string;
+  msg: any;
 }
 
 export class Peer extends EventEmitter {
@@ -16,7 +18,7 @@ export class Peer extends EventEmitter {
   private _bomb?: TimeBomb | null;
   private _timeoutFunction: any;
 
-  constructor(id: string, websocket: WSTransport, roomService: RoomService) {
+  constructor(id: string, websocket: WSTransport, roomService: RoomService, peerRouter: PeerRouter) {
     super();
 
     this._id = id;
@@ -26,7 +28,7 @@ export class Peer extends EventEmitter {
 
     this._roomService = roomService;
 
-    this._handleTransportMessage();
+    this._handleTransportMessage(peerRouter);
   }
 
   died() {
@@ -37,9 +39,23 @@ export class Peer extends EventEmitter {
     this._ws = null;
   }
 
-  _handleTransportMessage() {
-    this._ws!.on('request', (message: PeerRequestMessage) => {
-      this._roomService.handleMessage(message, this._id);
+  createPeerMessage(message: any): PeerMessage {
+    const peerMessage = {
+      identity: this._id,
+      msg: message,
+    } as PeerMessage;
+    return peerMessage;
+  }
+
+  _handleTransportMessage(peerRouter: PeerRouter) {
+    this._ws!.on('request', (message: any) => {
+      const pm = this.createPeerMessage(message);
+      // version 1
+      this._roomService.handleMessage(pm);
+
+      //version 2
+      const event = new MEvent(pm, 'rtc');
+      peerRouter.publish(event);
     });
     this._ws!.on('notification', (message: { type: string; data: any }) => {
       const { type, data } = message;

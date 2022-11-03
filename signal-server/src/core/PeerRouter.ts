@@ -1,3 +1,0 @@
-class PeerRouter {
-  constructor() {}
-}

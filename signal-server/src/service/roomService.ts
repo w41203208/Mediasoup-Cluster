@@ -13,12 +13,10 @@ import { SFUService } from './sfuService';
 import { SFUAllocator } from '../core/SFUAllocator';
 import { Player } from '../core/Player';
 import { RoomRouter } from '../core/RoomRouter';
-import { stringify } from 'querystring';
 
-interface PeerRequestMessage {
-  id: string;
-  type: string;
-  data: any;
+interface PeerMessage {
+  identity: string;
+  msg: any;
 }
 
 interface HandleMessage {
@@ -217,37 +215,37 @@ export class RoomService {
     });
   }
 
-  handleMessage(message: PeerRequestMessage, peerId: string) {
+  handleMessage(pmessage: PeerMessage) {
     const handleMsg: HandleMessage = {
-      ...message,
+      ...pmessage.msg,
     };
-    switch (message.type) {
+    switch (handleMsg.type) {
       case EVENT_FROM_CLIENT_REQUEST.CREATE_ROOM:
-        this.handleCreateRoom(handleMsg, peerId);
+        this.handleCreateRoom(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-        this.handleJoinRoom(handleMsg, peerId);
+        this.handleJoinRoom(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.LEAVE_ROOM:
-        this.handleLeaveRoom(handleMsg, peerId);
+        this.handleLeaveRoom(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.CLOSE_ROOM:
-        this.handleCloseRoom(handleMsg, peerId);
+        this.handleCloseRoom(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES:
-        this.handleGetRouterRtpCapabilities(handleMsg, peerId);
+        this.handleGetRouterRtpCapabilities(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.CREATE_WEBRTCTRANSPORT:
-        this.handleCreateWebRTCTransport(handleMsg, peerId);
+        this.handleCreateWebRTCTransport(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.CONNECT_WEBRTCTRANPORT:
-        this.handleConnectWebRTCTransport(handleMsg, peerId);
+        this.handleConnectWebRTCTransport(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.PRODUCE:
-        this.handleProduce(handleMsg, peerId);
+        this.handleProduce(handleMsg, pmessage.identity);
         break;
       case EVENT_FROM_CLIENT_REQUEST.GET_PRODUCERS:
-        this.handleGetProduce(handleMsg, peerId);
+        this.handleGetProduce(handleMsg, pmessage.identity);
         break;
     }
   }
@@ -266,9 +264,9 @@ export class RoomService {
       this.log.info('User [%s] create room [%s].', dePeerId, msg.data.room_name);
 
       const room_id = msg.data.room_name + '-' + Date.now();
-      const rc = await this._roomCreater.createRoom(dePeerId, room_id, msg.data.room_name);
+      const r = await this._roomCreater.createRoom(dePeerId, room_id, msg.data.room_name);
 
-      if (rc) {
+      if (r) {
         throw new Error('room has already exists');
       }
 

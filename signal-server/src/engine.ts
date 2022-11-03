@@ -20,6 +20,8 @@ import { RoomRouter } from './core/RoomRouter';
 import { TimeBomb } from './util/TimeBomb';
 import { SFUService } from './service/sfuService';
 import { SFUAllocator } from './core/SFUAllocator';
+import { PeerRouter } from './router/peerRouter';
+import { RoomManagerSubscriber } from './router/subscriber';
 
 export class ServerEngine {
   /* settings */
@@ -43,18 +45,23 @@ export class ServerEngine {
   async run() {
     const rcClient = RedisClient.GetInstance(this._redisClientOption);
     const controllerFactory = ControllerFactory.GetInstance(rcClient);
-    const sfuConnectionMgr = new SFUConnectionManager();
     const sfuAllocator = new SFUAllocator(controllerFactory);
+    const sfuConnectionMgr = new SFUConnectionManager();
     const sfuService = new SFUService(sfuConnectionMgr);
-    const clientConnectionMgr = new ClientConnectionManager();
-    const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
-    const commonService = new CommonService(controllerFactory, cryptoCore);
-    const authService = new AuthService(cryptoCore);
-    const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
-    const roomCreator = new RoomCreator(controllerFactory);
+
+    const peerRouter = new PeerRouter();
+    peerRouter.addTopic('signal');
+    peerRouter.addTopic('rtc');
     const roomRouter = new RoomRouter(rcClient.Client!);
 
-    const roomMgr = new RoomManager(controllerFactory, roomRouter);
+    const clientConnectionMgr = new ClientConnectionManager();
+    const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
+    const roomCreator = new RoomCreator(controllerFactory);
+    const commonService = new CommonService(roomCreator, controllerFactory, cryptoCore);
+    const authService = new AuthService(cryptoCore);
+    const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, commonService, authService);
+
+    const roomMgr = new RoomManager(controllerFactory, roomRouter, peerRouter);
     const roomService = new RoomService(
       controllerFactory,
       cryptoCore,
@@ -69,20 +76,10 @@ export class ServerEngine {
 
     websocketServer.on('connection', (id: string, getTransport: Function) => {
       const peerTransport = getTransport();
-      const peer = new Peer(id, peerTransport, roomService);
+      const peer = new Peer(id, peerTransport, roomService, peerRouter);
       const bomb = new TimeBomb(10 * 1000);
       peer.setTimeBomb(bomb);
       clientConnectionMgr.setPeer(peer);
     });
   }
-
-  // handleServerSocketRequest(type: string, data: any, response: Function) {
-  //   const { room_id } = data;
-  //   if (!this.roomList.has(room_id)) {
-  //     return;
-  //   }
-  //   const room = this.roomList.get(room_id)!;
-
-  //   room.handleServerSocketRequest(type, data, response);
-  // }
 }

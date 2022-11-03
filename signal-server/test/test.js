@@ -82,12 +82,13 @@ let C = new ComponentC(eventQ);
 
 //Registering components to listen for Message events
 eventQ.RegisterMessageListener(A);
-eventQ.RegisterMessageListener(B);
 
 //sending a message
 C.sendMessage('hello world');
-//starting the event loop
 eventQ.Start();
+//starting the event loop
 
+eventQ.RegisterMessageListener(B);
 //sending a message to make sure loop isn't blocking
-C.sendMessage('Are you there?');
+
+eventQ.Start();

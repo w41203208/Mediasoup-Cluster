@@ -8,10 +8,12 @@ import { Player } from './Player';
 import { Log } from '../util/Log';
 import { RoomRouter } from './RoomRouter';
 import { getLocalIp } from '../util/tool';
-import { EVENT_PUBLISH } from '../EVENT';
+import { EVENT_FROM_CLIENT_REQUEST, EVENT_PUBLISH } from '../EVENT';
 
 // import { PubHandlerMapData, DataJoinRoom, PubHandlerType } from './type.roommanager';
 import { v4 } from 'uuid';
+import { PeerRouter } from '../router/peerRouter';
+import { RoomManagerSubscriber } from '../router/subscriber';
 
 interface DataJoinRoom {
   roomId: string;
@@ -34,6 +36,8 @@ enum PubHandlerType {
 export class RoomManager {
   private RoomController: RoomController;
   private _roomRouter: RoomRouter;
+  private _peerRouter: PeerRouter;
+  private _roomManagerSub: RoomManagerSubscriber;
 
   private _roomMap: Map<string, Room>;
 
@@ -44,11 +48,19 @@ export class RoomManager {
   private onCloseRoom: Function = (player: Player, roomId: string) => {};
   // private onGetRouterRtpCapabilities: Function = (player: Player, roomId: string) => {};
 
-  constructor(cf: ControllerFactory, rr: RoomRouter) {
+  constructor(cf: ControllerFactory, rr: RoomRouter, pr: PeerRouter) {
     this.RoomController = cf.getController('Room') as RoomController;
     this._roomRouter = rr;
     this._roomMap = new Map();
     this._pubHandlerMap = new Map();
+
+    this._peerRouter = pr;
+
+    this._roomManagerSub = new RoomManagerSubscriber();
+    this._peerRouter.subscribe('rtc', this._roomManagerSub);
+
+    this._roomManagerSub.OnHandleRTCMessage(this.handleRTCMessage);
+    this._roomManagerSub.OnNewPlayerJoinRTC(this.newPlayerJoinRTC);
   }
 
   // setOnBroadcast(func: Function) {
@@ -64,7 +76,7 @@ export class RoomManager {
   // }
 
   // 與 Room 有關
-  async getOrCreateRoom(roomId: string): Promise<void> {
+  async getOrCreateRoom(roomId: string): Promise<Room> {
     return new Promise(async (resolve, reject) => {
       const rRoom = await this.RoomController.getRoom(roomId);
 
@@ -103,7 +115,13 @@ export class RoomManager {
         this._roomMap.set(roomId, newRoom);
       }
 
-      resolve();
+      const room = this._roomMap.get(roomId);
+
+      if (room) {
+        resolve(room);
+      } else {
+        reject(room);
+      }
     });
   }
 
@@ -275,6 +293,24 @@ export class RoomManager {
     if (handler.count === 0) {
       this._pubHandlerMap.delete(pubHandlerMapId);
       return handler;
+    }
+  }
+
+  async newPlayerJoinRTC(roomId: string, playerId: string) {
+    // const room = this.getOrCreateRoom();
+  }
+
+  async handleRTCMessage(identity: string, roomId: string, rm: { id: string; type: string; data: any }) {
+    try {
+      const room = await this.getOrCreateRoom(roomId);
+      const player = room.getPlayer(identity);
+
+      switch (rm.type) {
+        case EVENT_FROM_CLIENT_REQUEST.GET_ROUTER_RTPCAPABILITIES:
+          break;
+      }
+    } catch (e: any) {
+      this.log.error(e);
     }
   }
 }
