@@ -5,11 +5,6 @@ import { EngineOptions, HttpsServerOptions, RedisClientOptions } from './type.en
 // object
 import { HttpsServer } from './connect/HttpsServer';
 import { WSServer } from './connect/WSServer';
-<<<<<<< HEAD
-import { Peer } from './core/Peer';
-=======
-
->>>>>>> jay_dev
 import { RedisClient } from './redis/redis';
 import { SFUConnectionManager } from './core/SFUConnectionManager';
 import { ControllerFactory } from './redis/ControllerFactory';
