@@ -96,6 +96,23 @@ export class RoomController extends ControllerImp {
     });
   }
 
+  getAllRoomPlayerList(id: string): Promise<any[]> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.playerList`;
+        const data = await this._rc.hGetAll(key);
+        const temp_list: Array<string> = [];
+        Object.entries(data).forEach(([key, value]) => {
+          temp_list.push(value);
+        });
+        resolve(temp_list);
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
+
   setRoomPlayerList(id: string, playerId: string): Promise<void> {
     return new Promise(async (resolve, reject) => {
       try {

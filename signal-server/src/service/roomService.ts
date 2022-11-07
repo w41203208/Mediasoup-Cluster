@@ -45,10 +45,11 @@ export class RoomService {
         const roomList: Array<{ roomId: string; roomName: string; roomUserSize: number }> = [];
         temp_list.forEach((values: { id: string; name: string }) => {
           return new Promise(async (resolve, reject) => {
+            const roomDataList = await this._roomController.getAllRoomPlayerList(values.id);
             roomList.push({
               roomId: values.id,
               roomName: values.name,
-              roomUserSize: 0,
+              roomUserSize: roomDataList.length,
             });
           });
         });

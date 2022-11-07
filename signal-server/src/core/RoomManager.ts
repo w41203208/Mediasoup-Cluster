@@ -488,9 +488,27 @@ export class RoomManager {
         case 'removePlayer':
           this.handleRemovePlayer(player, room, rm);
           break;
+        case EVENT_FROM_CLIENT_REQUEST.SET_PREFERRED_LAYERS:
+          this.handlePreferredLayers(player, room, rm);
+          break;
       }
     } catch (e: any) {
       this.log.error(e);
+    }
+  }
+
+  async handlePreferredLayers(player: Player, room: Room, rm: RMessage) {
+    try {
+      this._sfuService.setPreferredLayers({
+        connectionServerId: player.serverId,
+        roomId: room.id,
+        data: {
+          consumer_id: rm.data.consumer_id,
+          spatialLayer: rm.data.spatialLayer,
+        },
+      });
+    } catch (e: any) {
+      this.log.error(e.message);
     }
   }
 
