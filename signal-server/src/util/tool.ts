@@ -26,16 +26,20 @@ export const urlParse = (url: string, match: string) => {
   return newUrl;
 };
 
-function stringToArray8(str: string): Uint8Array {
-  const enc = new TextEncoder();
-  const transformString = enc.encode(str);
-
-  const buffer = new ArrayBuffer(str.length);
-  const view = new Uint8Array(buffer);
-
-  view.forEach((v, index) => {
-    view[index] = transformString[index];
+export const parse = (url: string) => {
+  const strList = url.split('/?')[1].split('&');
+  const obj = {} as any;
+  strList.forEach((str) => {
+    const ss = str.split('=');
+    if (ss.length > 2) {
+      let new_s = ss[1];
+      for (let i = 2; i < ss.length; i++) {
+        new_s += `=${ss[i]}`;
+      }
+      obj[ss[0]] = new_s;
+    } else {
+      obj[ss[0]] = ss[1];
+    }
   });
-
-  return view;
-}
+  return obj;
+};

@@ -20,7 +20,7 @@ const mediaType = {
 
 const EVENT_FOR_CLIENT = {
   CREATE_ROOM: 'createRoom',
-  JOIN_ROOM: 'joinRoom',
+
   GET_PRODUCERS: 'getProducers',
   GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
   CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
@@ -35,6 +35,7 @@ const EVENT_FOR_CLIENT = {
 
 const EVENT_SERVER_TO_CLIENT = {
   NEW_CONSUMER: 'newConsumer',
+  JOIN_ROOM: 'joinRoom',
 };
 
 const EVENT_FOR_TEST = {
@@ -70,7 +71,7 @@ export class RoomClient {
     this._roomName = roomName;
     this._localMediaContainer = null;
     this._remoteMediaContainer = null;
-    this._socket = this._createSocketConnection(this._clientUID);
+    this._socket = this._createSocketConnection(this._clientUID, this._roomId);
     this._isConsume = isConsume;
     this._isProduce = isProduce;
     // this._forceTCP = true;
@@ -100,10 +101,10 @@ export class RoomClient {
     return this._roomId;
   }
 
-  private _createSocketConnection(token: string): Socket {
+  private _createSocketConnection(token: string, roomName: string): Socket {
     const url = import.meta.env.VITE_WSSURL;
     const socket = new Socket({ url });
-    socket.start(token);
+    socket.start(token, roomName);
     return socket;
   }
 
@@ -116,6 +117,9 @@ export class RoomClient {
           for (let consumer of data.consumerList) {
             this.consume(consumer);
           }
+          break;
+        case EVENT_SERVER_TO_CLIENT.JOIN_ROOM:
+          this.joinRoom(this._clientUID, this._roomId);
           break;
       }
     });
@@ -131,7 +135,7 @@ export class RoomClient {
       .then(({ data }) => {
         logger({ text: 'Create Room', data: data.msg });
         if (data.state) {
-          const res = this.joinRoom(uid, data.room_id).then(res => {
+          const res = this.joinRoom(uid, data.room_id).then((res) => {
             return res;
           });
           this._roomId = data.room_id;
@@ -168,15 +172,15 @@ export class RoomClient {
 
   // audience
   async joinRoom(uid: string, roomId: string) {
-    const {
-      data: { room_id, sfu_ip_port },
-    } = await this._socket.request({
-      data: { peer_id: uid, room_id: roomId },
-      type: EVENT_FOR_CLIENT.JOIN_ROOM,
-    });
-    logger({ text: `User ${this._clientUID} join room ${room_id}`, data: room_id });
+    // const {
+    //   data: { room_id, sfu_ip_port },
+    // } = await this._socket.request({
+    //   data: { peer_id: uid, room_id: roomId },
+    //   type: EVENT_FOR_CLIENT.JOIN_ROOM,
+    // });
+    // logger({ text: `User ${this._clientUID} join room ${this._roomId}`, data: this._roomId });
     // get router RtpCapabilities
-
+    console.log('testtestestest', uid, roomId);
     const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
     console.log(mediaCodecs);
     // load Device
@@ -189,7 +193,7 @@ export class RoomClient {
       data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
       type: EVENT_FOR_CLIENT.GET_PRODUCERS,
     });
-    return sfu_ip_port
+    // return sfu_ip_port;
     // test
     // const start = Date.now();
     // let promises = [];
@@ -339,26 +343,20 @@ export class RoomClient {
     return new Promise((resolve) => {
       switch (type) {
         case mediaType.video:
-          this.toggleWebCam().then(res => {
-            resolve(res)
+          this.toggleWebCam().then((res) => {
+            resolve(res);
           });
           break;
         case mediaType.audio:
-          this.toggleMic().then(res => {
-            resolve(res)
+          this.toggleMic().then((res) => {
+            resolve(res);
           });
           break;
       }
-    })
+    });
   }
 
-  async enableWebCam({
-    deviceId = null,
-    constraints = null,
-  }: {
-    deviceId: string | null;
-    constraints: MediaTrackConstraints | null;
-  }) {
+  async enableWebCam({ deviceId = null, constraints = null }: { deviceId: string | null; constraints: MediaTrackConstraints | null }) {
     let stream;
     let track: MediaStreamTrack;
     let duplicate: boolean = false;
@@ -375,7 +373,7 @@ export class RoomClient {
       }
 
       //避免裝置重複取用
-      this._webcamProducers.forEach(producer => {
+      this._webcamProducers.forEach((producer) => {
         if (track.getSettings().deviceId == producer.track?.getSettings().deviceId) {
           duplicate = true;
         }
@@ -388,19 +386,19 @@ export class RoomClient {
         track,
         encodings: [
           {
-            rid: "r0",
+            rid: 'r0',
             // maxBitrate: 300000,
             scaleResolutionDownBy: 4,
-            scalabilityMode: "S1T3",
+            scalabilityMode: 'S1T3',
           },
           {
-            rid: "r1",
+            rid: 'r1',
             // maxBitrate: 1000000,
             scaleResolutionDownBy: 2,
-            scalabilityMode: "S1T3",
+            scalabilityMode: 'S1T3',
           },
           {
-            rid: "r2",
+            rid: 'r2',
             // maxBitrate: 5000000,
             scaleResolutionDownBy: 1,
             scalabilityMode: 'S1T3',
@@ -452,14 +450,14 @@ export class RoomClient {
       stream = await navigator.mediaDevices.getUserMedia(
         deviceId
           ? {
-            audio: { deviceId: { exact: deviceId } },
-          }
+              audio: { deviceId: { exact: deviceId } },
+            }
           : { audio: true }
       );
       track = stream.getTracks()[0];
 
       //避免裝置重複取用
-      this._micProducers.forEach(producer => {
+      this._micProducers.forEach((producer) => {
         if (track.getSettings().deviceId == producer.track?.getSettings().deviceId) {
           duplicate = true;
         }
@@ -478,7 +476,7 @@ export class RoomClient {
       // //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on("@close", () => { });
+      producer.on('@close', () => {});
 
       this._micProducers.set(producer.id, producer);
       // /* 之後會區分開開啟與添加畫面的方法 */
@@ -489,35 +487,33 @@ export class RoomClient {
 
   async toggleWebCam() {
     return new Promise((resolve) => {
-      this._webcamProducers.forEach(producer => {
+      this._webcamProducers.forEach((producer) => {
         if (producer.paused) {
           producer.resume();
         } else if (!producer.paused) {
           producer.pause();
         }
         resolve(producer.paused);
-      })
-    })
-
+      });
+    });
   }
   async toggleMic() {
     return new Promise((resolve) => {
-      this._micProducers.forEach(producer => {
+      this._micProducers.forEach((producer) => {
         if (producer.paused) {
           producer.resume();
         } else if (!producer.paused) {
           producer.pause();
         }
         resolve(producer.paused);
-      })
-    })
+      });
+    });
   }
-
 
   async consume(consumerParams: any) {
     const { id, producer_id, kind, rtpParameters } = consumerParams;
     let repeatProducer: boolean = false;
-    this._consumers.forEach(consumer => {
+    this._consumers.forEach((consumer) => {
       if (consumer.producerId == producer_id) {
         repeatProducer = true;
       }

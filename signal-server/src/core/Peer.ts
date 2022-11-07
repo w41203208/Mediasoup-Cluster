@@ -1,32 +1,30 @@
 import { EventEmitter } from '../util/emitter';
 import { WSTransport } from '../connect/WSTransport';
-import { RoomService } from '../service';
 import { TimeBomb } from '../util/TimeBomb';
+import { PeerRouter } from '../router/peerRouter';
+import { MEvent } from '../router/event';
 
-interface PeerRequestMessage {
-  id: string;
-  type: string;
-  data: any;
+interface PeerMessage {
+  identity: string;
+  message: any;
 }
 
 export class Peer extends EventEmitter {
   private _id: string;
+  private _roomId: string;
   private _ws: WSTransport | null;
-  private _roomService: RoomService;
+  // private _roomService: RoomService;
   private _bomb?: TimeBomb | null;
   private _timeoutFunction: any;
 
-  constructor(id: string, websocket: WSTransport, roomService: RoomService) {
+  constructor(pkey: any, websocket: WSTransport /* roomService: RoomService*/) {
     super();
 
-    this._id = id;
+    this._id = pkey.peerId;
+    this._roomId = pkey.roomId;
 
     /* websocket */
     this._ws = websocket;
-
-    this._roomService = roomService;
-
-    this._handleTransportMessage();
   }
 
   died() {
@@ -37,9 +35,28 @@ export class Peer extends EventEmitter {
     this._ws = null;
   }
 
-  _handleTransportMessage() {
-    this._ws!.on('request', (message: PeerRequestMessage) => {
-      this._roomService.handleMessage(message, this._id);
+  createPeerMessage(message: any): PeerMessage {
+    const peerMessage = {
+      identity: this._id,
+      roomId: this._roomId,
+      message: {
+        id: message.id,
+        data: message.data,
+        type: message.type,
+      },
+    } as PeerMessage;
+    return peerMessage;
+  }
+
+  handleTransportMessage(peerRouter: PeerRouter) {
+    this._ws!.on('request', (message: any) => {
+      const pm = this.createPeerMessage(message);
+      // version 1
+      // this._roomService.handleMessage(pm);
+
+      //version 2
+      const event = new MEvent(pm, 'rtc');
+      peerRouter.publish(event);
     });
     this._ws!.on('notification', (message: { type: string; data: any }) => {
       const { type, data } = message;
@@ -60,10 +77,13 @@ export class Peer extends EventEmitter {
     return this._id;
   }
 
+  get roomId() {
+    return this._roomId;
+  }
+
   setTimeBomb(bomb: TimeBomb) {
     this._bomb = bomb;
 
-    this._bomb.setBombFunction(this._roomService.handleDisconnected);
     this.startPing();
   }
 

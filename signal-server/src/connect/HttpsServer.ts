@@ -7,11 +7,11 @@ import bodyParser from 'body-parser';
 import { CryptoCore } from '../util/CryptoCore';
 import { IncomingMessage } from 'http';
 import { Log } from '../util/Log';
-import { CommonService, AuthService } from '../service/index';
+import { RoomService, AuthService } from '../service/index';
 import { urlParse } from '../util/tool';
 
 interface ServiceInterface {
-  commonService: CommonService;
+  roomService: RoomService;
   authService: AuthService;
 }
 
@@ -26,13 +26,13 @@ export class HttpsServer {
 
   private log: Log = Log.GetInstance();
 
-  constructor({ ip, port, ssl }: HttpsServerOptions, cryptoCore: CryptoCore, commonService: CommonService, authService: AuthService) {
+  constructor({ ip, port, ssl }: HttpsServerOptions, cryptoCore: CryptoCore, roomService: RoomService, authService: AuthService) {
     this._ip = ip;
     this._port = port;
     this._ssl = ssl;
 
     this.services = {
-      commonService: commonService,
+      roomService: roomService,
       authService: authService,
     };
     this.cryptoCore = cryptoCore;
@@ -45,7 +45,7 @@ export class HttpsServer {
 
     this.app = app;
 
-    this.app.use('/common', this.services.commonService.router);
+    this.app.use('/room', this.services.roomService.router);
     this.app.use('/auth', this.services.authService.router);
     this._registerAppHandler();
 
