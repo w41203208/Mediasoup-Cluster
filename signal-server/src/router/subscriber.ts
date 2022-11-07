@@ -1,8 +1,8 @@
-import { EVENT_FROM_CLIENT_REQUEST } from '../EVENT';
+import { EVENT_FOR_CLIENT_NOTIFICATION } from '../EVENT';
 import { Log } from '../util/Log';
 
 export interface ISubscriber {
-  update(message: any): void;
+  update(pmessage: any): void;
 }
 
 export class RoomManagerSubscriber implements ISubscriber {
@@ -19,20 +19,31 @@ export class RoomManagerSubscriber implements ISubscriber {
   }
   update(pmessage: any): void {
     try {
-      switch (pmessage.msg.type) {
-        case EVENT_FROM_CLIENT_REQUEST.JOIN_ROOM:
-          this.onNewPlayerJoinRTC();
+      switch (pmessage.message.type) {
+        case EVENT_FOR_CLIENT_NOTIFICATION.JOIN_ROOM:
+          this.onNewPlayerJoinRTC(pmessage.identity, pmessage.roomId, pmessage.message);
           break;
         default:
-          const { room_id, ...rest } = pmessage.msg.data;
-          const rm = {
-            id: pmessage.msg.id,
-            type: pmessage.msg.type,
-            data: rest,
-          };
-          this.onRTCMessage(pmessage.identity, room_id, rm);
+          this.onRTCMessage(pmessage.identity, pmessage.roomId, pmessage.message);
           break;
       }
+    } catch (e: any) {
+      this._log.error(e);
+    }
+  }
+}
+
+export class PeerSubscriber implements ISubscriber {
+  private _log: Log = Log.GetInstance();
+
+  private onHandleSignalMessage: Function = () => {};
+  constructor() {}
+  OnHandleSignalMesssage(func: Function) {
+    this.onHandleSignalMessage = func;
+  }
+  update(pmessage: any): void {
+    try {
+      this.onHandleSignalMessage(pmessage);
     } catch (e: any) {
       this._log.error(e);
     }

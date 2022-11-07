@@ -20,6 +20,7 @@ export class CryptoCore {
     const tag = copiedBuf.slice(deUuId.length - 16, deUuId.length);
     const iv = copiedBuf.slice(0, 12);
     const toDecrypt = copiedBuf.slice(12, deUuId.length - tag.length);
+
     const decipher = Crypto.createDecipheriv('aes-128-gcm', this.keyToBufferHex(this.key), iv);
     decipher.setAuthTag(tag);
     const decrypted = Buffer.concat([decipher.update(toDecrypt), decipher.final()]);

@@ -53,6 +53,18 @@ export class RoomController extends ControllerImp {
       }
     });
   }
+  delRoomProducerList(id: string, producerId: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const key = `${id}.producerList`;
+        await this._rc.hDel(key, producerId);
+        resolve();
+      } catch (error) {
+        console.log(error);
+        reject(error);
+      }
+    });
+  }
 
   setRoomServerList(id: string, serverId: string): Promise<void> {
     return new Promise(async (resolve, reject) => {

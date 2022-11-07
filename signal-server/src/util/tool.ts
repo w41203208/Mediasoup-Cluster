@@ -25,3 +25,21 @@ export const urlParse = (url: string, match: string) => {
   const newUrl = matchAns[1];
   return newUrl;
 };
+
+export const parse = (url: string) => {
+  const strList = url.split('/?')[1].split('&');
+  const obj = {} as any;
+  strList.forEach((str) => {
+    const ss = str.split('=');
+    if (ss.length > 2) {
+      let new_s = ss[1];
+      for (let i = 2; i < ss.length; i++) {
+        new_s += `=${ss[i]}`;
+      }
+      obj[ss[0]] = new_s;
+    } else {
+      obj[ss[0]] = ss[1];
+    }
+  });
+  return obj;
+};

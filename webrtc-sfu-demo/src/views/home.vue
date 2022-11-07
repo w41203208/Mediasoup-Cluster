@@ -47,7 +47,7 @@
 </template>
 
 <script lang="ts">
-import { getUuidByName, getRoomByUuId } from '@/services/api';
+import { getUuidByName, getRoomByUuId, createRoomByUuId } from '@/services/api';
 import { getUserName } from '@/util/dummyName';
 import { defineComponent, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -105,16 +105,21 @@ export default defineComponent({
       });
     };
     const handleClickCreateRoom = () => {
-      router.push({
-        path: '/room',
-        query: {
-          userName: user.name,
-          uid: user.uuId,
-          roomId: '',
-          roomName: inputReactive.roomName,
-          role: 'host',
-        },
+      createRoomByUuId(user.uuId, inputReactive.roomName).then((res: any) => {
+        console.log(res.data);
+        roomList.value = [...roomList.value, { roomId: res.data.room_id, roomName: res.data.room_name, roomUserSize: res.data.room_peopleNum }];
       });
+
+      // router.push({
+      //   path: '/room',
+      //   query: {
+      //     userName: user.name,
+      //     uid: user.uuId,
+      //     roomId: '',
+      //     roomName: inputReactive.roomName,
+      //     role: 'host',
+      //   },
+      // });
     };
     return {
       inputReactive,
