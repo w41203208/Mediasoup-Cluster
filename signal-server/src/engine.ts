@@ -1,7 +1,9 @@
 // config
 import { config } from '../config';
+
 // other;
 import { EngineOptions, HttpsServerOptions, RedisClientOptions } from './type.engine';
+
 // object
 import { HttpsServer } from './connect/HttpsServer';
 import { WSServer } from './connect/WSServer';
@@ -20,6 +22,7 @@ import { SFUAllocator } from './core/SFUAllocator';
 import { PeerRouter } from './router/peerRouter';
 
 export class ServerEngine {
+
 	/* settings */
 	private _httpsServerOption: HttpsServerOptions;
 	private _redisClientOption: RedisClientOptions;
@@ -50,18 +53,12 @@ export class ServerEngine {
 		const roomService = new RoomService(roomCreator, controllerFactory, cryptoCore);
 		const authService = new AuthService(cryptoCore);
 		const sfuService = new SFUService(sfuConnectionMgr);
+		
+		// eslint-disable-next-line no-unused-vars
 		const roomMgr = new RoomManager(controllerFactory, roomRouter, peerRouter, sfuService);
-		// const roomService = new RoomService(
-		//   controllerFactory,
-		//   cryptoCore,
-		//   roomCreator,
-		//   roomRouter,
-		//   roomMgr,
-		//   clientConnectionMgr,
-		//   sfuAllocator,
-		//   sfuService
-		// );
 		const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, roomService, authService);
+
+		// eslint-disable-next-line no-unused-vars
 		const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore, clientConnectionMgr, sfuAllocator, peerRouter);
 
 		// websocketServer.on('connection', (id: string, getTransport: Function) => {

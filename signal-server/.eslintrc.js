@@ -4,7 +4,6 @@ module.exports = {
 		node: true,
 	},
 	extends: [
-		
 		// 'eslint:recommended',
 		// 'plugin:@typescript-eslint/recommended'
 		'prettier',
@@ -17,7 +16,6 @@ module.exports = {
 	plugins: ['@typescript-eslint'],
 	rules: {
 		'indent': ['error', 'tab', { SwitchCase: 1 }],
-
 		// 'linebreak-style': [
 		// 	'error',
 		// 	'windows'
@@ -28,8 +26,9 @@ module.exports = {
 		'no-unused-vars': ['error'],
 		'no-undef': ['error'],
 		'no-alert': ['error'],
-		'no-empty-pattern': ['error'],
+		'prefer-const': ['warn'],
+		'no-empty-pattern': ['warn'],
 		'array-callback-return': ['error'],
-		'lines-around-comment': ['error', { beforeLineComment: true, afterLineComment: false }],
+		'lines-around-comment': ['warn', { beforeLineComment: true, afterLineComment: false, beforeBlockComment: true  }],
 	},
 };

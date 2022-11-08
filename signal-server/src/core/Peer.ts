@@ -13,6 +13,7 @@ export class Peer extends EventEmitter {
 	private _id: string;
 	private _roomId: string;
 	private _ws: WSTransport | null;
+
 	// private _roomService: RoomService;
 	private _bomb?: TimeBomb | null;
 	private _timeoutFunction: any;
@@ -51,6 +52,7 @@ export class Peer extends EventEmitter {
 	handleTransportMessage(peerRouter: PeerRouter) {
 		this._ws!.on('request', (message: any) => {
 			const pm = this.createPeerMessage(message);
+
 			// version 1
 			// this._roomService.handleMessage(pm);
 
@@ -66,6 +68,7 @@ export class Peer extends EventEmitter {
 						this.resetPing();
 					}
 					break;
+					
 				// default:
 				//   this.emit('handleOnRoomNotification', this, type, data);
 				//   break;

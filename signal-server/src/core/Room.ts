@@ -22,6 +22,7 @@ export class Room {
 		this._owner = roomOwner;
 		this._routers = new Map();
 		this._players = new Map();
+
 		// this._bomb = new TimeBomb(1000 * 60 * 5, () => {
 		//   this.kickAllPeer();
 		//   this.died();
@@ -49,7 +50,7 @@ export class Room {
 	}
 
 	getJoinedPlayerList({ excludePlayer = {} as Player }: { excludePlayer: Player | string }): Array<Player> {
-		let producerList: Array<Player> = [];
+		const producerList: Array<Player> = [];
 		if (typeof excludePlayer === 'object') {
 			this._players.forEach((player: any) => {
 				if (player.id !== excludePlayer.id) {

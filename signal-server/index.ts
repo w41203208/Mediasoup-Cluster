@@ -12,20 +12,20 @@ require('dotenv').config();
 
 // ssl option
 const sslOption = {
-  key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
-  cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
+	key: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslKey), 'utf-8'),
+	cert: fs.readFileSync(path.join(__dirname, config.ServerSetting.sslCert), 'utf-8'),
 };
 
 const engineOptions = {
-  httpsServerOption: {
-    ssl: sslOption,
-    ip: config.ServerSetting.listenIp,
-    port: config.ServerSetting.listenPort,
-    cryptoKey: config.ServerSetting.cryptoKey,
-  },
-  redisClientOption: {
-    redisHost: config.ServerSetting.redisHost,
-  },
+	httpsServerOption: {
+		ssl: sslOption,
+		ip: config.ServerSetting.listenIp,
+		port: config.ServerSetting.listenPort,
+		cryptoKey: config.ServerSetting.cryptoKey,
+	},
+	redisClientOption: {
+		redisHost: config.ServerSetting.redisHost,
+	},
 };
 
 const log = Log.GetInstance();

@@ -16,6 +16,7 @@ export class Player {
 	private onGetRouterRtpCapabilities: Function = () => {};
 
 	constructor(peer_id: string, peer_name: string = '', serverId: string, routerId: string) {
+		
 		/* base info */
 		this._id = peer_id;
 		this._name = peer_name;
