@@ -2,9 +2,8 @@ version: '3.8'
 
 services:
   webrtcsfu1:
-    image: sfuserver
+    image: 34.81.83.64:3100/webrtc/mediasoup-server
     container_name: ${CONTAINER_NAME}
-    working_dir: /home/mediasoup
     # working_dir: /home/mediasoup
     # networks:
     #   ithelp_application:

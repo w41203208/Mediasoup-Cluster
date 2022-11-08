@@ -20,56 +20,56 @@ import { SFUAllocator } from './core/SFUAllocator';
 import { PeerRouter } from './router/peerRouter';
 
 export class ServerEngine {
-  /* settings */
-  private _httpsServerOption: HttpsServerOptions;
-  private _redisClientOption: RedisClientOptions;
+	/* settings */
+	private _httpsServerOption: HttpsServerOptions;
+	private _redisClientOption: RedisClientOptions;
 
-  constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
-    this._httpsServerOption = httpsServerOption;
-    this._redisClientOption = redisClientOption;
+	constructor({ httpsServerOption, redisClientOption }: EngineOptions) {
+		this._httpsServerOption = httpsServerOption;
+		this._redisClientOption = redisClientOption;
 
-    Log.setLogLevel('DEBUG');
-  }
+		Log.setLogLevel('DEBUG');
+	}
 
-  async run() {
-    const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
+	async run() {
+		const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
 
-    const rcClient = RedisClient.GetInstance(this._redisClientOption);
-    const controllerFactory = ControllerFactory.GetInstance(rcClient);
-    const sfuAllocator = new SFUAllocator(controllerFactory);
-    const sfuConnectionMgr = new SFUConnectionManager();
-    const clientConnectionMgr = new ClientConnectionManager();
+		const rcClient = RedisClient.GetInstance(this._redisClientOption);
+		const controllerFactory = ControllerFactory.GetInstance(rcClient);
+		const sfuAllocator = new SFUAllocator(controllerFactory);
+		const sfuConnectionMgr = new SFUConnectionManager();
+		const clientConnectionMgr = new ClientConnectionManager();
 
-    const peerRouter = new PeerRouter();
-    peerRouter.addTopic('signal');
-    peerRouter.addTopic('rtc');
-    const roomRouter = new RoomRouter(rcClient.Client!);
+		const peerRouter = new PeerRouter();
+		peerRouter.addTopic('signal');
+		peerRouter.addTopic('rtc');
+		const roomRouter = new RoomRouter(rcClient.Client!);
 
-    const roomCreator = new RoomCreator(controllerFactory);
+		const roomCreator = new RoomCreator(controllerFactory);
 
-    const roomService = new RoomService(roomCreator, controllerFactory, cryptoCore);
-    const authService = new AuthService(cryptoCore);
-    const sfuService = new SFUService(sfuConnectionMgr);
-    const roomMgr = new RoomManager(controllerFactory, roomRouter, peerRouter, sfuService);
-    // const roomService = new RoomService(
-    //   controllerFactory,
-    //   cryptoCore,
-    //   roomCreator,
-    //   roomRouter,
-    //   roomMgr,
-    //   clientConnectionMgr,
-    //   sfuAllocator,
-    //   sfuService
-    // );
-    const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, roomService, authService);
-    const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore, clientConnectionMgr, sfuAllocator, peerRouter);
+		const roomService = new RoomService(roomCreator, controllerFactory, cryptoCore);
+		const authService = new AuthService(cryptoCore);
+		const sfuService = new SFUService(sfuConnectionMgr);
+		const roomMgr = new RoomManager(controllerFactory, roomRouter, peerRouter, sfuService);
+		// const roomService = new RoomService(
+		//   controllerFactory,
+		//   cryptoCore,
+		//   roomCreator,
+		//   roomRouter,
+		//   roomMgr,
+		//   clientConnectionMgr,
+		//   sfuAllocator,
+		//   sfuService
+		// );
+		const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, roomService, authService);
+		const websocketServer = new WSServer(httpsServer.run().runToHttps(), cryptoCore, clientConnectionMgr, sfuAllocator, peerRouter);
 
-    // websocketServer.on('connection', (id: string, getTransport: Function) => {
-    //   const peerTransport = getTransport();
-    //   const peer = new Peer(id, peerTransport, roomService, peerRouter);
-    //   const bomb = new TimeBomb(10 * 1000);
-    //   peer.setTimeBomb(bomb);
-    //   clientConnectionMgr.setPeer(peer);
-    // });
-  }
+		// websocketServer.on('connection', (id: string, getTransport: Function) => {
+		//   const peerTransport = getTransport();
+		//   const peer = new Peer(id, peerTransport, roomService, peerRouter);
+		//   const bomb = new TimeBomb(10 * 1000);
+		//   peer.setTimeBomb(bomb);
+		//   clientConnectionMgr.setPeer(peer);
+		// });
+	}
 }
