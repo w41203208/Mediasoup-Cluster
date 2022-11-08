@@ -21,7 +21,7 @@ export class SFUAllocator {
           let okServer = undefined;
           let i = 0;
           while (i < data.length && okServer === undefined) {
-            const key = data[i];
+            const key = data[i]
             okServer = await this.searchSFUServer(key);
             i++;
           }
