@@ -36,7 +36,9 @@ interface SubMessage {
 	data: Record<string, any>;
 }
 
+// eslint-disable-next-line no-unused-vars
 enum PubHandlerType {
+	// eslint-disable-next-line no-unused-vars
 	GETPRODUCER_COMPLETE = 'getProducerComplete',
 }
 
@@ -95,24 +97,26 @@ export class RoomManager {
 		console.log('peerOfServerMap: ', peerOfServerMap);
 		Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
 			value.forEach(async (v: any) => {
-				const rData = await this._sfuService.createConsume({
-					connectionServerId: key,
-					roomId: data.pubRoomId,
-					data: {
-						routerId: v.player.routerId,
-						transportId: v.player.recvTransport.id,
-						rtpCapabilities: v.player.rtpCapabilities,
-						producers: v.producerList,
-					},
-				});
-				const { new_consumerList } = rData;
+				if (v.player.recvTransport.id !== null) {
+					const rData = await this._sfuService.createConsume({
+						connectionServerId: key,
+						roomId: data.pubRoomId,
+						data: {
+							routerId: v.player.routerId,
+							transportId: v.player.recvTransport.id,
+							rtpCapabilities: v.player.rtpCapabilities,
+							producers: v.producerList,
+						},
+					});
+					const { new_consumerList } = rData;
 
-				// eslint-disable-next-line quotes
-				this.log.debug(`return new_consumerList: `, new_consumerList);
+					// eslint-disable-next-line quotes
+					this.log.debug(`return new_consumerList: `, new_consumerList);
 
-				this.publish(v.player.id, { type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER }, 'notification', {
-					consumerList: new_consumerList,
-				});
+					this.publish(v.player.id, { type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER }, 'notification', {
+						consumerList: new_consumerList,
+					});
+				}
 			});
 		});
 	}
@@ -195,49 +199,53 @@ export class RoomManager {
 	// 與 Room 有關
 	async getOrCreateRoom(roomId: string): Promise<Room> {
 		return new Promise(async (resolve, reject) => {
-			const rRoom = await this.RoomController.getRoom(roomId);
+			try {
+				const rRoom = await this.RoomController.getRoom(roomId);
 
-			if (!rRoom) {
-				throw new Error('room is not exist!');
-			}
+				if (!rRoom) {
+					throw new Error('room is not exist!');
+				}
 
-			if (!this._roomMap.has(roomId)) {
-				const newRoom = new Room({
-					roomId: rRoom.id,
-					roomName: rRoom.name,
-					roomOwner: rRoom.owner,
-				});
-				this._roomRouter.register(roomId);
-
-				newRoom.OnClose(async () => {
-					this.log.debug('Room [%s] is closing', newRoom.id);
-					await this.RoomController.delRoom(newRoom.id);
-					await this._roomMap.delete(newRoom.id);
-				});
-
-				newRoom.OnPublishTrack((playerId: string, producerId: string) => {
-					this.log.debug('Has PlayerId publish track! ', playerId);
-					this.RoomController.setRoomProducerList(roomId, producerId);
-					this._roomRouter.publish(roomId, {
-						identifyIp: getLocalIp(),
-						type: EVENT_PUBLISH.CREATE_CONSUME,
-						data: {
-							pubPlayerId: playerId,
-							pubRoomId: newRoom.id,
-							producerId: producerId,
-						},
+				if (!this._roomMap.has(roomId)) {
+					const newRoom = new Room({
+						roomId: rRoom.id,
+						roomName: rRoom.name,
+						roomOwner: rRoom.owner,
 					});
-				});
+					this._roomRouter.register(roomId);
 
-				this._roomMap.set(roomId, newRoom);
-			}
+					newRoom.OnClose(async () => {
+						this.log.debug('Room [%s] is closing', newRoom.id);
+						await this.RoomController.delRoom(newRoom.id);
+						await this._roomMap.delete(newRoom.id);
+					});
 
-			const room = this._roomMap.get(roomId);
+					newRoom.OnPublishTrack((playerId: string, producerId: string) => {
+						this.log.debug('Has PlayerId publish track! ', playerId);
+						this.RoomController.setRoomProducerList(roomId, producerId);
+						this._roomRouter.publish(roomId, {
+							identifyIp: getLocalIp(),
+							type: EVENT_PUBLISH.CREATE_CONSUME,
+							data: {
+								pubPlayerId: playerId,
+								pubRoomId: newRoom.id,
+								producerId: producerId,
+							},
+						});
+					});
 
-			if (room) {
-				resolve(room);
-			} else {
-				reject(room);
+					this._roomMap.set(roomId, newRoom);
+				}
+
+				const room = this._roomMap.get(roomId);
+
+				if (room) {
+					resolve(room);
+				} else {
+					reject(room);
+				}
+			} catch (e: any) {
+				this.log.error(e.message);
 			}
 		});
 	}
@@ -362,7 +370,7 @@ export class RoomManager {
 	createPlayerPipeTransportConsumer_Pub(roomId: string, peerId: string, ignoreServerId: string, pubHandlerMapId: string, identifyIp: string) {
 		const room = this._roomMap.get(roomId)!;
 		const localPlayerList = room.getJoinedPlayerList({ excludePlayer: {} as Player });
-		let producerMaps: Record<string, any> = {};
+		const producerMaps: Record<string, any> = {};
 		localPlayerList.forEach((player: Player) => {
 			if (player.serverId !== ignoreServerId) {
 				const sid = player.serverId!;
@@ -420,7 +428,7 @@ export class RoomManager {
 
 		// 將 [peer, peer, peer] => { serverId : [peer, peer, peer] }
 		const localPlayerList = room.getJoinedPlayerList({ excludePlayer: peerId });
-		let playerOfServerMap = {} as any;
+		const playerOfServerMap = {} as any;
 		localPlayerList.forEach((player) => {
 			if (!playerOfServerMap[player.serverId!]) {
 				playerOfServerMap[player.serverId!] = [];

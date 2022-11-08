@@ -1,4 +1,3 @@
-import { stringify } from 'querystring';
 import WebSocket from 'ws';
 import { EventEmitter } from '../util/emitter';
 

@@ -17,6 +17,7 @@ import { PeerSubscriber } from '../router/subscriber';
 import { Peer } from '../core/Peer';
 import { ClientConnectionManager } from '../core/ClientConnectionManager';
 import { SFUAllocator } from '../core/SFUAllocator';
+import { Request } from 'express';
 
 export class WSServer extends EventEmitter {
 	private cryptoCore: CryptoCore;
@@ -69,6 +70,7 @@ export class WSServer extends EventEmitter {
 						);
 					});
 					peer.setTimeBomb(bomb);
+					
 					// wsServer.emit('connection', ws, request);
 				} catch (e: any) {
 					ws.send(
