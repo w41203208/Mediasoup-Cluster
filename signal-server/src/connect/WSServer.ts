@@ -58,7 +58,6 @@ export class WSServer extends EventEmitter {
 							'rtc'
 						)
 					);
-
 					peer.handleTransportMessage(pr);
 
 					const bomb = new TimeBomb(10 * 1000, () => {
@@ -70,7 +69,7 @@ export class WSServer extends EventEmitter {
 						);
 					});
 					peer.setTimeBomb(bomb);
-					
+
 					// wsServer.emit('connection', ws, request);
 				} catch (e: any) {
 					ws.send(

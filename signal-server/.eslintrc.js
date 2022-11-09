@@ -23,12 +23,11 @@ module.exports = {
 		'quotes': ['error', 'single'],
 		'semi': ['error', 'always'],
 		'no-const-assign': ['error'],
-		'no-unused-vars': ['error'],
 		'no-undef': ['error'],
 		'no-alert': ['error'],
 		'prefer-const': ['warn'],
 		'no-empty-pattern': ['warn'],
 		'array-callback-return': ['error'],
-		'lines-around-comment': ['warn', { beforeLineComment: true, afterLineComment: false, beforeBlockComment: true  }],
+		'lines-around-comment': ['warn', { beforeLineComment: true, afterLineComment: false, beforeBlockComment: true }],
 	},
 };
