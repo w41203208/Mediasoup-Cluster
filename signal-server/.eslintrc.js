@@ -25,6 +25,7 @@ module.exports = {
 		'no-const-assign': ['error'],
 		'no-undef': ['error'],
 		'no-alert': ['error'],
+		'no-unused-vars':['warn'],
 		'prefer-const': ['warn'],
 		'no-empty-pattern': ['warn'],
 		'array-callback-return': ['error'],

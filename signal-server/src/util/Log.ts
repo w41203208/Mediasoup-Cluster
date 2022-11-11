@@ -143,6 +143,7 @@ export class Log {
 
 		const amOrPm = this.hourToMeridiem(hour);
 		logInfo += amOrPm;
+
 		// logInfo.push(hour.toString());
 
 		return logInfo;

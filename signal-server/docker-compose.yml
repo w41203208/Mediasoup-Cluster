@@ -1,7 +1,7 @@
 version: '3.8'
 services:
-  sfusignal_1:
-    container_name: sfusignal_1
+  sfusignal.external.test:
+    container_name: sfusignal.external.test
     image: 'sfusignal'
     working_dir: /home/signal
     command: bash -c "yarn && yarn start"
@@ -11,35 +11,14 @@ services:
       signal_tuple_networks:
         ipv4_address: 172.28.1.2
     ports:
-      - '${PORT_1}:${PORT_1}/tcp'
-      - '${PORT_1}:${PORT_1}/udp'
+      - '${PORT}:${PORT}/tcp'
+      - '${PORT}:${PORT}/udp'
     environment:
-      - REDIS_HOST=${REDIS_HOST_1}
-      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
-      - PORT=${PORT_1}
-      - CRYPTO_KEY=${CRYPTO_KEY_1}
+      - REDIS_HOST=${REDIS_HOST}
+      - PORT=${PORT}
+      - CRYPTO_KEY=${CRYPTO_KEY}
     volumes:
       - .:/home/signal
-  # sfusignal_2:
-  #   container_name: sfusignal_2
-  #   image: 'sfusignal'
-  #   working_dir: /home/signal
-  #   command: bash -c "yarn && yarn start"
-  #   stdin_open: true
-  #   tty: true
-  #   networks:
-  #     signal_tuple_networks:
-  #       ipv4_address: 172.28.1.4
-  #   ports:
-  #     - '${PORT_2}:${PORT_2}/tcp'
-  #     - '${PORT_2}:${PORT_2}/udp'
-  #   environment:
-  #     - REDIS_HOST=${REDIS_HOST_2}
-  #     - REDIS_DB_INDEX=${REDIS_DB_INDEX}
-  #     - PORT=${PORT_2}
-  #     - CRYPTO_KEY=${CRYPTO_KEY_2}
-  #   volumes:
-  #     - .:/home/signal
 
 networks:
   signal_tuple_networks:

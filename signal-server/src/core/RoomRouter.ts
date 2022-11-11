@@ -11,17 +11,9 @@ export class RoomRouter extends EventEmitter {
 		(async () => {
 			this._id = v4();
 			this._subscriber = reidsClient.duplicate();
-			await this._subscriber.connect();
-
-			// this._subscriber = createClient({
-			//   url: process.env.REDIS_HOST,
-			// });
-			// await this._subscriber.connect();
-		})();
-		(async () => {
-			this._id = v4();
 			this._publisher = reidsClient.duplicate();
-			await this._publisher.connect();
+
+			await Promise.all([this._publisher.connect(), this._subscriber.connect()]);
 		})();
 	}
 	get id() {
