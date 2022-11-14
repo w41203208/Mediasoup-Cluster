@@ -8,6 +8,7 @@
     <button class="m-btn" @click="handleClickEvtExit">Exit</button>
     <button class="m-btn" @click="handleClickEvtShare('video')">Open Camera Video</button>
     <button class="m-btn" @click="handleClickEvtShare('audio')">Open Camera Audio</button>
+    <button class="m-btn" @click="handleClickEvtShare('videoFile')">Video File</button>
     <button class="m-btn" @click="handleClickEvtTest1">TEST1</button>
     <button class="m-btn" @click="handleClickEvtTest2">TEST2</button>
     <button class="m-btn" @click="TESTNET">TESTNET</button>

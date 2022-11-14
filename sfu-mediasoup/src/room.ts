@@ -174,7 +174,7 @@ export class Room implements ErrorHandler {
           mediaCodecs: this._routers.get(data.router_id)?.rtpCapabilities,
         },
       });
-    } catch (error) {}
+    } catch (error) { }
   }
 
   private async createWebRTCTransportHandler({ ws, data, response }: Handler) {
@@ -183,7 +183,7 @@ export class Room implements ErrorHandler {
     try {
       if (!data.router_id) {
       }
-    } catch (e) {}
+    } catch (e) { }
     if (!this._routers.has(router_id)) {
       return;
     }
@@ -211,8 +211,8 @@ export class Room implements ErrorHandler {
     }
 
     /* Register transport listen event */
-    transport.on('@close', () => {});
-    transport.on('dtlsstatechange', () => {});
+    transport.on('@close', () => { });
+    transport.on('dtlsstatechange', () => { });
 
     /* Register transport listen event */
 
@@ -617,5 +617,5 @@ export class Room implements ErrorHandler {
     }
   }
 
-  errorHandler(text: string) {}
+  errorHandler(text: string) { }
 }

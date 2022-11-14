@@ -26,3 +26,13 @@ dist-ssr
 
 
 sfu-mediasoup2
+webrtc-sfu-demo/src/assets/bbb_sunflower_native_60fps_normal.mp4
+webrtc-sfu-demo/src/assets/Big_Buck_Bunny_720_10s_30MB.mp4
+webrtc-sfu-demo/src/assets/Big_Buck_Bunny_720_10s_30MB.webm
+webrtc-sfu-demo/src/assets/h264_360p_10fps_0.6M_rabbit.mp4
+webrtc-sfu-demo/src/assets/h264_720p_60fps_0.6M_rabbit.mp4
+webrtc-sfu-demo/src/assets/h264_720p_60fps_2.5M_rabbit.mp4
+webrtc-sfu-demo/src/assets/h264_720p_60fps_2.5M_rabbit_123.mp4
+webrtc-sfu-demo/src/assets/h264_720p_60fps_2.5M_rabbit45646.mp4
+webrtc-sfu-demo/src/assets/h264_720p_60fps_4M_rabbit.mp4
+webrtc-sfu-demo/src/assets/vp8_720p_60fps_2.5M_rabbit.webm
