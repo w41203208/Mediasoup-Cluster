@@ -3,6 +3,7 @@ export class Player {
 	private _name: string;
 	private _serverId: string;
 	private _routerId: string;
+	private _role: string;
 	private _sendTransport?: any;
 	private _recvTransport?: any;
 	private _producers: Map<string, Record<string, any>>;
@@ -12,16 +13,13 @@ export class Player {
 	private onClose: Function = () => {};
 	private onPublishProduce: Function = () => {};
 
-	// no use
-	private onGetRouterRtpCapabilities: Function = () => {};
-
-	constructor(peer_id: string, peer_name: string = '', serverId: string, routerId: string) {
-		
+	constructor(pid: string, pn: string = '', sid: string, rid: string, pr: string) {
 		/* base info */
-		this._id = peer_id;
-		this._name = peer_name;
-		this._serverId = serverId;
-		this._routerId = routerId;
+		this._id = pid;
+		this._name = pn;
+		this._serverId = sid;
+		this._routerId = rid;
+		this._role = pr;
 
 		/* mediasoup info */
 		this._sendTransport = null;
@@ -65,6 +63,10 @@ export class Player {
 	}
 	get routerId() {
 		return this._routerId;
+	}
+
+	get role() {
+		return this._role;
 	}
 
 	get sendTransport() {

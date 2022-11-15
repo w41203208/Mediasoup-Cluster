@@ -96,6 +96,19 @@ export class RoomController extends ControllerImp {
 		});
 	}
 
+	clearRoomServerList(id: string): Promise<void> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const key = `${id}.serverList`;
+				await this._rc.del(key);
+				resolve();
+			} catch (error) {
+				console.log(error);
+				reject(error);
+			}
+		});
+	}
+
 	getAllRoomPlayerList(id: string): Promise<any[]> {
 		return new Promise(async (resolve, reject) => {
 			try {
@@ -184,6 +197,10 @@ export class RoomController extends ControllerImp {
 			try {
 				const data = await this._rc.hGetAll('Room');
 				const temp_list: Array<string> = [];
+				if (Object.entries(data).length === 0) {
+					resolve(temp_list);
+					return;
+				}
 				Object.entries(data).forEach(async ([key, temp_room]) => {
 					const temp_key = `${key}.playerList`;
 					const temp_player_list = await this._rc.hGetAll(temp_key);

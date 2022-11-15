@@ -43,6 +43,7 @@ export class WSServer extends EventEmitter {
 					this.cryptoCore.decipherIv(connectionPKey.peerId);
 					const transport = new WSTransport(ws);
 					const peer = new Peer(connectionPKey, transport);
+					peer.handleTransportMessage(pr);
 					this.ccMgr.setPeer(peer);
 
 					// 分配 sfu server ip and port
@@ -58,8 +59,6 @@ export class WSServer extends EventEmitter {
 							'rtc'
 						)
 					);
-					peer.handleTransportMessage(pr);
-
 					const bomb = new TimeBomb(10 * 1000, () => {
 						pr.publish(
 							new MEvent(

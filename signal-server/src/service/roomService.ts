@@ -41,23 +41,26 @@ export class RoomService {
 		this._router.get('/getRoomList', async (req: Request, res: Response) => {
 			try {
 				const temp_list = await this._roomController.getAllRoom();
+
 				const roomList: Array<{
 					roomId: string;
 					roomName: string;
 					roomUserSize: number;
 				}> = [];
-				const promiseList = temp_list.map((values: { id: string; name: string }) => {
-					return new Promise<void>(async (resolve, reject) => {
-						const roomDataList = await this._roomController.getAllRoomPlayerList(values.id);
-						roomList.push({
-							roomId: values.id,
-							roomName: values.name,
-							roomUserSize: roomDataList.length,
+				if (temp_list.length !== 0) {
+					const promiseList = temp_list.map((values: { id: string; name: string }) => {
+						return new Promise<void>(async (resolve, reject) => {
+							const roomDataList = await this._roomController.getAllRoomPlayerList(values.id);
+							roomList.push({
+								roomId: values.id,
+								roomName: values.name,
+								roomUserSize: roomDataList.length,
+							});
+							resolve();
 						});
-						resolve();
 					});
-				});
-				await Promise.all(promiseList);
+					await Promise.all(promiseList);
+				}
 				res.send(JSON.stringify(roomList));
 			} catch (e) {
 				console.log(e);

@@ -25,7 +25,7 @@ services:
     container_name: sfusignal.dev.2
     image: 'sfusignal'
     working_dir: /home/signal
-    command: bash -c "yarn && yarn test"
+    command: bash -c "yarn && yarn start"
     stdin_open: true
     tty: true
     networks:

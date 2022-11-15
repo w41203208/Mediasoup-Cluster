@@ -69,7 +69,6 @@ export class WSTransport extends EventEmitter {
 			data: request.data,
 			type: request.type,
 		};
-
 		this.emit('request', peerMsg);
 	}
 	_handlerResponse() {}
