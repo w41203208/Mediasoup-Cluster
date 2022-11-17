@@ -1,25 +1,36 @@
-import { Server, createServer } from 'https';
-import { WebSocket } from 'ws';
-import { WSServer } from './websocket/index';
-import { Application, Request, Response } from 'express';
-import { Worker, Router, Transport, Consumer, Producer } from 'mediasoup/node/lib/types';
-import { sslOption, EngineOptions, RouterOptions, RedisClientOptions } from './type.engine';
+import { Server, createServer } from "https";
+import { WebSocket } from "ws";
+import { WSServer } from "./websocket/index";
+import { Application, Request, Response } from "express";
+import {
+  Worker,
+  Router,
+  Transport,
+  Consumer,
+  Producer,
+} from "mediasoup/node/lib/types";
+import {
+  sslOption,
+  EngineOptions,
+  RouterOptions,
+  RedisClientOptions,
+} from "./type.engine";
 
-import { RedisClient } from './redis/redis';
-import { Room } from './room';
-import { ControllerFactory } from './redis/ControllerFactory';
+import { RedisClient } from "./redis/redis";
+import { Room } from "./room";
+import { ControllerFactory } from "./redis/ControllerFactory";
 
-const express = require('express');
-const mediasoup = require('mediasoup');
-const cors = require('cors');
+const express = require("express");
+const mediasoup = require("mediasoup");
+const cors = require("cors");
 
 const EVENT_FOR_SFU = {
-  CREATE_ROUTER: 'createRouter',
-  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
-  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
-  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
-  CREATE_CONSUME: 'createConsume',
-  CREATE_PRODUCE: 'createProduce',
+  CREATE_ROUTER: "createRouter",
+  GET_ROUTER_RTPCAPABILITIES: "getRouterRtpCapabilities",
+  CREATE_WEBRTCTRANSPORT: "createWebRTCTransport",
+  CONNECT_WEBRTCTRANPORT: "connectWebRTCTransport",
+  CREATE_CONSUME: "createConsume",
+  CREATE_PRODUCE: "createProduce",
 };
 
 export class ServerEngine {
@@ -43,13 +54,17 @@ export class ServerEngine {
   // objects
   private app?: Application;
   private webSocketConnection?: WSServer;
+  private _pipeTransportWorker: Worker | null = null;
   private mediasoupWorkers: Array<Worker> = [];
-  private redisControllers?: Record<string, any>;
   private _rooms: Map<string, Room>;
   private redisClient?: RedisClient;
   private _controllerFactory?: ControllerFactory;
 
-  constructor({ serverOption, mediasoupOption, redisClientOption }: EngineOptions) {
+  constructor({
+    serverOption,
+    mediasoupOption,
+    redisClientOption,
+  }: EngineOptions) {
     // server setting
     const { ip, port, ssl } = serverOption;
     this._ip = ip;
@@ -60,7 +75,12 @@ export class ServerEngine {
     this._redisClientOption = redisClientOption;
 
     // mediasoup setting
-    const { numWorkers, webRtcTransportSettings, workerSettings, pipeTransportSettings } = mediasoupOption;
+    const {
+      numWorkers,
+      webRtcTransportSettings,
+      workerSettings,
+      pipeTransportSettings,
+    } = mediasoupOption;
     this._numworker = numWorkers;
     this._webRTCTransportSettings = webRtcTransportSettings;
     this._pipeTransportSettings = pipeTransportSettings;
@@ -68,6 +88,11 @@ export class ServerEngine {
 
     this._rooms = new Map();
   }
+
+  get pipeTransportWorker() {
+    return this._pipeTransportWorker;
+  }
+
   public async run() {
     this.redisClient = RedisClient.GetInstance(this._redisClientOption);
     this._controllerFactory = ControllerFactory.GetInstance(this.redisClient);
@@ -83,17 +108,20 @@ export class ServerEngine {
     //websocket
     this.webSocketConnection = new WSServer();
 
-    this.webSocketConnection.on('connection', (getWsTransport: Function, url: string) => {
-      const room = this.getRoomOrCreateRoom(url);
+    this.webSocketConnection.on(
+      "connection",
+      (getWsTransport: Function, url: string) => {
+        const room = this.getRoomOrCreateRoom(url);
 
-      const transport = getWsTransport();
+        const transport = getWsTransport();
 
-      room.handleConnection(transport);
-    });
+        room.handleConnection(transport);
+      }
+    );
 
     this.webSocketConnection.start(server);
 
-    const sfuControoler = this._controllerFactory.getControler('SFU');
+    const sfuControoler = this._controllerFactory.getControler("SFU");
 
     sfuControoler!.setSFUServer(`${process.env.DOMAIN}:${this._port}`);
   }
@@ -103,8 +131,8 @@ export class ServerEngine {
     app.use(express.json());
     app.use(cors());
 
-    app.get('/', (req: Request, res: Response) => {
-      res.send('testestestest11111');
+    app.get("/", (req: Request, res: Response) => {
+      res.send("testestestest11111");
     });
 
     return app;
@@ -118,24 +146,28 @@ export class ServerEngine {
     });
     return server;
   }
+  async createWorker() {
+    return await mediasoup.createWorker({
+      logLevel: this._workerSettings.logLevel,
+      logTags: this._workerSettings.logTags,
+      rtcMinPort: Number(this._workerSettings.rtcMinPort),
+      rtcMaxPort: Number(this._workerSettings.rtcMaxPort),
+    });
+  }
 
   private async _runMediasoupWorkers() {
-    for (let i = 0; i < this._numworker; i++) {
-      const worker: Worker = await mediasoup.createWorker({
-        logLevel: this._workerSettings.logLevel,
-        logTags: this._workerSettings.logTags,
-        rtcMinPort: Number(this._workerSettings.rtcMinPort),
-        rtcMaxPort: Number(this._workerSettings.rtcMaxPort),
-      });
-      worker.on('@success', () => {});
-
+    this._pipeTransportWorker = await this.createWorker();
+    for (let i = 0; i < this._numworker - 1; i++) {
+      const worker: Worker = await this.createWorker();
+      worker.on("@success", () => {});
       this.mediasoupWorkers.push(worker);
     }
   }
   _getMediasoupWorkers(): Worker {
     const worker = this.mediasoupWorkers![this._nextMediasoupWorkerIdx];
 
-    if (++this._nextMediasoupWorkerIdx === this.mediasoupWorkers!.length) this._nextMediasoupWorkerIdx = 0;
+    if (++this._nextMediasoupWorkerIdx === this.mediasoupWorkers!.length)
+      this._nextMediasoupWorkerIdx = 0;
 
     return worker;
   }

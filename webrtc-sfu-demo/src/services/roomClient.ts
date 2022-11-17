@@ -71,7 +71,6 @@ export class RoomClient {
 
   private _sendTransport: null | Transport;
   private _recvTransport: null | Transport;
-  private _tempRecvTransports: Transport[];
   private _webcamProducers: Map<string, Producer>;
   private _micProducers: Map<string, Producer>;
   private _consumers: Map<string, Consumer>;
@@ -101,7 +100,6 @@ export class RoomClient {
     this._sendTransport = null;
     this._recvTransport = null;
 
-    this._tempRecvTransports = [];
     this._webcamProducers = new Map();
     this._micProducers = new Map();
     this._consumers = new Map();
@@ -205,12 +203,7 @@ export class RoomClient {
     }
 
     if (this._isConsume) {
-      // this._recvTransport = await this.createRecvTransport(this._device);
-      for (let i = 0; i < 20; i++) {
-        this._tempRecvTransports.push(
-          await this.createRecvTransport(this._device)
-        );
-      }
+      this._recvTransport = await this.createRecvTransport(this._device);
     }
     // console.log(this._device.rtpCapabilities);
     await this._socket.request({
