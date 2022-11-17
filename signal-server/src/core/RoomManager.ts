@@ -97,7 +97,7 @@ export class RoomManager {
 		console.log('peerOfServerMap: ', peerOfServerMap);
 		Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
 			value.forEach(async (v: any) => {
-				if (v.player.recvTransport.id !== null) {
+				if (v.player.recvTransport) {
 					const rData = await this._sfuService.createConsume({
 						connectionServerId: key,
 						roomId: data.pubRoomId,
@@ -131,7 +131,7 @@ export class RoomManager {
 		if (Object.keys(producerMaps).length === 0) {
 			return;
 		}
-
+		console.log('producerMaps: ', producerMaps);
 		const promises = Object.entries(producerMaps).map(([key, value]: [key: string, value: any]) => {
 			const kkey = key;
 
@@ -178,22 +178,26 @@ export class RoomManager {
 		}
 	}
 	async handleGetProducerComplete(data: any) {
-		const room = this._roomMap.get(data.handlerRoomId)!;
-		const player = room.getPlayer(data.handlerPlayerId);
-		const producerList = await this.RoomController.getRoomProducerList(data.handlerRoomId);
-		const rData = await this._sfuService.createConsume({
-			connectionServerId: player.serverId,
-			roomId: data.handlerRoomId,
-			data: {
-				routerId: player.routerId,
-				transportId: player.recvTransport.id,
-				rtpCapabilities: player.rtpCapabilities,
-				producers: producerList,
-			},
-		});
-		this.publish(player.id, { type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER }, 'notification', {
-			consumerList: rData.new_consumerList,
-		});
+		try {
+			const room = this._roomMap.get(data.handlerRoomId)!;
+			const player = room.getPlayer(data.handlerPlayerId);
+			const producerList = await this.RoomController.getRoomProducerList(data.handlerRoomId);
+			const rData = await this._sfuService.createConsume({
+				connectionServerId: player.serverId,
+				roomId: data.handlerRoomId,
+				data: {
+					routerId: player.routerId,
+					transportId: player.recvTransport.id,
+					rtpCapabilities: player.rtpCapabilities,
+					producers: producerList,
+				},
+			});
+			this.publish(player.id, { type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER }, 'notification', {
+				consumerList: rData.new_consumerList,
+			});
+		} catch (e: any) {
+			this.log.error(e.message);
+		}
 	}
 
 	// 與 Room 有關
@@ -216,8 +220,12 @@ export class RoomManager {
 
 					newRoom.OnClose(async () => {
 						this.log.debug('Room [%s] is closing', newRoom.id);
-						await this.RoomController.delRoom(newRoom.id);
-						await this._roomMap.delete(newRoom.id);
+						this._roomMap.delete(newRoom.id);
+						this.RoomController.clearRoomServerList(newRoom.id);
+						this.RoomController.delRoom(newRoom.id);
+
+						newRoom.OnClose(null);
+						newRoom.OnPublishTrack(null);
 					});
 
 					newRoom.OnPublishTrack((playerId: string, producerId: string) => {
@@ -268,23 +276,41 @@ export class RoomManager {
 
 			this.log.info('User [%s] get router [%s]', identity, data.router_id);
 
-			player = new Player(identity, '', rm.sfuIpPort, data.router_id);
+			const roomData = await this.RoomController.getRoom(roomId);
+			player = new Player(identity, '', rm.sfuIpPort, data.router_id, roomData.owner === identity ? 'owner' : 'audience');
+
 			player.OnClose(async () => {
 				const promiseList = [];
-
 				promiseList.push(this.RoomController.delRoomPlayerList(room.id, player.id));
 				player.producers.forEach(async (v: any) => {
 					promiseList.push(this.RoomController.delRoomProducerList(roomId, v.id));
 				});
-				promiseList.push(
-					this._sfuService.closeWebRTCTransport({
-						connectionServerId: player.serverId,
-						roomId: roomId,
-						data: { sendTransport: player.sendTransport, recvTransport: player.recvTransport },
-					})
-				);
+
+				if (player.sendTransport) {
+					promiseList.push(
+						this._sfuService.closeWebRTCTransport({
+							connectionServerId: player.serverId,
+							roomId: roomId,
+							data: { id: player.sendTransport.id },
+						})
+					);
+				}
+				if (player.recvTransport) {
+					promiseList.push(
+						this._sfuService.closeWebRTCTransport({
+							connectionServerId: player.serverId,
+							roomId: roomId,
+							data: { id: player.recvTransport.id },
+						})
+					);
+				}
 
 				await Promise.all(promiseList);
+
+				const rPlayers = await this.RoomController.getAllRoomPlayerList(room.id);
+				if (rPlayers.length === 0) {
+					room.close();
+				}
 
 				this._peerRouter.publish(
 					new MEvent(
@@ -326,6 +352,7 @@ export class RoomManager {
 
 			this.publish(identity, { type: EVENT_FOR_CLIENT_NOTIFICATION.JOIN_ROOM }, 'notification', {
 				room_id: roomId,
+				userRole: player.role,
 				sfu: rm.sfuIpPort,
 			});
 		} catch (e: any) {
@@ -335,36 +362,6 @@ export class RoomManager {
 				error: 'happen some error',
 			});
 		}
-	}
-
-	async getProduce(roomId: string, peerId: string, rtpCapabilities: any) {
-		const room = this._roomMap.get(roomId)!;
-		const player = room.getPlayer(peerId);
-
-		player.rtpCapabilities = rtpCapabilities;
-
-		// 取得訂閱頻道的人數，作為要回傳任務完成的依據
-		const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(roomId);
-		const mapId = v4();
-		this._pubHandlerMap.set(mapId, {
-			count: currentOtherSignalCount,
-			type: PubHandlerType.GETPRODUCER_COMPLETE,
-			data: {
-				handlerPlayerId: player.id,
-				handlerRoomId: room.id,
-			},
-		});
-
-		this._roomRouter.publish(roomId, {
-			identifyIp: getLocalIp(),
-			type: EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME,
-			data: {
-				pubPlayerId: player.id,
-				pubRoomId: room.id,
-				ignoreServerId: player.serverId,
-				pubHandlerMapId: mapId,
-			},
-		});
 	}
 
 	createPlayerPipeTransportConsumer_Pub(roomId: string, peerId: string, ignoreServerId: string, pubHandlerMapId: string, identifyIp: string) {
@@ -605,7 +602,7 @@ export class RoomManager {
 					dtlsParameters: rm.data.dtlsParameters,
 				},
 			});
-
+			this.log.debug('Player [%s] connect webrtctransport [%s]', player.id, rm.data.transport_id);
 			this.publish(player.id, rm, 'response', data);
 		} catch (e: any) {
 			this.log.error(`${e.message}`);
@@ -652,28 +649,29 @@ export class RoomManager {
 
 	async handleGetProduce(player: Player, room: Room, rm: RMessage) {
 		player.rtpCapabilities = rm.data.rtpCapabilities;
-		const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(room.id);
-		const mapId = v4();
-		this._pubHandlerMap.set(mapId, {
-			count: currentOtherSignalCount,
-			type: PubHandlerType.GETPRODUCER_COMPLETE,
-			data: {
-				handlerPlayerId: player.id,
-				handlerRoomId: room.id,
-			},
-		});
+		if (player.recvTransport) {
+			const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(room.id);
+			const mapId = v4();
+			this._pubHandlerMap.set(mapId, {
+				count: currentOtherSignalCount,
+				type: PubHandlerType.GETPRODUCER_COMPLETE,
+				data: {
+					handlerPlayerId: player.id,
+					handlerRoomId: room.id,
+				},
+			});
 
-		this._roomRouter.publish(room.id, {
-			identifyIp: getLocalIp(),
-			type: EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME,
-			data: {
-				pubPlayerId: player.id,
-				pubRoomId: room.id,
-				ignoreServerId: player.serverId,
-				pubHandlerMapId: mapId,
-			},
-		});
-
+			this._roomRouter.publish(room.id, {
+				identifyIp: getLocalIp(),
+				type: EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME,
+				data: {
+					pubPlayerId: player.id,
+					pubRoomId: room.id,
+					ignoreServerId: player.serverId,
+					pubHandlerMapId: mapId,
+				},
+			});
+		}
 		this.publish(player.id, rm, 'response', {});
 	}
 

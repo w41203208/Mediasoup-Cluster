@@ -22,7 +22,6 @@ import { SFUAllocator } from './core/SFUAllocator';
 import { PeerRouter } from './router/peerRouter';
 
 export class ServerEngine {
-
 	/* settings */
 	private _httpsServerOption: HttpsServerOptions;
 	private _redisClientOption: RedisClientOptions;
@@ -34,7 +33,7 @@ export class ServerEngine {
 		Log.setLogLevel('DEBUG');
 	}
 
-	async run() {
+	run() {
 		const cryptoCore = new CryptoCore(config.ServerSetting.cryptoKey);
 
 		const rcClient = RedisClient.GetInstance(this._redisClientOption);
@@ -53,7 +52,7 @@ export class ServerEngine {
 		const roomService = new RoomService(roomCreator, controllerFactory, cryptoCore);
 		const authService = new AuthService(cryptoCore);
 		const sfuService = new SFUService(sfuConnectionMgr);
-		
+
 		// eslint-disable-next-line no-unused-vars
 		const roomMgr = new RoomManager(controllerFactory, roomRouter, peerRouter, sfuService);
 		const httpsServer = new HttpsServer(this._httpsServerOption, cryptoCore, roomService, authService);
@@ -68,5 +67,7 @@ export class ServerEngine {
 		//   peer.setTimeBomb(bomb);
 		//   clientConnectionMgr.setPeer(peer);
 		// });
+
+		return true;
 	}
 }

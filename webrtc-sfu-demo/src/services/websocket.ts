@@ -1,7 +1,7 @@
-import { EventEmitter } from '@/services/Emitter';
-import { WebSocketParams, SendData } from '@/services/type';
-import { v4 } from 'uuid';
-import { logger } from '@/util/logger';
+import { EventEmitter } from "@/services/Emitter";
+import { WebSocketParams, SendData } from "@/services/type";
+import { v4 } from "uuid";
+import { logger } from "@/util/logger";
 
 interface In_Flight_Send {
   resolve: any;
@@ -30,11 +30,11 @@ export class Socket extends EventEmitter {
     this._disconnected = false;
 
     this._socket.onclose = (e) => {
-      console.log('ws is closed!');
+      console.log("ws is closed!");
     };
     this._socket.onopen = (e) => {
-      console.log('ws is connecting!');
-      this.emit('connecting');
+      console.log("ws is connecting!");
+      this.emit("connecting");
     };
     // this._socket.onmessage = this._handleOnMessage.bind(this);
     this._socket.onmessage = (event: any) => {
@@ -42,13 +42,13 @@ export class Socket extends EventEmitter {
       const { messageType, ...rest } = data;
 
       switch (messageType) {
-        case 'request':
+        case "request":
           this._handlerRequest(rest);
           break;
-        case 'response':
+        case "response":
           this._handlerResponse(rest);
           break;
-        case 'notification':
+        case "notification":
           this._handlerNotification(rest);
           break;
       }
@@ -69,30 +69,30 @@ export class Socket extends EventEmitter {
   _handlerNotification(_data: any) {
     const { type, data } = _data;
     switch (type) {
-      case 'heartbeatCheck':
-        if (data.msg === 'ping') {
+      case "heartbeatCheck":
+        if (data.msg === "ping") {
           let sendData: SendData = {
-            type: 'heartbeatCheck',
-            data: { msg: 'pong' },
+            type: "heartbeatCheck",
+            data: { msg: "pong" },
           };
           this.notify(sendData);
         }
         break;
-      case 'roomState':
+      case "roomState":
         break;
     }
 
-    this.emit('notification', _data);
+    this.emit("notification", _data);
   }
 
   notify(sendData: SendData): void {
-    (sendData as any).messageType = 'notification';
+    (sendData as any).messageType = "notification";
     this._socket?.send(JSON.stringify(sendData));
   }
 
   request(sendData: SendData): Promise<any> {
-    const id = ((sendData as any).id = v4());
-    (sendData as any).messageType = 'request';
+    const id = ((sendData as any).id = Date.now().toString() + v4());
+    (sendData as any).messageType = "request";
     let resolve, reject;
     const promise = new Promise((res, rej) => {
       resolve = res;

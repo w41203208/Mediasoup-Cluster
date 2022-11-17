@@ -26,10 +26,8 @@
         @input="(e) => handleChangeUID(e)"
       />
     </div> -->
-    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-36" @click="handleClickCreateRoom">
-      CreateRoom
-    </button>
-    <button class="rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-36" @click="getRoomList">refreshRoomList</button>
+    <button class="m-btn" @click="handleClickCreateRoom">CreateRoom</button>
+    <button class="m-btn" @click="refreshRoomList">refreshRoomList</button>
   </div>
   <div>
     <ul class="flex flex-wrap">
@@ -37,99 +35,114 @@
         v-for="room in roomList"
         :key="room.roomId"
         class="h-44 w-60 bg-slate-300 rounded px-2 py-1 m-2 flex-grow cursor-pointer"
-        @click="handleClickJoinRoom(room.roomId, room.roomName)"
       >
         <p>Name:{{ room.roomName }}</p>
         <p>People:{{ room.roomUserSize }}</p>
+        <button
+          class="m-btn"
+          @click="handleClickJoinRoom(room.roomId, room.roomName, true, false)"
+        >
+          Producer
+        </button>
+        <button
+          class="m-btn"
+          @click="handleClickJoinRoom(room.roomId, room.roomName, false, true)"
+        >
+          Consumer
+        </button>
       </li>
     </ul>
   </div>
 </template>
 
 <script lang="ts">
-import { getUuidByName, getRoomByUuId, createRoomByUuId } from '@/services/api';
-import { getUserName } from '@/util/dummyName';
-import { defineComponent, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useCommonStore } from "@/store/common";
+import { getUuidByName, getRoomByUuId, createRoomByUuId } from "@/services/api";
+import { getUserName } from "@/util/dummyName";
+import {
+  computed,
+  defineComponent,
+  onBeforeMount,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
-  name: 'home',
+  name: "home",
   setup() {
+    const commonStore = useCommonStore();
     // register store / router / .etc
     const router = useRouter();
     // Global Variable
     const inputReactive = reactive({
-      roomName: '',
+      roomName: "",
     });
-    const roomList = ref();
 
     const user = reactive({
-      name: '',
-      uuId: 'Permission denied',
+      name: "",
+      uuId: "Permission denied",
     });
 
-    user.name = getUserName();
+    onBeforeMount(async () => {
+      try {
+        user.name = getUserName();
+        const uuidByNameResponse = (await getUuidByName(user.name)) as any;
+        user.uuId = uuidByNameResponse.data;
+        commonStore.getRoomList(user.uuId);
+      } catch (e: any) {
+        console.log(e);
+      }
+    });
 
-    getUuidByName(user.name)
-      .then((res: any) => {
-        user.uuId = res.data;
-        getRoomList();
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-
-    const getRoomList = () => {
-      getRoomByUuId(user.uuId)
-        .then((res: any) => {
-          console.log(res.data);
-          roomList.value = res.data;
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+    const refreshRoomList = () => {
+      commonStore.refreshRoomList();
+      commonStore.getRoomList(user.uuId);
     };
+
+    onMounted(() => {});
+
     const handleChangeRoomId = (e: any) => {
       inputReactive.roomName = e.target.value;
     };
-    const handleClickJoinRoom = (roomId: string, roomName: string) => {
+
+    const handleClickJoinRoom = (
+      roomId: string,
+      roomName: string,
+      isProduce: boolean = true,
+      isConsume: boolean = true
+    ) => {
       router.push({
-        path: '/room',
+        path: "/room",
         query: {
+          isProduce: isProduce,
+          isConsume: isConsume,
           userName: user.name,
           uid: user.uuId,
           roomId: roomId,
           roomName: roomName,
-          role: 'audience',
         },
       });
     };
     const handleClickCreateRoom = () => {
-      createRoomByUuId(user.uuId, inputReactive.roomName).then((res: any) => {
-        console.log(res.data);
-        roomList.value = [...roomList.value, { roomId: res.data.room_id, roomName: res.data.room_name, roomUserSize: res.data.room_peopleNum }];
-      });
-
-      // router.push({
-      //   path: '/room',
-      //   query: {
-      //     userName: user.name,
-      //     uid: user.uuId,
-      //     roomId: '',
-      //     roomName: inputReactive.roomName,
-      //     role: 'host',
-      //   },
-      // });
+      commonStore.createRoom(user.uuId, inputReactive.roomName);
     };
     return {
       inputReactive,
-      roomList,
+      roomList: computed(() => commonStore.roomList),
       user,
       handleChangeRoomId,
       handleClickCreateRoom,
       handleClickJoinRoom,
-      getRoomList,
+      refreshRoomList,
     };
   },
 });
 </script>
+
+<style lang="scss" scoped>
+.m-btn {
+  @apply rounded px-2 py-1 m-2 border border-gray-600 hover:bg-gray-900 hover:text-white w-36;
+}
+</style>

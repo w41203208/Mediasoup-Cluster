@@ -52,11 +52,6 @@ export class Peer extends EventEmitter {
 	handleTransportMessage(peerRouter: PeerRouter) {
 		this._ws!.on('request', (message: any) => {
 			const pm = this.createPeerMessage(message);
-
-			// version 1
-			// this._roomService.handleMessage(pm);
-
-			//version 2
 			const event = new MEvent(pm, 'rtc');
 			peerRouter.publish(event);
 		});
@@ -68,7 +63,7 @@ export class Peer extends EventEmitter {
 						this.resetPing();
 					}
 					break;
-					
+
 				// default:
 				//   this.emit('handleOnRoomNotification', this, type, data);
 				//   break;

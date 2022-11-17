@@ -14,8 +14,8 @@ export class Room {
 
 	private log: Log = Log.GetInstance();
 
-	private onClose: Function = () => {};
-	private onPublishTrack: Function = () => {};
+	private onClose: Function | null = null;
+	private onPublishTrack: Function | null = null;
 	constructor({ roomId, roomName, roomOwner }: RoomConstructor) {
 		this._id = roomId;
 		this._name = roomName;
@@ -29,11 +29,11 @@ export class Room {
 		// });
 	}
 
-	OnClose(func: Function) {
+	OnClose(func: Function | null) {
 		this.onClose = func;
 	}
 
-	OnPublishTrack(func: Function) {
+	OnPublishTrack(func: Function | null) {
 		this.onPublishTrack = func;
 	}
 
@@ -92,7 +92,10 @@ export class Room {
 
 	join(player: Player) {
 		player.OnPublishProduce((producerId: string) => {
-			this.onPublishTrack(player.id, producerId);
+			const onpublishTrack = this.onPublishTrack;
+			if (onpublishTrack !== null) {
+				onpublishTrack(player.id, producerId);
+			}
 		});
 		this._players.set(player.id, player);
 	}
@@ -104,7 +107,7 @@ export class Room {
 		});
 		const onclose = this.onClose;
 		if (onclose !== null) {
-			this.onClose();
+			onclose();
 		}
 	}
 }

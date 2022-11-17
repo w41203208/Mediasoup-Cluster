@@ -1,27 +1,27 @@
 import { clearTimeout } from 'timers';
 
 export class TimeBomb {
-  private _time: number;
-  private _bombFunction?: Function;
-  private _timeOutFunction: any;
+	private _time: number;
+	private _bombFunction?: Function;
+	private _timeOutFunction: any;
 
-  constructor(time: number, bombFunction: Function) {
-    this._time = time;
-    this._bombFunction = bombFunction;
-  }
-  countDownStart() {
-    this._timeOutFunction = setTimeout(() => {
-      this.bomb();
-    }, this._time);
-  }
+	constructor(time: number, bombFunction: Function) {
+		this._time = time;
+		this._bombFunction = bombFunction;
+	}
+	countDownStart() {
+		this._timeOutFunction = setTimeout(() => {
+			this.bomb();
+		}, this._time);
+	}
 
-  countDownReset() {
-    if (this._timeOutFunction) clearTimeout(this._timeOutFunction);
-  }
+	countDownReset() {
+		if (this._timeOutFunction) clearTimeout(this._timeOutFunction);
+	}
 
-  bomb() {
-    if (this._bombFunction) {
-      this._bombFunction();
-    }
-  }
+	bomb() {
+		if (this._bombFunction) {
+			this._bombFunction();
+		}
+	}
 }

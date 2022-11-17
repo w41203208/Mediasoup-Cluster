@@ -44,25 +44,25 @@
 // // const memory = initBuffer(1024);
 
 // // heap.ts
-export const typedArraysPropNameToCtorMap = {
-  u8: Uint8Array,
-} as const;
+// export const typedArraysPropNameToCtorMap = {
+// 	u8: Uint8Array,
+// } as const;
 
-export type TypedArrayPropNameToCtorType = typeof typedArraysPropNameToCtorMap;
+// export type TypedArrayPropNameToCtorType = typeof typedArraysPropNameToCtorMap;
 
-export type Heap = {
-  [x in keyof TypedArrayPropNameToCtorType]: InstanceType<TypedArrayPropNameToCtorType[x]>;
-};
+// export type Heap = {
+// 	[x in keyof TypedArrayPropNameToCtorType]: InstanceType<TypedArrayPropNameToCtorType[x]>;
+// };
 
-// // 目前只能看到 8 bits heap
-function createHeap(buffer: SharedArrayBuffer | ArrayBuffer): Heap {
-  const r = {} as any;
-  Object.entries(typedArraysPropNameToCtorMap).forEach(([name, Ctor]) => {
-    r[name] = new Ctor(buffer);
-  });
+// // // 目前只能看到 8 bits heap
+// function createHeap(buffer: SharedArrayBuffer | ArrayBuffer): Heap {
+// 	const r = {} as any;
+// 	Object.entries(typedArraysPropNameToCtorMap).forEach(([name, Ctor]) => {
+// 		r[name] = new Ctor(buffer);
+// 	});
 
-  return r;
-}
+// 	return r;
+// }
 
 // // allocator.ts
 // interface AllocatorInitOpts {
@@ -160,26 +160,12 @@ function createHeap(buffer: SharedArrayBuffer | ArrayBuffer): Heap {
 //   }
 // }
 
-interface Message{
-  
-}
-
-interface RTCMessage {
-  identity: string;
-  roomID: string;
-  message: 
-  messageType: string;
-  data: any;
-}
-
-function RTCMessage(msg: any): RTCMessage {
-  const rtcMessage = {
-    identity: msg.identity,
-  } as RTCMessage;
-
-  if (msg.message.room_id) {
-    rtcMessage.roomID = msg.message.room_id;
-  }
-
-  if()
-}
+const chp = require('child_process');
+chp.exec('cmd', (error: any, stdout: any, stderr: any) => {
+	if (error) {
+		console.error(`error: ${error}`);
+		return;
+	}
+	console.log(`stdout: ${stdout}`);
+	console.error(`stderr: ${stderr}`);
+});

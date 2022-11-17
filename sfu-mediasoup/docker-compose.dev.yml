@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   webrtcsfudev1:
@@ -6,10 +6,10 @@ services:
     container_name: ${CONTAINER_NAME}
     working_dir: /home/mediasoup
     ports:
-      - '${PORT}:${PORT}/tcp'
-      - '${PORT}:${PORT}/udp'
-      - '${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/udp'
-      - '${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/tcp'
+      - "${PORT}:${PORT}/tcp"
+      - "${PORT}:${PORT}/udp"
+      - "${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/udp"
+      - "${MIN_PORT}-${MAX_PORT}:${MIN_PORT}-${MAX_PORT}/tcp"
     environment:
       - DOMAIN=${DOMAIN}
       - PORT=${PORT}
@@ -18,7 +18,6 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT}
       - MEDIASOUP_MAX_PORT=${MAX_PORT}
       - REDIS_HOST=${REDIS_HOST}
-      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
       - ./src:/home/mediasoup/src
       - ./config.ts:/home/mediasoup/config.ts
@@ -31,10 +30,10 @@ services:
     container_name: ${CONTAINER_NAME_2}
     working_dir: /home/mediasoup
     ports:
-      - '${PORT_2}:${PORT_2}/tcp'
-      - '${PORT_2}:${PORT_2}/udp'
-      - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/udp'
-      - '${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/tcp'
+      - "${PORT_2}:${PORT_2}/tcp"
+      - "${PORT_2}:${PORT_2}/udp"
+      - "${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/udp"
+      - "${MIN_PORT_2}-${MAX_PORT_2}:${MIN_PORT_2}-${MAX_PORT_2}/tcp"
     environment:
       - DOMAIN=${DOMAIN_2}
       - PORT=${PORT_2}
@@ -43,7 +42,6 @@ services:
       - MEDIASOUP_MIN_PORT=${MIN_PORT_2}
       - MEDIASOUP_MAX_PORT=${MAX_PORT_2}
       - REDIS_HOST=${REDIS_HOST}
-      - REDIS_DB_INDEX=${REDIS_DB_INDEX}
     volumes:
       - ./src:/home/mediasoup/src
       - ./config.ts:/home/mediasoup/config.ts

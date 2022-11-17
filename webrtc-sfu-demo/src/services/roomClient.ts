@@ -1,47 +1,58 @@
-import * as mc from 'mediasoup-client';
-import { Consumer, Device, MediaKind, Producer, Transport } from 'mediasoup-client/lib/types';
-import { Socket } from '@/services/websocket';
-import { logger } from '@/util/logger';
+import * as mc from "mediasoup-client";
+import {
+  Consumer,
+  Device,
+  MediaKind,
+  Producer,
+  Transport,
+} from "mediasoup-client/lib/types";
+import { Socket } from "@/services/websocket";
+import { logger } from "@/util/logger";
 
 interface RoomClientOptions {
   clientUID: string;
   roomId: string;
   roomName: string;
-  clientRole: string;
   isProduce: boolean;
   isConsume: boolean;
 }
 
 const mediaType = {
-  audio: 'audio',
-  video: 'video',
-  screen: 'screen',
+  audio: "audio",
+  video: "video",
+  screen: "screen",
 };
 
 const EVENT_FOR_CLIENT = {
-  CREATE_ROOM: 'createRoom',
+  CREATE_ROOM: "createRoom",
 
-  GET_PRODUCERS: 'getProducers',
-  GET_ROUTER_RTPCAPABILITIES: 'getRouterRtpCapabilities',
-  CREATE_WEBRTCTRANSPORT: 'createWebRTCTransport',
-  CONNECT_WEBRTCTRANPORT: 'connectWebRTCTransport',
-  PRODUCE: 'produce',
-  CONSUME: 'consume',
-  SET_PREFERRED_LAYERS: 'setPreferredLayers',
-  GET_ROOM_INFO: 'getRoomInfo',
-  LEAVE_ROOM: 'leaveRoom',
-  CLOSE_ROOM: 'closeRoom',
+  GET_PRODUCERS: "getProducers",
+  GET_ROUTER_RTPCAPABILITIES: "getRouterRtpCapabilities",
+  CREATE_WEBRTCTRANSPORT: "createWebRTCTransport",
+  CONNECT_WEBRTCTRANPORT: "connectWebRTCTransport",
+  PRODUCE: "produce",
+  CONSUME: "consume",
+  SET_PREFERRED_LAYERS: "setPreferredLayers",
+  GET_ROOM_INFO: "getRoomInfo",
+  LEAVE_ROOM: "leaveRoom",
+  CLOSE_ROOM: "closeRoom",
 };
 
 const EVENT_SERVER_TO_CLIENT = {
-  NEW_CONSUMER: 'newConsumer',
-  JOIN_ROOM: 'joinRoom',
+  NEW_CONSUMER: "newConsumer",
+  JOIN_ROOM: "joinRoom",
 };
 
 const EVENT_FOR_TEST = {
-  TEST1: 'test1',
-  TEST2: 'test2',
+  TEST1: "test1",
+  TEST2: "test2",
 };
+
+function createSocketConnection(): Socket {
+  const url = import.meta.env.VITE_WSSURL;
+  const socket = new Socket({ url });
+  return socket;
+}
 
 export class RoomClient {
   private _clientUID: string;
@@ -64,25 +75,34 @@ export class RoomClient {
   private _micProducers: Map<string, Producer>;
   private _consumers: Map<string, Consumer>;
 
-  constructor({ clientUID, roomId, roomName, clientRole, isProduce = true, isConsume = true }: RoomClientOptions) {
+  constructor({
+    clientUID,
+    roomId,
+    roomName,
+    isProduce = true,
+    isConsume = true,
+  }: RoomClientOptions) {
     this._clientUID = clientUID;
-    this._clientRole = clientRole;
     this._roomId = roomId;
     this._roomName = roomName;
     this._localMediaContainer = null;
     this._remoteMediaContainer = null;
-    this._socket = this._createSocketConnection(this._clientUID, this._roomId);
+    this._socket = createSocketConnection();
+    this._initSocketNotification();
+    this._socket.on("connecting", () => {
+      console.log("the websocket is connecting");
+    });
+    this._socket.start(this._clientUID, this._roomId);
     this._isConsume = isConsume;
     this._isProduce = isProduce;
     // this._forceTCP = true;
 
     this._sendTransport = null;
     this._recvTransport = null;
+
     this._webcamProducers = new Map();
     this._micProducers = new Map();
     this._consumers = new Map();
-
-    this._initSocketNotification();
   }
 
   set localMediaContainer(el: HTMLElement) {
@@ -101,48 +121,42 @@ export class RoomClient {
     return this._roomId;
   }
 
-  private _createSocketConnection(token: string, roomName: string): Socket {
-    const url = import.meta.env.VITE_WSSURL;
-    const socket = new Socket({ url });
-    socket.start(token, roomName);
-    return socket;
-  }
-
   private _initSocketNotification() {
-    this._socket.on('notification', (message: any) => {
+    this._socket.on("notification", (message: any) => {
       const { type, data } = message;
-      console.log(data);
       switch (type) {
         case EVENT_SERVER_TO_CLIENT.NEW_CONSUMER:
           for (let consumer of data.consumerList) {
+            console.log(data);
             this.consume(consumer);
           }
           break;
         case EVENT_SERVER_TO_CLIENT.JOIN_ROOM:
-          this.joinRoom(this._clientUID, this._roomId);
+          this._clientRole = data.userRole;
+          this.init();
           break;
       }
     });
   }
 
   // host
-  createRoom(uid: string, roomName: string) {
-    return this._socket
-      .request({
-        data: { peer_id: uid, room_name: roomName },
-        type: EVENT_FOR_CLIENT.CREATE_ROOM,
-      })
-      .then(({ data }) => {
-        logger({ text: 'Create Room', data: data.msg });
-        if (data.state) {
-          const res = this.joinRoom(uid, data.room_id).then((res) => {
-            return res;
-          });
-          this._roomId = data.room_id;
-          return res;
-        }
-      });
-  }
+  // createRoom(uid: string, roomName: string) {
+  //   return this._socket
+  //     .request({
+  //       data: { peer_id: uid, room_name: roomName },
+  //       type: EVENT_FOR_CLIENT.CREATE_ROOM,
+  //     })
+  //     .then(({ data }) => {
+  //       logger({ text: 'Create Room', data: data.msg });
+  //       if (data.state) {
+  //         const res = this.joinRoom(uid, data.room_id).then((res) => {
+  //           return res;
+  //         });
+  //         this._roomId = data.room_id;
+  //         return res;
+  //       }
+  //     });
+  // }
   closeRoom(roomId: string) {
     this._socket.request({
       data: { room_id: this._roomId },
@@ -160,54 +174,45 @@ export class RoomClient {
     this._socket.close();
   }
   test1() {
-    this._socket.request({ data: {}, type: EVENT_FOR_TEST.TEST1 }).then((data) => {
-      console.log(data);
-    });
+    this._socket
+      .request({ data: {}, type: EVENT_FOR_TEST.TEST1 })
+      .then((data) => {
+        console.log(data);
+      });
   }
   test2() {
-    this._socket.request({ data: {}, type: EVENT_FOR_TEST.TEST2 }).then((data) => {
-      console.log(data);
-    });
+    this._socket
+      .request({ data: {}, type: EVENT_FOR_TEST.TEST2 })
+      .then((data) => {
+        console.log(data);
+      });
   }
 
   // audience
-  async joinRoom(uid: string, roomId: string) {
-    // const {
-    //   data: { room_id, sfu_ip_port },
-    // } = await this._socket.request({
-    //   data: { peer_id: uid, room_id: roomId },
-    //   type: EVENT_FOR_CLIENT.JOIN_ROOM,
-    // });
-    // logger({ text: `User ${this._clientUID} join room ${this._roomId}`, data: this._roomId });
+  async init() {
+    console.log("the RTC is init");
     // get router RtpCapabilities
-    console.log('testtestestest', uid, roomId);
     const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
-    console.log(mediaCodecs);
     // load Device
     this._device = new mc.Device();
     await this._device.load({ routerRtpCapabilities: mediaCodecs });
     // init transport ( consumer and produce )
-    await this.initTransports(this._device);
-    console.log(this._device.rtpCapabilities);
+
+    if (this._isProduce) {
+      this._sendTransport = await this.createSendTransport(this._device);
+    }
+
+    if (this._isConsume) {
+      this._recvTransport = await this.createRecvTransport(this._device);
+    }
+    // console.log(this._device.rtpCapabilities);
     await this._socket.request({
-      data: { room_id: roomId, rtpCapabilities: this._device.rtpCapabilities },
+      data: {
+        room_id: this._roomId,
+        rtpCapabilities: this._device.rtpCapabilities,
+      },
       type: EVENT_FOR_CLIENT.GET_PRODUCERS,
     });
-    // return sfu_ip_port;
-    // test
-    // const start = Date.now();
-    // let promises = [];
-    // for (let i = 0; i < 30; i++) {
-    //   promises.push(
-    //     this._socket.request({
-    //       data: { peer_id: uid, room_id: roomId },
-    //       type: EVENT_FOR_CLIENT.JOIN_ROOM,
-    //     })
-    //   );
-    // }
-    // const data = await Promise.all(promises);
-    // const end = Date.now();
-    // console.log(end - start);
   }
 
   getRouterRtpCapabilities(roomId: string): Promise<any> {
@@ -223,31 +228,32 @@ export class RoomClient {
     });
   }
 
-  async initTransports(device: Device) {
-    // init sendTransport
-    if (this._isProduce) {
-      const { data: transportInfo } = await this._socket.request({
-        data: {
-          room_id: this._roomId,
-          producing: true,
-          consuming: false,
-        },
-        type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
-      });
-      const { transport_id, iceParameters, iceCandidates, dtlsParameters } = transportInfo;
-      this._sendTransport = device.createSendTransport({
-        id: transport_id,
-        iceParameters,
-        iceCandidates,
-        dtlsParameters,
-      });
-      /* Register sendTransport listen event */
-      this._sendTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+  async createSendTransport(device: Device) {
+    const { data: transportInfo } = await this._socket.request({
+      data: {
+        room_id: this._roomId,
+        producing: true,
+        consuming: false,
+      },
+      type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
+    });
+    const { transport_id, iceParameters, iceCandidates, dtlsParameters } =
+      transportInfo;
+    const sendTransport = device.createSendTransport({
+      id: transport_id,
+      iceParameters,
+      iceCandidates,
+      dtlsParameters,
+    });
+    /* Register sendTransport listen event */
+    sendTransport.on(
+      "connect",
+      async ({ dtlsParameters }, callback, errback) => {
         try {
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: this._sendTransport?.id,
+              transport_id: sendTransport.id,
               dtlsParameters,
             },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
@@ -257,14 +263,17 @@ export class RoomClient {
         } catch (error) {
           errback(error as Error);
         }
-      });
-      this._sendTransport.on('produce', async ({ kind, rtpParameters, appData }, callback, errback) => {
+      }
+    );
+    sendTransport.on(
+      "produce",
+      async ({ kind, rtpParameters, appData }, callback, errback) => {
         try {
           console.log(rtpParameters);
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: this._sendTransport?.id,
+              transport_id: sendTransport.id,
               kind,
               rtpParameters,
               appData,
@@ -276,33 +285,38 @@ export class RoomClient {
         } catch (error) {
           errback(error as Error);
         }
-      });
-    }
+      }
+    );
 
-    // init recvTransport
-    if (this._isConsume) {
-      const { data: transportInfo } = await this._socket.request({
-        data: {
-          room_id: this._roomId,
-          producing: false,
-          consuming: true,
-        },
-        type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
-      });
-      const { transport_id, iceParameters, iceCandidates, dtlsParameters } = transportInfo;
-      this._recvTransport = device.createRecvTransport({
-        id: transport_id,
-        iceParameters,
-        iceCandidates,
-        dtlsParameters,
-      });
-      /* Register sendTransport listen event */
-      this._recvTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+    return sendTransport;
+  }
+
+  async createRecvTransport(device: Device) {
+    const { data: transportInfo } = await this._socket.request({
+      data: {
+        room_id: this._roomId,
+        producing: false,
+        consuming: true,
+      },
+      type: EVENT_FOR_CLIENT.CREATE_WEBRTCTRANSPORT,
+    });
+    const { transport_id, iceParameters, iceCandidates, dtlsParameters } =
+      transportInfo;
+    const recvTransport = device.createRecvTransport({
+      id: transport_id,
+      iceParameters,
+      iceCandidates,
+      dtlsParameters,
+    });
+    /* Register sendTransport listen event */
+    recvTransport.on(
+      "connect",
+      async ({ dtlsParameters }, callback, errback) => {
         try {
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: this._recvTransport?.id,
+              transport_id: recvTransport.id,
               dtlsParameters,
             },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
@@ -313,29 +327,33 @@ export class RoomClient {
         } catch (error) {
           errback(error as Error);
         }
-      });
-    }
+      }
+    );
 
-    //Enable mic/webcam
-    if (this._isProduce) {
-      // this.enableMic();
-      // this.enableWebcam();
-    }
+    return recvTransport;
   }
-  produce({ type, deviceId = null }: { type: string; deviceId: string | null }) {
-    switch (type) {
-      case mediaType.video:
-        /*抓取相機解析度*/
-        const constraints = {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
-        };
-        this.enableWebCam({ deviceId, constraints: constraints });
-        break;
-      case mediaType.audio:
-        this.enableMic({ deviceId });
-        break;
+  produce({
+    type,
+    deviceId = null,
+  }: {
+    type: string;
+    deviceId: string | null;
+  }) {
+    if (this._isProduce) {
+      switch (type) {
+        case mediaType.video:
+          /*抓取相機解析度*/
+          const constraints = {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+          };
+          this.enableWebCam({ deviceId, constraints: constraints });
+          break;
+        case mediaType.audio:
+          this.enableMic({ deviceId });
+          break;
+      }
     }
   }
 
@@ -356,17 +374,27 @@ export class RoomClient {
     });
   }
 
-  async enableWebCam({ deviceId = null, constraints = null }: { deviceId: string | null; constraints: MediaTrackConstraints | null }) {
+  async enableWebCam({
+    deviceId = null,
+    constraints = null,
+  }: {
+    deviceId: string | null;
+    constraints: MediaTrackConstraints | null;
+  }) {
     let stream;
     let track: MediaStreamTrack;
     let duplicate: boolean = false;
     //codec mediaKind
-    const mediaKind: MediaKind = 'video';
+    const mediaKind: MediaKind = "video";
     if (!this._sendTransport) {
       return;
     }
     try {
-      stream = await navigator.mediaDevices.getUserMedia(deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true });
+      stream = await navigator.mediaDevices.getUserMedia(
+        deviceId
+          ? { video: { deviceId: { exact: deviceId } } }
+          : { video: true }
+      );
       track = stream.getTracks()[0];
       if (constraints) {
         await track.applyConstraints(constraints);
@@ -374,7 +402,9 @@ export class RoomClient {
 
       //避免裝置重複取用
       this._webcamProducers.forEach((producer) => {
-        if (track.getSettings().deviceId == producer.track?.getSettings().deviceId) {
+        if (
+          track.getSettings().deviceId == producer.track?.getSettings().deviceId
+        ) {
           duplicate = true;
         }
       });
@@ -386,22 +416,22 @@ export class RoomClient {
         track,
         encodings: [
           {
-            rid: 'r0',
+            rid: "r0",
             // maxBitrate: 300000,
             scaleResolutionDownBy: 4,
-            scalabilityMode: 'S1T3',
+            scalabilityMode: "S1T3",
           },
           {
-            rid: 'r1',
+            rid: "r1",
             // maxBitrate: 1000000,
             scaleResolutionDownBy: 2,
-            scalabilityMode: 'S1T3',
+            scalabilityMode: "S1T3",
           },
           {
-            rid: 'r2',
+            rid: "r2",
             // maxBitrate: 5000000,
             scaleResolutionDownBy: 1,
-            scalabilityMode: 'S1T3',
+            scalabilityMode: "S1T3",
           },
         ],
         codecOptions: {
@@ -410,25 +440,25 @@ export class RoomClient {
         //選擇codec
         codec: {
           kind: mediaKind,
-          mimeType: 'video/h264',
+          mimeType: "video/h264",
           clockRate: 90000,
           parameters: {
-            'packetization-mode': 1,
-            'profile-level-id': '42e01f',
-            'level-asymmetry-allowed': 1,
-            'x-google-start-bitrate': 1000,
+            "packetization-mode": 1,
+            "profile-level-id": "42e01f",
+            "level-asymmetry-allowed": 1,
+            "x-google-start-bitrate": 1000,
           },
         },
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on('@close', () => { });
+      producer.on("@close", () => {});
 
       this._webcamProducers.set(producer.id, producer);
 
       /* 之後會區分開開啟與添加畫面的方法 */
-      const elem = document.createElement('video');
+      const elem = document.createElement("video");
       elem.srcObject = stream;
       elem.autoplay = true;
       elem.width = 1280;
@@ -458,7 +488,9 @@ export class RoomClient {
 
       //避免裝置重複取用
       this._micProducers.forEach((producer) => {
-        if (track.getSettings().deviceId == producer.track?.getSettings().deviceId) {
+        if (
+          track.getSettings().deviceId == producer.track?.getSettings().deviceId
+        ) {
           duplicate = true;
         }
       });
@@ -476,7 +508,7 @@ export class RoomClient {
       // //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
 
-      producer.on('@close', () => {});
+      producer.on("@close", () => {});
 
       this._micProducers.set(producer.id, producer);
       // /* 之後會區分開開啟與添加畫面的方法 */
@@ -511,6 +543,7 @@ export class RoomClient {
   }
 
   async consume(consumerParams: any) {
+    console.log("consume");
     const { id, producer_id, kind, rtpParameters } = consumerParams;
     let repeatProducer: boolean = false;
     this._consumers.forEach((consumer) => {
@@ -528,13 +561,12 @@ export class RoomClient {
       kind,
       rtpParameters,
     });
-
     this._consumers.set(consumer.id, consumer);
     const stream = new MediaStream();
     stream.addTrack(consumer.track);
     let elem;
-    if (kind === 'video') {
-      elem = document.createElement('video');
+    if (kind === "video") {
+      elem = document.createElement("video");
       elem.srcObject = stream;
       elem.id = consumer.id;
       elem.width = 1280;
@@ -542,7 +574,7 @@ export class RoomClient {
       elem.autoplay = true;
       this._remoteMediaContainer?.appendChild(elem);
     } else {
-      elem = document.createElement('audio');
+      elem = document.createElement("audio");
       elem.srcObject = stream;
       elem.autoplay = true;
     }
