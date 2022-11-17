@@ -649,6 +649,9 @@ export class Room implements ErrorHandler {
      *    ]
      *  }
      */
+
+    console.log("server_id: ", server_id);
+    console.log("producerMap: ", producerMap);
     let pipeTransport = null;
     const pipeTransportId = this._serverAndPipeTransport.get(server_id)!;
     let consumerMap = {} as any;

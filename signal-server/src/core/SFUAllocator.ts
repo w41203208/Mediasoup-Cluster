@@ -9,7 +9,7 @@ export class SFUAllocator {
 	private SFUServerController: SFUServerController;
 
 	constructor(cf: ControllerFactory) {
-		this.peopleLimit = 1000;
+		this.peopleLimit = 2;
 		this.SFUServerController = cf.getController('SFU') as SFUServerController;
 	}
 
@@ -37,14 +37,11 @@ export class SFUAllocator {
 	async searchSFUServer(key: string): Promise<string | undefined> {
 		let okServer = undefined;
 		const count = await this.SFUServerController.getSFUServerCount(key);
-		console.log('get count: ', count);
 		if (count < this.peopleLimit && okServer === undefined) {
 			okServer = key;
 			const new_count = await this.SFUServerController.addSFUServerCount(key);
-			console.log('get new_count: ', new_count);
 			if (new_count >= this.peopleLimit + 1) {
 				++num;
-				console.log('Num is: ', num);
 				await this.SFUServerController.reduceSFUServerCount(key);
 				okServer = undefined;
 			}

@@ -134,8 +134,7 @@ export class SFUService {
 			const serverSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
 			await serverSocket.request({
 				data: {
-					sendTransport_id: msg.data.sendTransport === null ? null : msg.data.sendTransport.id,
-					recvTransport_id: msg.data.recvTransport === null ? null : msg.data.recvTransport.id,
+					id: msg.data.id,
 				},
 				type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
 			});

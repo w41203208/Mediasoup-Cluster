@@ -127,11 +127,11 @@ export class RoomClient {
       switch (type) {
         case EVENT_SERVER_TO_CLIENT.NEW_CONSUMER:
           for (let consumer of data.consumerList) {
+            console.log(data);
             this.consume(consumer);
           }
           break;
         case EVENT_SERVER_TO_CLIENT.JOIN_ROOM:
-          console.log("join room data", data);
           this._clientRole = data.userRole;
           this.init();
           break;
@@ -253,7 +253,7 @@ export class RoomClient {
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: sendTransport,
+              transport_id: sendTransport.id,
               dtlsParameters,
             },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
@@ -273,7 +273,7 @@ export class RoomClient {
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: sendTransport,
+              transport_id: sendTransport.id,
               kind,
               rtpParameters,
               appData,
@@ -561,7 +561,6 @@ export class RoomClient {
       kind,
       rtpParameters,
     });
-
     this._consumers.set(consumer.id, consumer);
     const stream = new MediaStream();
     stream.addTrack(consumer.track);

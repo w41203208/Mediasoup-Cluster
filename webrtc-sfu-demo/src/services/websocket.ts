@@ -91,7 +91,7 @@ export class Socket extends EventEmitter {
   }
 
   request(sendData: SendData): Promise<any> {
-    const id = ((sendData as any).id = Date.now().toString());
+    const id = ((sendData as any).id = Date.now().toString() + v4());
     (sendData as any).messageType = "request";
     let resolve, reject;
     const promise = new Promise((res, rej) => {

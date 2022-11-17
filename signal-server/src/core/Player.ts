@@ -37,11 +37,6 @@ export class Player {
 		this.onPublishProduce = func;
 	}
 
-	// no use
-	// OnGetRouterRtpCapabilities(func: Function) {
-	//   this.onGetRouterRtpCapabilities = func;
-	// }
-
 	get id() {
 		return this._id;
 	}
