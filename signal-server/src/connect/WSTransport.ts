@@ -1,3 +1,4 @@
+import { v4 } from 'uuid';
 import WebSocket from 'ws';
 import { EventEmitter } from '../util/emitter';
 
@@ -55,7 +56,7 @@ export class WSTransport extends EventEmitter {
 	}
 
 	_handlerRequest(request: any) {
-		const stamp = Date.now().toString();
+		const stamp = Date.now().toString() + v4();
 
 		const response = (sendData: any) => {
 			sendData.messageType = 'response';

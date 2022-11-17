@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "node --loader ts-node/esm --inspect=0.0.0.0:9229 --trace-gc index.ts",
+    "dev": "node --loader ts-node/esm --inspect=0.0.0.0:9229 index.ts",
+    "dev2": "node --loader ts-node/esm --inspect=0.0.0.0:9228 index.ts",
     "start": "nodemon index.ts",
     "test": "jest --coverage"
   },

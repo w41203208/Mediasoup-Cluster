@@ -4,7 +4,7 @@
   "main": "index.ts",
   "license": "MIT",
   "scripts": {
-    "dev": "DEBUG=${DEBUG:='*mediasoup* *INFO* *WARN* *ERROR*'} INTERACTIVE=${INTERACTIVE:='true'} nodemon index.ts",
+    "dev": "node --loader ts-node/esm --inspect=0.0.0.0:9226 index.ts",
     "start": "nodemon index.ts"
   },
   "devDependencies": {
@@ -22,6 +22,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.1",
-    "nodemon": "^2.0.19"
+    "nodemon": "^2.0.19",
+    "ts-node": "10.9.1"
   }
 }

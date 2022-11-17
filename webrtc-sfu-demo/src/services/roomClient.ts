@@ -47,7 +47,7 @@ const EVENT_FOR_TEST = {
   TEST1: "test1",
   TEST2: "test2",
 };
-
+let hasOnScreen: boolean = false;
 function createSocketConnection(): Socket {
   const url = import.meta.env.VITE_WSSURL;
   const socket = new Socket({ url });
@@ -71,7 +71,7 @@ export class RoomClient {
 
   private _sendTransport: null | Transport;
   private _recvTransport: null | Transport;
-  private _tempRecvTransports: Transport[];
+  private _tempRecvTransports: Map<string, any>;
   private _webcamProducers: Map<string, Producer>;
   private _micProducers: Map<string, Producer>;
   private _consumers: Map<string, Consumer>;
@@ -101,7 +101,7 @@ export class RoomClient {
     this._sendTransport = null;
     this._recvTransport = null;
 
-    this._tempRecvTransports = [];
+    this._tempRecvTransports = new Map();
     this._webcamProducers = new Map();
     this._micProducers = new Map();
     this._consumers = new Map();
@@ -129,7 +129,8 @@ export class RoomClient {
       switch (type) {
         case EVENT_SERVER_TO_CLIENT.NEW_CONSUMER:
           for (let consumer of data.consumerList) {
-            this.consume(consumer);
+            const t = this._tempRecvTransports.get(data.transport_id);
+            this.consume(t, consumer);
           }
           break;
         case EVENT_SERVER_TO_CLIENT.JOIN_ROOM:
@@ -192,7 +193,6 @@ export class RoomClient {
 
   // audience
   async init() {
-    console.log("the RTC is init");
     // get router RtpCapabilities
     const mediaCodecs = await this.getRouterRtpCapabilities(this._roomId);
     // load Device
@@ -206,12 +206,15 @@ export class RoomClient {
 
     if (this._isConsume) {
       // this._recvTransport = await this.createRecvTransport(this._device);
-      for (let i = 0; i < 20; i++) {
-        this._tempRecvTransports.push(
-          await this.createRecvTransport(this._device)
-        );
+      for (let i = 0; i < 450; i++) {
+        const t = await this.createRecvTransport(this._device);
+        this._tempRecvTransports.set(t.id, t);
       }
+      // this._tempRecvTransports.push(
+      //   await this.createRecvTransport(this._device)
+      // );
     }
+
     // console.log(this._device.rtpCapabilities);
     await this._socket.request({
       data: {
@@ -260,7 +263,7 @@ export class RoomClient {
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: sendTransport,
+              transport_id: sendTransport.id,
               dtlsParameters,
             },
             type: EVENT_FOR_CLIENT.CONNECT_WEBRTCTRANPORT,
@@ -280,7 +283,7 @@ export class RoomClient {
           const { data } = await this._socket.request({
             data: {
               room_id: this._roomId,
-              transport_id: sendTransport,
+              transport_id: sendTransport.id,
               kind,
               rtpParameters,
               appData,
@@ -549,42 +552,49 @@ export class RoomClient {
     });
   }
 
-  async consume(consumerParams: any) {
-    console.log("consume");
+  async consume(t: any, consumerParams: any) {
     const { id, producer_id, kind, rtpParameters } = consumerParams;
-    let repeatProducer: boolean = false;
-    this._consumers.forEach((consumer) => {
-      if (consumer.producerId == producer_id) {
-        repeatProducer = true;
-      }
-    });
+    // let repeatProducer: boolean = false;
+    // this._consumers.forEach((consumer) => {
+    //   if (consumer.producerId == producer_id) {
+    //     repeatProducer = true;
+    //   }
+    // });
 
-    if (!this._recvTransport || repeatProducer) {
+    // if (!this._recvTransport || repeatProducer) {
+    //   return;
+    // }
+
+    if (this._tempRecvTransports.size === 0) {
+      console.log("test");
       return;
     }
-    const consumer = await this._recvTransport.consume({
+
+    const consumer = await t.consume({
       id,
       producerId: producer_id,
       kind,
       rtpParameters,
     });
-
     this._consumers.set(consumer.id, consumer);
     const stream = new MediaStream();
     stream.addTrack(consumer.track);
-    let elem;
-    if (kind === "video") {
-      elem = document.createElement("video");
-      elem.srcObject = stream;
-      elem.id = consumer.id;
-      elem.width = 1280;
-      elem.height = 720;
-      elem.autoplay = true;
-      this._remoteMediaContainer?.appendChild(elem);
-    } else {
-      elem = document.createElement("audio");
-      elem.srcObject = stream;
-      elem.autoplay = true;
+    if (!hasOnScreen) {
+      hasOnScreen = true;
+      let elem;
+      if (kind === "video") {
+        elem = document.createElement("video");
+        elem.srcObject = stream;
+        elem.id = consumer.id;
+        elem.width = 1280;
+        elem.height = 720;
+        elem.autoplay = true;
+        this._remoteMediaContainer?.appendChild(elem);
+      } else {
+        elem = document.createElement("audio");
+        elem.srcObject = stream;
+        elem.autoplay = true;
+      }
     }
   }
 

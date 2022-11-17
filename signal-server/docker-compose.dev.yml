@@ -4,12 +4,12 @@ services:
     container_name: sfusignal.dev.1
     image: 'sfusignal'
     working_dir: /home/signal
-    command: bash -c "yarn && yarn start"
+    command: bash -c "yarn && yarn dev"
     stdin_open: true
     tty: true
-    networks:
-      signal_tuple_networks:
-        ipv4_address: 172.28.2.2
+    # networks:
+    #   signal_tuple_networks:
+    #     ipv4_address: 172.28.2.2
     ports:
       - '${PORT_1}:${PORT_1}/tcp'
       - '${PORT_1}:${PORT_1}/udp'
@@ -25,15 +25,16 @@ services:
     container_name: sfusignal.dev.2
     image: 'sfusignal'
     working_dir: /home/signal
-    command: bash -c "yarn && yarn start"
+    command: bash -c "yarn && yarn dev2"
     stdin_open: true
     tty: true
-    networks:
-      signal_tuple_networks:
-        ipv4_address: 172.28.2.3
+    # networks:
+    #   signal_tuple_networks:
+    #     ipv4_address: 172.28.2.3
     ports:
       - '${PORT_2}:${PORT_2}/tcp'
       - '${PORT_2}:${PORT_2}/udp'
+      - 9228:9228
     environment:
       - REDIS_HOST=${REDIS_HOST_2}
       - REDIS_DB_INDEX=${REDIS_DB_INDEX}
@@ -41,12 +42,11 @@ services:
       - CRYPTO_KEY=${CRYPTO_KEY_2}
     volumes:
       - .:/home/signal
-
-networks:
-  signal_tuple_networks:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.28.0.0/16
-          gateway: 172.28.2.1
+# networks:
+#   signal_tuple_networks:
+#     driver: bridge
+#     ipam:
+#       driver: default
+#       config:
+#         - subnet: 172.28.0.0/16
+#           gateway: 172.28.2.1

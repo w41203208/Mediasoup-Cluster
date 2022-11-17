@@ -5,7 +5,7 @@ export class Player {
 	private _routerId: string;
 	private _role: string;
 	private _sendTransport?: any;
-	private _recvTransport?: any;
+	private _recvTransports: Array<{ id: string }>;
 	private _producers: Map<string, Record<string, any>>;
 	private _consumers: Map<string, Record<string, any>>;
 	private _rtpCapabilities?: any;
@@ -23,7 +23,7 @@ export class Player {
 
 		/* mediasoup info */
 		this._sendTransport = null;
-		this._recvTransport = null;
+		this._recvTransports = [];
 		this._producers = new Map();
 		this._consumers = new Map();
 		this._rtpCapabilities = null;
@@ -73,8 +73,8 @@ export class Player {
 		return this._sendTransport;
 	}
 
-	get recvTransport() {
-		return this._recvTransport;
+	get recvTransports() {
+		return this._recvTransports;
 	}
 
 	get producers() {
@@ -99,9 +99,7 @@ export class Player {
 
 	addTransport(id: string, transportType: string) {
 		if (transportType === 'consuming') {
-			this._recvTransport = {
-				id: id,
-			};
+			this._recvTransports.push({ id: id });
 		} else {
 			this._sendTransport = {
 				id: id,

@@ -56,3 +56,22 @@ docker-compose -f docker-compose.dev.yml --env-file ./dev.env up -d
 ```bash
 PRO：docker-compose -f docker-compose.prod.yml --env-file ./pro.env up -d
 ```
+
+
+
+### 
+
+```javascript
+closeWebRTCTransport(msg: SFUMessage): Promise<void> {
+	return new Promise(async (resolve, reject) => {
+		const serverSocket = await this._sfuConnectionMgr.getOrNewSFUConnection(msg.connectionServerId, msg.roomId);
+		await serverSocket.request({
+			data: {
+				id: msg.data.id,
+			},
+			type: EVENT_FOR_SFU.CLOSE_TRANSPORT,
+		});
+		resolve();
+	});
+}
+```

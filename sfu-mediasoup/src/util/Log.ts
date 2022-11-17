@@ -1,18 +1,18 @@
 enum WEEK {
-  MONDAY = '1',
-  TUESDAY = '2',
-  WEDNESDAY = '3',
-  THURSDAY = '4',
-  FRIDAY = '5',
-  SATURDAY = '6',
-  SUNDAY = '7',
+  MONDAY = "1",
+  TUESDAY = "2",
+  WEDNESDAY = "3",
+  THURSDAY = "4",
+  FRIDAY = "5",
+  SATURDAY = "6",
+  SUNDAY = "7",
 }
 
 enum logger {
-  debug = 'DEBUG',
-  info = 'INFO',
-  warn = 'WARN',
-  error = 'ERROR',
+  debug = "DEBUG",
+  info = "INFO",
+  warn = "WARN",
+  error = "ERROR",
 }
 
 interface LogFuncParams {
@@ -45,14 +45,17 @@ export class Log {
   _log: LogFunc;
   constructor() {
     this._logColor = {
-      debug: '\x1b[33m',
-      info: '\x1b[32m',
-      warn: '\x1b[35m',
-      error: '\x1b[31m',
+      debug: "\x1b[33m",
+      info: "\x1b[32m",
+      warn: "\x1b[35m",
+      error: "\x1b[31m",
     };
 
-    this._log = function ({ text = '', color, label }: LogFuncParams, data: any) {
-      const l = '[' + label + ']';
+    this._log = function (
+      { text = "", color, label }: LogFuncParams,
+      data: any
+    ) {
+      const l = "[" + label + "]";
       const time = this.getTime(new Date());
       console.log(`${color}${l.padEnd(7)} [${time}]\x1b[0m | ${text}`, ...data);
     };
@@ -60,50 +63,51 @@ export class Log {
 
   debug(t: string, ...data: any) {
     const label = logger.debug;
-    const color = '\x1b[33m';
+    const color = "\x1b[33m";
     this._log.call(this, { text: t, color: color, label: label }, data);
   }
   info(t: string, ...data: any) {
     const label = logger.info;
-    const color = '\x1b[32m';
+    const color = "\x1b[32m";
     this._log({ text: t, color: color, label: label }, data);
   }
   warn(t: string, ...data: any) {
     const label = logger.warn;
-    const color = '\x1b[35m';
+    const color = "\x1b[35m";
     this._log({ text: t, color: color, label: label }, data);
   }
   error(t: string, ...data: any) {
     const label = logger.error;
-    const color = '\x1b[31m';
+    const color = "\x1b[31m";
     this._log({ text: t, color: color, label: label }, data);
   }
 
   getTime(time: Date): string {
-    let logInfo = '';
+    let logInfo = "";
 
     const year = time.getFullYear();
-    logInfo += year.toString() + '/';
+    logInfo += year.toString() + "/";
 
     const month = time.getMonth() + 1;
-    logInfo += this.formatTransform(month.toString()) + '/';
+    logInfo += this.formatTransform(month.toString()) + "/";
 
     const date = time.getDate();
     logInfo += this.formatTransform(date.toString());
 
     // const week = today.getDay();
     // logInfo.push(weekTransform(week.toString()));
-    logInfo += '-';
-    const hour = time.getHours();
-    logInfo += this.formatTransform(hour.toString()) + ':';
+    logInfo += "-";
+    const hour =
+      time.getHours() + 8 > 24 ? time.getHours() + 8 - 24 : time.getHours() + 8;
+    logInfo += this.formatTransform(hour.toString()) + ":";
 
     const min = time.getMinutes();
-    logInfo += this.formatTransform(min.toString()) + ':';
+    logInfo += this.formatTransform(min.toString()) + ":";
 
     const sec = time.getSeconds();
     logInfo += this.formatTransform(sec.toString());
 
-    logInfo += ' ';
+    logInfo += " ";
 
     const amOrPm = this.hourToMeridiem(hour);
     logInfo += amOrPm;
@@ -113,7 +117,7 @@ export class Log {
   }
   private formatTransform(s: string) {
     if (s.length === 1) {
-      return '0' + s;
+      return "0" + s;
     } else {
       return s;
     }
@@ -121,29 +125,29 @@ export class Log {
   private weekTransform(s: string) {
     switch (s) {
       case WEEK.MONDAY:
-        return '星期一';
+        return "星期一";
         break;
       case WEEK.TUESDAY:
-        return '星期二';
+        return "星期二";
         break;
       case WEEK.WEDNESDAY:
-        return '星期三';
+        return "星期三";
         break;
       case WEEK.THURSDAY:
-        return '星期四';
+        return "星期四";
         break;
       case WEEK.FRIDAY:
-        return '星期五';
+        return "星期五";
         break;
       case WEEK.SATURDAY:
-        return '星期六';
+        return "星期六";
         break;
       default:
-        return '星期日';
+        return "星期日";
         break;
     }
   }
   private hourToMeridiem(s: number): string {
-    return s > 12 ? 'PM' : 'AM';
+    return s > 12 ? "PM" : "AM";
   }
 }

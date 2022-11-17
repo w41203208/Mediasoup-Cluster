@@ -40,7 +40,6 @@ export class Socket extends EventEmitter {
     this._socket.onmessage = (event: any) => {
       const data = JSON.parse(event.data);
       const { messageType, ...rest } = data;
-
       switch (messageType) {
         case "request":
           this._handlerRequest(rest);
@@ -61,9 +60,11 @@ export class Socket extends EventEmitter {
 
   _handlerResponse(_data: any) {
     const { id, type, data } = _data;
-    const { resolve, reject } = this._in_flight_send?.get(id)!;
-    resolve({ type, data });
-    this._in_flight_send?.delete(id);
+    if (this._in_flight_send?.has(id)) {
+      const { resolve, reject } = this._in_flight_send?.get(id)!;
+      resolve({ type, data });
+      this._in_flight_send?.delete(id);
+    }
   }
 
   _handlerNotification(_data: any) {
@@ -91,7 +92,7 @@ export class Socket extends EventEmitter {
   }
 
   request(sendData: SendData): Promise<any> {
-    const id = ((sendData as any).id = Date.now().toString());
+    const id = ((sendData as any).id = Date.now().toString() + v4());
     (sendData as any).messageType = "request";
     let resolve, reject;
     const promise = new Promise((res, rej) => {
