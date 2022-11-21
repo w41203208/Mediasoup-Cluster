@@ -1,12 +1,12 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory } from "vue-router";
 const routes = [
   {
-    path: '/',
-    name: 'home',
+    path: "/",
+    name: "home",
   },
   {
-    path: '/room',
-    name: 'room',
+    path: "/room",
+    name: "room",
   },
 ];
 
@@ -18,7 +18,7 @@ const newRoutes = routes.map((route) => {
 });
 
 const router = createRouter({
-  history: createWebHistory('/'),
+  history: createWebHistory("/"),
   routes: newRoutes,
 });
 

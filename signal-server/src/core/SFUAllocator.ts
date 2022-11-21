@@ -9,7 +9,7 @@ export class SFUAllocator {
 	private SFUServerController: SFUServerController;
 
 	constructor(cf: ControllerFactory) {
-		this.peopleLimit = 2;
+		this.peopleLimit = 100;
 		this.SFUServerController = cf.getController('SFU') as SFUServerController;
 	}
 
