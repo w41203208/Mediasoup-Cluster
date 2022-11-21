@@ -8,6 +8,10 @@ const routes = [
     path: "/room",
     name: "room",
   },
+  {
+    path: "/test",
+    name: "test",
+  },
 ];
 
 const newRoutes = routes.map((route) => {
