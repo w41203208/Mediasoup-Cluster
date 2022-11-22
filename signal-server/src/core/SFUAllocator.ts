@@ -1,9 +1,6 @@
 import { SFUServerController } from '../redis/controller';
 import { ControllerFactory } from '../redis/ControllerFactory';
 
-//test
-let num = 0;
-
 export class SFUAllocator {
 	private peopleLimit: number;
 	private SFUServerController: SFUServerController;
@@ -37,14 +34,10 @@ export class SFUAllocator {
 	async searchSFUServer(key: string): Promise<string | undefined> {
 		let okServer = undefined;
 		const count = await this.SFUServerController.getSFUServerCount(key);
-		console.log('get count: ', count);
 		if (count < this.peopleLimit && okServer === undefined) {
 			okServer = key;
 			const new_count = await this.SFUServerController.addSFUServerCount(key);
-			console.log('get new_count: ', new_count);
 			if (new_count >= this.peopleLimit + 1) {
-				++num;
-				console.log('Num is: ', num);
 				await this.SFUServerController.reduceSFUServerCount(key);
 				okServer = undefined;
 			}

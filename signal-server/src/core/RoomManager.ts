@@ -93,32 +93,36 @@ export class RoomManager {
 		}
 	}
 	async handlePubCreateConsumer(data: any) {
-		const peerOfServerMap = await this.createPlayerConsumer_Pub(data.pubRoomId, data.pubPlayerId, data.producerId);
-		console.log('peerOfServerMap: ', peerOfServerMap);
-		Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
-			value.forEach(async (v: any) => {
-				if (v.player.recvTransport.id !== null) {
-					const rData = await this._sfuService.createConsume({
-						connectionServerId: key,
-						roomId: data.pubRoomId,
-						data: {
-							routerId: v.player.routerId,
-							transportId: v.player.recvTransport.id,
-							rtpCapabilities: v.player.rtpCapabilities,
-							producers: v.producerList,
-						},
-					});
-					const { new_consumerList } = rData;
+		try {
+			const peerOfServerMap = await this.createPlayerConsumer_Pub(data.pubRoomId, data.pubPlayerId, data.producerId);
+			console.log('peerOfServerMap: ', peerOfServerMap);
+			Object.entries(peerOfServerMap).forEach(([key, value]: [key: string, value: any]) => {
+				value.forEach(async (v: any) => {
+					if (v.player.recvTransport) {
+						const rData = await this._sfuService.createConsume({
+							connectionServerId: key,
+							roomId: data.pubRoomId,
+							data: {
+								routerId: v.player.routerId,
+								transportId: v.player.recvTransport.id,
+								rtpCapabilities: v.player.rtpCapabilities,
+								producers: v.producerList,
+							},
+						});
+						const { new_consumerList } = rData;
 
-					// eslint-disable-next-line quotes
-					this.log.debug(`return new_consumerList: `, new_consumerList);
+						// eslint-disable-next-line quotes
+						this.log.debug(`return new_consumerList: `, new_consumerList);
 
-					this.publish(v.player.id, { type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER }, 'notification', {
-						consumerList: new_consumerList,
-					});
-				}
+						this.publish(v.player.id, { type: EVENT_FOR_CLIENT_NOTIFICATION.NEW_CONSUMER }, 'notification', {
+							consumerList: new_consumerList,
+						});
+					}
+				});
 			});
-		});
+		} catch (e: any) {
+			this.log.error(e);
+		}
 	}
 	async handlePubCreatePipeTransportConsumer(data: any, identifyIp: string) {
 		const producerMaps = this.createPlayerPipeTransportConsumer_Pub(

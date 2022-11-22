@@ -206,7 +206,7 @@ export class RoomClient {
 
     if (this._isConsume) {
       // this._recvTransport = await this.createRecvTransport(this._device);
-      for (let i = 0; i < 450; i++) {
+      for (let i = 0; i < 300; i++) {
         const t = await this.createRecvTransport(this._device);
         this._tempRecvTransports.set(t.id, t);
       }
