@@ -188,14 +188,14 @@ export class Room implements ErrorHandler {
       return;
     }
     const router = this._routers.get(router_id);
-    const { maxIncomingBitrate, initialAvailableOutgoingBitrate, minimumAvailableOutgoingBitrate, listenIps } = this._webRTCTransportSettings;
+    const { maxIncomingBitrate, initialAvailableOutgoingBitrate, listenIps } = this._webRTCTransportSettings;
     const transport = await router!.createWebRtcTransport({
       listenIps: listenIps,
       enableUdp: true,
       enableTcp: true,
       preferUdp: true,
       enableSctp: true,
-      initialAvailableOutgoingBitrate,
+      // initialAvailableOutgoingBitrate,
       appData: {
         producing: producing,
         consuming: consuming,

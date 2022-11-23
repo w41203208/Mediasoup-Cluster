@@ -9,9 +9,9 @@ import {
 import { Socket } from "@/services/websocket";
 import { logger } from "@/util/logger";
 import testSourceVideo from "../assets/bbb_sunflower_native_60fps_normal.mp4";
-import test264Video from "../assets/h264_720p_60fps_2.5M_rabbit45646.mp4";
+import test264Video from "../assets/h264_720p_60fps_2.5M_rabbit.mp4";
 import testLow264Video from "../assets/h264_720p_60fps_0.6M_rabbit.mp4";
-import testHigh264Video from "../assets/h264_720p_60fps_4M_rabbit.mp4";
+import testHigh264Video from "../assets/h264_720p_60fps_6M_rabbit.mp4";
 
 interface RoomClientOptions {
   clientUID: string;
@@ -425,35 +425,35 @@ export class RoomClient {
 
       const params = {
         track,
-        encodings: [
-          {
-            rid: "r0",
-            // maxBitrate: 300000,
-            scaleResolutionDownBy: 4,
-            scalabilityMode: "S1T3",
-          },
-          {
-            rid: "r1",
-            // maxBitrate: 1000000,
-            scaleResolutionDownBy: 2,
-            scalabilityMode: "S1T3",
-          },
-          {
-            rid: "r2",
-            // maxBitrate: 5000000,
-            scaleResolutionDownBy: 1,
-            scalabilityMode: "S1T3",
-          },
-        ],
+        // encodings: [
+        //   {
+        //     rid: "r0",
+        //     // maxBitrate: 300000,
+        //     scaleResolutionDownBy: 4,
+        //     scalabilityMode: "S1T3",
+        //   },
+        //   {
+        //     rid: "r1",
+        //     // maxBitrate: 1000000,
+        //     scaleResolutionDownBy: 2,
+        //     scalabilityMode: "S1T3",
+        //   },
+        //   {
+        //     rid: "r2",
+        //     // maxBitrate: 5000000,
+        //     scaleResolutionDownBy: 1,
+        //     scalabilityMode: "S1T3",
+        //   },
+        // ],
         codecOptions: {
           videoGoogleStartBitrate: 1000,
         },
         //選擇codec
-        codec: {
-          kind: mediaKind,
-          mimeType: "video/h264",
-          clockRate: 90000,
-        },
+        // codec: {
+        //   kind: mediaKind,
+        //   mimeType: "video/h264",
+        //   clockRate: 90000,
+        // },
       };
       //可以添將一些屬性 codecOptions、encodings
       const producer = await this._sendTransport.produce(params);
@@ -534,8 +534,8 @@ export class RoomClient {
 
       const videoPlayer = <VideoElement>document.createElement('video');
       // videoPlayer.src = test264Video;
-      videoPlayer.src = testLow264Video;
-      // videoPlayer.src = testHigh264Video;
+      // videoPlayer.src = testLow264Video;
+      videoPlayer.src = testHigh264Video;
       // videoPlayer.src = testSourceVideo;
       videoPlayer.loop = true;
       videoPlayer.autoplay = true;
@@ -576,15 +576,15 @@ export class RoomClient {
             scalabilityMode: "S1T3",
           },
         ],
-        codecOptions: {
-          videoGoogleStartBitrate: 1000,
-        },
+        // codecOptions: {
+        //   videoGoogleStartBitrate: 1000,
+        // },
         // 選擇codec
-        codec: {
-          kind: mediaKind,
-          mimeType: "video/h264",
-          clockRate: 90000,
-        },
+        // codec: {
+        //   kind: mediaKind,
+        //   mimeType: "video/h264",
+        //   clockRate: 90000,
+        // },
       };
 
       // //可以添將一些屬性 codecOptions、encodings
@@ -723,16 +723,14 @@ export class RoomClient {
               audioEndTotalSamplesReceived = element.totalSamplesReceived;
               console.log(`audioEndBytes:${audioEndBytes} ,audioEndTotalSamplesReceived:${audioEndTotalSamplesReceived}`)
 
-              console.log(`Audio Bytes:${audioEndBytes - audioStartBytes}`);
-              console.log(`Audio Samples:${audioEndTotalSamplesReceived - audioStartTotalSamplesReceived}`);
+              console.log(`5Min count, Audio Bytes:${audioEndBytes - audioStartBytes},Audio Samples:${audioEndTotalSamplesReceived - audioStartTotalSamplesReceived}`);
             } else if (element.type == "inbound-rtp" && element.kind == "video") {
               console.log(element);
               videoEndBytes = element.bytesReceived;
               videoEndFramesDecoded = element.framesDecoded;
               console.log(`videoEndBytes:${videoEndBytes} ,videoEndFramesDecoded:${videoEndFramesDecoded}`)
 
-              console.log(`Video Bytes:${videoEndBytes - videoStartBytes}`);
-              console.log(`Video FramesDecoded:${videoEndFramesDecoded - videoStartFramesDecoded}`);
+              console.log(`5Min count, Video Bytes:${videoEndBytes - videoStartBytes},Video FramesDecoded:${videoEndFramesDecoded - videoStartFramesDecoded}`);
             }
           });
         });

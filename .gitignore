@@ -36,3 +36,5 @@ webrtc-sfu-demo/src/assets/h264_720p_60fps_2.5M_rabbit_123.mp4
 webrtc-sfu-demo/src/assets/h264_720p_60fps_2.5M_rabbit45646.mp4
 webrtc-sfu-demo/src/assets/h264_720p_60fps_4M_rabbit.mp4
 webrtc-sfu-demo/src/assets/vp8_720p_60fps_2.5M_rabbit.webm
+webrtc-sfu-demo/src/assets/h264_720p_60fps_6M_rabbit.mp4
+webrtc-sfu-demo/src/services/sdfs.cc
