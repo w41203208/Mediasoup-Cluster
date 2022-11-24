@@ -53,6 +53,14 @@
 
 - 房間管理的測試 **branch：jay_dev**
 
+1. 先在 signal server 使用 genCrypto.ts 這個檔案 產生 name.txt
+2. 將剛剛產生的檔案丟給 webrtc-sfu-demo
+3. 在 test.vue 的頁面，input name.txt file
+4. Range 就是要取 name.txt 中的範圍 Max 會是輸入的-1，假如你要 0~50，要輸入 Min：0、Max：51
+5. Role 是用來表示這個 Range 裡面的第一個是否要有 Producer 基本上，我是第一個網頁的分頁兩個都打勾，第二或後面的只勾 Consumer。
+6. File 就是第 3 點的
+7. Test 就是開始測試
+
 - rtp peerconnection 測試 **branch：dev_test**
 
 備註：在測試 rtp peerconnection 的測試，因為會遇到有關 docker 的問題，所以需要使用 windows 來在本地跑程式碼。
