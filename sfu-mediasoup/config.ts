@@ -31,7 +31,7 @@ module.exports = {
     redisHost: process.env.REDIS_HOST!,
   },
   MediasoupSetting: {
-    numWorkers: 2, //Object.keys(os.cpus()).length
+    numWorkers: 4, //Object.keys(os.cpus()).length
     worker: {
       rtcMinPort: Number(process.env.MEDIASOUP_MIN_PORT) || 30001,
       rtcMaxPort: Number(process.env.MEDIASOUP_MAX_PORT) || 30100,

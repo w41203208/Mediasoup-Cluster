@@ -269,7 +269,10 @@ export class RoomManager {
 		try {
 			const room = await this.getOrCreateRoom(roomId);
 			let player = room.getPlayer(identity);
+
+			//
 			if (player) {
+				this.log.debug('player has been exsit so to delete it');
 				room.removePlayer(player.id);
 			}
 
@@ -288,6 +291,7 @@ export class RoomManager {
 			player = new Player(identity, '', rm.sfuIpPort, data.router_id, roomData.owner === identity ? 'owner' : 'audience');
 
 			player.OnClose(async () => {
+				this.log.warn('To close websocket');
 				const promiseList = [];
 				promiseList.push(this.RoomController.delRoomPlayerList(room.id, player.id));
 				player.producers.forEach(async (v: any) => {
@@ -374,37 +378,6 @@ export class RoomManager {
 			});
 		}
 	}
-
-	async getProduce(roomId: string, peerId: string, rtpCapabilities: any) {
-		const room = this._roomMap.get(roomId)!;
-		const player = room.getPlayer(peerId);
-
-		player.rtpCapabilities = rtpCapabilities;
-
-		// 取得訂閱頻道的人數，作為要回傳任務完成的依據
-		const currentOtherSignalCount = await this.RoomController.getRoomSubscriberNum(roomId);
-		const mapId = v4();
-		this._pubHandlerMap.set(mapId, {
-			count: currentOtherSignalCount,
-			type: PubHandlerType.GETPRODUCER_COMPLETE,
-			data: {
-				handlerPlayerId: player.id,
-				handlerRoomId: room.id,
-			},
-		});
-
-		this._roomRouter.publish(roomId, {
-			identifyIp: getLocalIp(),
-			type: EVENT_PUBLISH.CREATE_PIPETRANSPORT_CONSUME,
-			data: {
-				pubPlayerId: player.id,
-				pubRoomId: room.id,
-				ignoreServerId: player.serverId,
-				pubHandlerMapId: mapId,
-			},
-		});
-	}
-
 	createPlayerPipeTransportConsumer_Pub(roomId: string, peerId: string, ignoreServerId: string, pubHandlerMapId: string, identifyIp: string) {
 		const room = this._roomMap.get(roomId)!;
 		const localPlayerList = room.getJoinedPlayerList({ excludePlayer: {} as Player });

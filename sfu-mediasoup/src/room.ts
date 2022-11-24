@@ -4,11 +4,14 @@ import {
   Consumer,
   Producer,
   PipeTransport,
+  MediaKind,
+  RtpParameters,
 } from "mediasoup/node/lib/types";
 import { ServerEngine } from "./engine";
 import { WSTransport } from "./websocket/wstransport";
 import { Log } from "./util/Log";
 import { ErrorHandler, ErrorHandlerFunc } from "./util/Error";
+import { Pass, PassCard } from "./util/pass";
 
 const EVENT_FROM_SIGNAL = {
   CREATE_ROUTER: "createRouter",
@@ -54,8 +57,12 @@ export class Room implements ErrorHandler {
   private _transports: Map<string, Transport>;
   private _pipeTransports: Map<string, PipeTransport>;
   private _consumers: Map<string, Consumer>;
-  private _producers: Map<string, { producer: Producer; routerId: string }>;
+  private _producers: Map<
+    string,
+    { producer: Producer; routerIds: Array<string> }
+  >;
   private _pipeTransportProducers: Map<string, Producer>;
+  private _pass: Pass;
 
   private _webRTCTransportSettings: Record<string, any>;
   private _pipeTransportSettings: Record<string, any>;
@@ -87,6 +94,7 @@ export class Room implements ErrorHandler {
     this._consumers = new Map();
     this._producers = new Map();
     this._pipeTransportProducers = new Map();
+    this._pass = new Pass();
 
     this._pipeTransports = new Map();
     this._pipeTransportsRouter;
@@ -158,14 +166,14 @@ export class Room implements ErrorHandler {
   private async createRouterHandler({ ws, data, response }: Handler) {
     let ok_router: any = null;
     try {
-      /* 找符合的 router */ /* 目前還沒加 router 限制條件 */
-      this._routers.forEach((routerObj) => {
-        if (routerObj.num < 100) {
-          if (ok_router === null) {
-            ok_router = routerObj.router;
-          }
-        }
-      });
+      /* 找符合的 router */
+      // this._routers.forEach((routerObj) => {
+      //   if (routerObj.num < 100) {
+      //     if (ok_router === null) {
+      //       ok_router = routerObj.router;
+      //     }
+      //   }
+      // });
       if (!ok_router) {
         const worker = this._listener._getMediasoupWorkers();
         ok_router = await worker.createRouter({
@@ -290,75 +298,95 @@ export class Room implements ErrorHandler {
     const { router_id, transport_id, rtpCapabilities, producers } = data;
     const router = this._routers.get(router_id)!.router;
     const transport = this._transports.get(transport_id);
-    let new_consumerList = [];
+    let new_consumerList: any[] = [];
 
     if (producers.length === 0) {
       return;
     }
 
+    // 這裡有問題，需要判斷每個進來的請求有沒有需要 connectToOtherRouter
+    // 類似的問題其實出現在 signal join room 感覺可以根據要傳遞的資料跟透過哪個 sfusocket 傳遞來判斷是否是同一種請求來避免發多個請求
+    let consumerPromises: any[] = [];
     for (let producer_id of producers) {
-      if (this._producers.has(producer_id)) {
-        const producerObj = this._producers.get(producer_id)!;
-        if (producerObj.routerId !== router.id) {
-          const r = this._routers.get(producerObj.routerId)!.router;
-          await this._connectToOtherRouter(r, router, producer_id);
+      let rrObject: any;
+
+      const actionFunc = async () => {
+        if (!router!.canConsume({ producerId: producer_id, rtpCapabilities })) {
+          this.log.warn(
+            "[CreateConsumer-Event]：Router [%s] cannot use ProudcerId [%s] to create Consumer",
+            router!.id,
+            producer_id
+          );
+          return;
         }
-      }
-
-      if (!router!.canConsume({ producerId: producer_id, rtpCapabilities })) {
-        this.log.error(
-          "[CreateConsumer-Event]：Router [%s] cannot use ProudcerId [%s] to create Consumer",
-          router!.id,
-          producer_id
-        );
-        return;
-      }
-      const consumer = await transport!.consume({
-        producerId: producer_id,
-        rtpCapabilities: rtpCapabilities,
-        paused: false,
-      });
-      this.log.info(
-        "[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]",
-        consumer.id,
-        producer_id,
-        router_id
-      );
-
-      /* Register Consumer listen event */
-      consumer.on("transportclose", () => {
+        const consumer = await transport!.consume({
+          producerId: producer_id,
+          rtpCapabilities: rtpCapabilities,
+          paused: false,
+        });
         this.log.info(
-          "[CloseConsumer-Event]：Consumer [%s] is closed because transport closed",
-          consumer.id
+          "[CreateConsumer-Event]：Create Consumer [%s] use ProducerId [%s] with Router [%s]",
+          consumer.id,
+          producer_id,
+          router_id
         );
-        this._consumers.delete(consumer.id);
+
+        /* Register Consumer listen event */
+        consumer.on("transportclose", () => {
+          this.log.info(
+            "[CloseConsumer-Event]：Consumer [%s] is closed because transport closed",
+            consumer.id
+          );
+          this._consumers.delete(consumer.id);
+        });
+        consumer.on("producerclose", () => {
+          this.log.info(
+            "[CloseConsumer-Event]：Consumer [%s] is closed because producer closed",
+            consumer.id
+          );
+        });
+
+        this._consumers.set(consumer.id, consumer);
+
+        new_consumerList.push({
+          id: consumer.id,
+          producer_id: producer_id,
+          kind: consumer.kind,
+          rtpParameters: consumer.rtpParameters,
+        });
+      };
+      const actionFuncPromise = new Promise((resolve, reject) => {
+        rrObject = {
+          resolve,
+          reject,
+        };
       });
-      consumer.on("producerclose", () => {
-        this.log.info(
-          "[CloseConsumer-Event]：Consumer [%s] is closed because producer closed",
-          consumer.id
+      const producerObj = this._producers.get(producer_id)!;
+      const rHas = producerObj.routerIds.indexOf(router.id);
+      if (rHas === -1) {
+        const r = this._routers.get(producerObj.routerIds[0])!.router;
+
+        const passCard = new PassCard(
+          `${r.id + router.id + producer_id}`,
+          actionFunc,
+          rrObject
         );
-      });
-      // consumer.on("layerschange", (layer) => {
-      //   this.log.info(
-      //     "[Consumer-Event]：Consumer [%s] layer change to [%s]",
-      //     consumer.id,
-      //     layer
-      //   );
-      // });
-
-      /* Register Consumer listen event */
-
-      this._consumers.set(consumer.id, consumer);
-
-      new_consumerList.push({
-        id: consumer.id,
-        producer_id: producer_id,
-        kind: consumer.kind,
-        rtpParameters: consumer.rtpParameters,
-      });
+        if (!this._pass.hasPassBatch(`${r.id + router.id + producer_id}`)) {
+          this._connectToOtherRouter(r, router, producer_id).then(() => {
+            this._producers.get(producer_id)?.routerIds.push(router.id);
+            this._pass.pass(passCard.id);
+          });
+        }
+        this._pass.addInPassBatch(passCard);
+      } else {
+        actionFunc().then(() => {
+          rrObject.resolve();
+        });
+      }
+      consumerPromises.push(actionFuncPromise);
     }
 
+    await Promise.all(consumerPromises);
     response({
       data: {
         new_consumerList: new_consumerList,
@@ -381,7 +409,7 @@ export class Room implements ErrorHandler {
     });
     this._producers.set(producer.id, {
       producer: producer,
-      routerId: router_id,
+      routerIds: [router_id],
     });
     /* store redis producers */
 
@@ -469,20 +497,23 @@ export class Room implements ErrorHandler {
     return routerList;
   }
 
-  private async _connectToOtherRouter(
+  private _connectToOtherRouter(
     router: Router,
     otherRouter: Router,
     producerId: string
   ) {
-    this.log.info(
-      "[PipeToRouter-Event]：Router [%s] pipe to Router [%s]",
-      router.id,
-      otherRouter.id
-    );
-    await router.pipeToRouter({
-      producerId: producerId,
-      router: otherRouter,
-      enableRtx: true,
+    return new Promise<void>(async (resolve, reject) => {
+      await router.pipeToRouter({
+        producerId: producerId,
+        router: otherRouter,
+        // enableRtx: true,
+      });
+      this.log.info(
+        "[PipeToRouter-Event]：Router [%s] pipe to Router [%s]",
+        router.id,
+        otherRouter.id
+      );
+      resolve();
     });
   }
 
