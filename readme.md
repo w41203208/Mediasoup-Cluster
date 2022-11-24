@@ -47,9 +47,19 @@
 
 -
 
-## Problem
+## Test
 
-- for 0~99 to excute join room, redis player count is weird
+測試分為兩邊
+
+- 房間管理的測試 **branch：jay_dev**
+
+- rtp peerconnection 測試 **branch：dev_test**
+
+備註：在測試 rtp peerconnection 的測試，因為會遇到有關 docker 的問題，所以需要使用 windows 來在本地跑程式碼。
+
+基本上就是照著官方的方式，然後在 npm install 之前執行 **call "D:\Visual Studio\VC\Auxiliary\Build\vcvars64.bat"**
+
+## Problem
 
 ## Web mediasoupclient
 
